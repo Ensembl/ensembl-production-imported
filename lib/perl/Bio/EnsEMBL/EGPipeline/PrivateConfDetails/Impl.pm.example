@@ -1,0 +1,92 @@
+=head1 LICENSE
+
+See the NOTICE file distributed with this work for additional information
+regarding copyright ownership.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=cut
+
+
+=pod
+
+=head1 NAME
+
+PrivateConfDetails::Impl
+
+=head1 DESCRIPTION
+
+EG specific private configuration details implementation example.
+
+=cut
+
+package Bio::EnsEMBL::EGPipeline::PrivateConfDetails::Impl;
+
+use strict;
+use warnings;
+
+our @EXPORT_OK = qw(CONFIG);
+use Exporter;
+our @ISA = qw(Exporter);
+
+our $CONFIG = {
+  # Bio::EnsEMBL::EGPipeline::PipeConfig::DNAFeatures_conf
+  REDAT_REPEATMASKER_LIBRARY_PATH => undef,
+
+  # Bio::EnsEMBL::EGPipeline::PipeConfig::RNAFeatures_conf
+  RFAM_VERSIONS_DIR => undef, # part, preciding "rfam_version"  
+
+  # Bio::EnsEMBL::EGPipeline::Common::RunnableDB::AnalysisRun
+  ENSEMBL_BINDIR => undef,
+  ENSEMBL_LIBDIR => undef,
+  ENSEMBL_DATADIR => undef,
+  ENSEMBL_WORKDIR => undef,
+
+  # Bio::EnsEMBL::EGPipeline::PipeConfig::RNAGenes_conf
+  ENSEMBL_ENA_IDENTIFIERS_DBNAME => undef,
+  ENSEMBL_ENA_IDENTIFIERS_HOST => undef,
+  ENSEMBL_ENA_IDENTIFIERS_PORT => undef,
+  ENSEMBL_ENA_IDENTIFIERS_USER => undef,
+
+  # Bio::EnsEMBL::EGPipeline::PipeConfig::ExonerateAlignment_conf
+  ENSEMBL_EXONERATE_SERVER_DIR => undef,
+
+  # Bio::EnsEMBL::EGPipeline::PipeConfig::ShortReadAlignment_conf
+  ENSEMBL_STAR_DIR => undef,
+
+  # Bio::EnsEMBL::EGPipeline::PipeConfig::BlastProtein_conf
+  #   local copy of ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase
+  ENSEMBL_UNIPROT_EBI_PATH => undef,
+
+  # Bio::EnsEMBL::EGPipeline::BlastAlignment::FetchRefSeq
+  #   local copy of ftp://ftp.ncbi.nlm.nih.gov/refseq/release
+  ENSEMBL_REFSEQ_EBI_PATH => undef,
+
+  # Bio::EnsEMBL::EGPipeline::PipeConfig::Xref_conf
+  #  UniParc and Uniprot production databases are for internal use only
+  #    and can not be accessed externally. Should be replaced with REST API calls.
+  ENSEMBL_LOCAL_UNIPARC_DB => undef,
+  ENSEMBL_REMOTE_UNIPARC_DB => undef,
+  ENSEMBL_REMOTE_UNIPPROT_DB => undef,
+
+  # Bio::EnsEMBL::EGPipeline::Xref::ImportUniParc
+  #   local copy of ftp://ftp.ebi.ac.uk/pub/contrib/uniparc/upidump.lis
+  ENSEMBL_UNIPARC_UPI_LIST => undef,
+
+  # Bio::EnsEMBL::Analysis::Config::General
+  ENSEMBL_EXT_BINDIR => undef,
+  ENSEMBL_EXT_LIBDIR => undef,
+
+};
+
+1;
