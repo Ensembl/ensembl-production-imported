@@ -60,7 +60,7 @@ sub default_options {
 
     # Cluster final library
     do_clustering       => 0,
-    cdhit_est_exe       => $self->check_exe_in_cellar('cd-hit/4.6.8/bin/cd-hit-est'),
+    cdhit_est_exe       => 'cd-hit-est',
     
     # Filtering
     do_filtering => 0,
