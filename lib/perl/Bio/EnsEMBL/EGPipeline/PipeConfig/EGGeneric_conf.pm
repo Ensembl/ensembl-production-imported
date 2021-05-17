@@ -77,7 +77,7 @@ sub default_options {
     linuxbrew_home  => $self->o('ENV', 'LINUXBREW_HOME'),
 
     # default LSF queueu name
-    queue_name =>  'standard',
+    queue_name =>  $self->private_conf('ENSEMBL_QUEUE_NAME'),
 
     # pipeline tag
     pipeline_tag => '',
