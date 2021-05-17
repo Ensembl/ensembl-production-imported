@@ -196,7 +196,7 @@ cmpress Rfam.cm
 
 # generate taxonomic levels
 perl ${ENS_ROOT_DIR}/ensembl-production-imported/scripts/rna_features/taxonomic_levels.pl \
-  $(${PROD_SERVER} details script)
+  $(${PROD_SERVER} details script) \
   -dbname 'ncbi_taxonomy' \
   -full_region_file Rfam.full_region \
   -rfamseq_file database_files/rfamseq.txt \
