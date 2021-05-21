@@ -58,6 +58,7 @@ sub default_options {
     
     # Download via SRA from NCBI if ENA fails (fallback)
     use_ncbi => 0,
+    sra_dir => undef,
     
     # Clean up temp files at the end (split bam etc.)
     clean_up      => 1,
@@ -76,9 +77,9 @@ sub default_options {
     ###########################################################################
     # PATHS
     # Path to trimmomatic binary and adapters folders
-    trimmomatic_bin => $self->o('trimmomatic_bin'),
-    trim_adapters_pe => $self->o('trimmomatic_pe'),
-    trim_adapters_se => $self->o('trimmomatic_se'),
+    trimmomatic_bin => undef,
+    trim_adapters_pe => undef,
+    trim_adapters_se => undef,
     
     # Path to hisat2 binaries
     hisat2_dir    => undef,
