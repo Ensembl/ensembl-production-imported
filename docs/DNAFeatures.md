@@ -1,5 +1,5 @@
 ## DNAFeatures
-### Module: [Bio::EnsEMBL::EGPipeline::PipeConfig::DNAFeatures_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/DNAFeatures_conf.pm)
+### Module: [Bio::EnsEMBL::EGPipeline::PipeConfig::DNAFeatures_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/DNAFeatures_conf.pm)
 
 The DNA Features pipeline runs three programs to annotate repeat features: RepeatMasker (repeatmask), DustMasker (dust), and TRF (trf).
 
@@ -51,7 +51,7 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | `-trf` | 1 | run TRF(trf); 0 -- not to run
 | `-repeatmasker` | 1 | run RepeatMasker (repeatmask); 0 -- not to run.
 | `-redatrepeatmasker` | 0 | use plant-specific library of DNA repeats [REdat](https://pgsb.helmholtz-muenchen.de/plant/recat/); 1 -- to run
-| `-redat_repeatmasker_library` | [REDAT_REPEATMASKER_LIBRARY_PATH](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | path to REdat library, to be used with `-redatrepeatmasker 1`
+| `-redat_repeatmasker_library` | [REDAT_REPEATMASKER_LIBRARY_PATH](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | path to REdat library, to be used with `-redatrepeatmasker 1`
 | `-repeatmasker_library` | custom RepeatMasker libraries; several are allowed, of the form `-repeatmasker_library ${SPECIES_NAME_1}=/path/to/lib/file`
 | `-repeatmasker_logic_name` | | use custom (pre-existing!) logic name instead of `repeatmask_customlib` when `-repeatmasker_library` is used (see notes below).
 | `-always_use_repbase` | 0 | 1 -- to always run default (RepBase one) `repeatmasker`, even if custom `-repeatmasker_library` specifed (see notes below)
@@ -147,7 +147,7 @@ To force a particular sensitivity level across all species, use 'all' instead of
 ```
 
 ### Parts
-A few generic from [Common::RunnableDB](docs/Common_RunnableDB.md).
+A few generic from [Common::RunnableDB](../docs/Common_RunnableDB.md).
 
-A few from [DNAFeatures](lib/perl/Bio/EnsEMBL/EGPipeline/DNAFeatures/).
+A few from [DNAFeatures](../lib/perl/Bio/EnsEMBL/EGPipeline/DNAFeatures/).
 

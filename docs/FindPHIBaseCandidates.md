@@ -1,5 +1,5 @@
 ## FindPHIBaseCandidates
-### [Bio::EnsEMBL::EGPipeline::PipeConfig::FindPHIBaseCandidates_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/FindPHIBaseCandidates_conf.pm)
+### [Bio::EnsEMBL::EGPipeline::PipeConfig::FindPHIBaseCandidates_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/FindPHIBaseCandidates_conf.pm)
 
 Adding pathogen-host interactions data from [PHI-base](http://www.phi-base.org) as xrefs to fungal, oomycete and bacterial pathogen genes
 
@@ -71,7 +71,7 @@ wget -c https://github.com/PHI-base/data/raw/master/releases/phi-base_current.cs
   > phi_base.filtered.csv
 ```
 
-3. Normalise ontology terms, using [phi_ontology/phi-base_ontologies.pl](scripts/phi_ontology/phi-base_ontologies.pl) script and ontology maps within [phi_ontology](scripts/phi_ontology) dir.
+3. Normalise ontology terms, using [phi_ontology/phi-base_ontologies.pl](../scripts/phi_ontology/phi-base_ontologies.pl) script and ontology maps within [phi_ontology](../scripts/phi_ontology) dir.
 
 ```
 PHIBO_DIR=${ENS_ROOT_DIR}/ensembl-production-imported/scripts/phi_ontology
@@ -93,7 +93,7 @@ Params:
 
 If the script can't solve all the entries in the file,
  it outputs the list of terms 
-that need to be added to the dictionaries in [phi_ontology](scripts/phi_ontology) dir.
+that need to be added to the dictionaries in [phi_ontology](../scripts/phi_ontology) dir.
 
 There are few things to be aware of when running this script:
  * The sript replaces the `input_file` with the normalized version. Please, have a copy if you need one.
@@ -104,7 +104,7 @@ There are few things to be aware of when running this script:
 
 
 ### Parts
-A few generic from [Common::RunnableDB](docs/Common_RunnableDB.md).
+A few generic from [Common::RunnableDB](../docs/Common_RunnableDB.md).
 
-A few from [PHIBase](lib/perl/Bio/EnsEMBL/EGPipeline/PHIBase).
+A few from [PHIBase](../lib/perl/Bio/EnsEMBL/EGPipeline/PHIBase).
 

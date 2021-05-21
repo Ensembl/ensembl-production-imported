@@ -1,6 +1,6 @@
 ## RepeatModeler
 
-### Module: [Bio::EnsEMBL::EGPipeline::PipeConfig::RepeatModeler_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RepeatModeler_conf.pm)
+### Module: [Bio::EnsEMBL::EGPipeline::PipeConfig::RepeatModeler_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RepeatModeler_conf.pm)
 
 Pipeline for building de-novo repeat libraries using [`RepeatModeler`](https://www.repeatmasker.org/RepeatModeler/) utility.
 
@@ -44,8 +44,8 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | `-min_slice_length` | 5000 | ignore scaffolds that are shorter then this value
 | `-max_seq_length` | 10_000_000 | maximum length for a single scaffold, scaffolds will be splitted if exciding this value
 | `-max_seqs_per_file` | 10_000 | maximum number of scaffolds to be processed in a chnuck (by a single RepeatModeler) instance
-| `-do_clustering` | 0 | deal with redundancy of the final library, using [`CDHit-EST`](http://weizhongli-lab.org/cd-hit/) [clustering](lib/perl/Bio/EnsEMBL/EGPipeline/DNAFeatures/ClusterRepeatLib.pm)
-| `-do_filtering` | 0 | remove repeat models that are found in CDSs ([details](lib/perl/Bio/EnsEMBL/EGPipeline/DNAFeatures/FilterCustomLib.pm))
+| `-do_clustering` | 0 | deal with redundancy of the final library, using [`CDHit-EST`](http://weizhongli-lab.org/cd-hit/) [clustering](../lib/perl/Bio/EnsEMBL/EGPipeline/DNAFeatures/ClusterRepeatLib.pm)
+| `-do_filtering` | 0 | remove repeat models that are found in CDSs ([details](../lib/perl/Bio/EnsEMBL/EGPipeline/DNAFeatures/FilterCustomLib.pm))
 | `-repeatmodeler_dir` | | Path to the directory containing the RepeatModeler executables  
 | `-blast_engine` | ncbi | which BLAST program to use; options are 'ncbi' or 'wublast' 
 
@@ -58,7 +58,7 @@ There is likely to be some redundancy here, particularly for large genomes that 
 Use `-do_clustering 1` to deal with the library redundancy.
 
 ### Parts
-A few generic from [Common::RunnableDB](docs/Common_RunnableDB.md).
+A few generic from [Common::RunnableDB](../docs/Common_RunnableDB.md).
 
-A few from [DNAFeatures](lib/perl/Bio/EnsEMBL/EGPipeline/DNAFeatures/).
+A few from [DNAFeatures](../lib/perl/Bio/EnsEMBL/EGPipeline/DNAFeatures/).
 

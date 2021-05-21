@@ -1,5 +1,5 @@
 ## RNAFeatures
-### Module [Bio::EnsEMBL::EGPipeline::PipeConfig::RNAFeatures_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm)
+### Module [Bio::EnsEMBL::EGPipeline::PipeConfig::RNAFeatures_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm)
 
 The RNA features pipeline aligns RNA covariance models against a genome.
 By default it runs cmscan with the latest Rfam covariance models, tRNAscan for tRNA, and loads miRNA genes from miRBase.
@@ -52,7 +52,7 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | `-cmscan_logic_name ${SPECIES}\|_all_=` | all=cmscan_custom |  Set custom logic name; default can be overidden on a per-species basis (several options), or by using `all=` -- for all species
 | `-cmscan_db_name ${SPECIES}\|_all_=${ALT_DB_NAME}` | `all=Rfam` | use `external_db` (pre-existinf in prod db) to associate alignments with
 | `-cmscan_cpu` | 3 | Number of cores to be use by `cmscan` (sets LSF's `-n` option)
-| `-cmscan_heuristics` | default | sets trade-off between sensitivity and run-time; can be one of `slowest`, `slower`, `slow`, `default`, `faster`, `fastest`, `rfam_official` (recommended for bacteria runs) (see [Bio::EnsEMBL::Analysis::Runnable::CMScan](lib/perl/Bio/EnsEMBL/Analysis/Runnable/CMScan.pm) and [cmscan man](https://manpages.ubuntu.com/manpages/xenial/man1/cmscan.1.html) for mappings
+| `-cmscan_heuristics` | default | sets trade-off between sensitivity and run-time; can be one of `slowest`, `slower`, `slow`, `default`, `faster`, `fastest`, `rfam_official` (recommended for bacteria runs) (see [Bio::EnsEMBL::Analysis::Runnable::CMScan](../lib/perl/Bio/EnsEMBL/Analysis/Runnable/CMScan.pm) and [cmscan man](https://manpages.ubuntu.com/manpages/xenial/man1/cmscan.1.html) for mappings
 | `-cmscan_threshold` | 0.001 | E-value threshold for reporting alignments
 | `-taxonomic_filtering` | 1 | Enable taxonomic filtering of Rfam models (see below for details); 0 -- to disable
 | `-taxonomic_threshold` |  0.02 | (fraction 0 to 1; effective when `-taxonomic_filtering 1`) Only allow Rfam model if ratio of number of species within the devision taxonomic level (or `-taxonomic_levels` parameter) to the total number of species associated with this model is higher than threshold
@@ -65,8 +65,8 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | `-max_hive_capacity` | 50 | The default hive capacity (i.e. the maximum number of concurrent workers) (no enforced upper limit, but above 150 you might run into problems with locking or database connections).
 | `-cmscan_exe` | `cmscan` |  Path to the cmscan executable file.
 | `-cmscan_parameters` | | Parameters that are passed directly to the cmscan executable
-| `-rfam_version` | [RFAM_VERSION](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | set `rfam_version` to be included into default `-rfam_dir` value (see [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm))
-| `-rfam_dir` | [RFAM_VERSIONS_DIR](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example)/`${rfam_version}` | path to directory containing Rfam files
+| `-rfam_version` | [RFAM_VERSION](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | set `rfam_version` to be included into default `-rfam_dir` value (see [RNAFeatures_conf.pm](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm))
+| `-rfam_dir` | [RFAM_VERSIONS_DIR](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example)/`${rfam_version}` | path to directory containing Rfam files
 | `-rfam_cm_file` | `${rfam_dir}/Rfam.cm` | Path to the Rfam CM file
 | `-rfam_logic_name` | `cmscan_rfam_${rfam_version}` | Logic name for the Rfam analysis
 | `-rfam_db_name` | `RFAM` | external_db name of the Rfam record
@@ -77,7 +77,7 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | `-trnascan_parameters` | | parameters passed to the trnascan executable
 | `-mirbase_logic_name` | `mirbase` | logic name for the the miRBase analysis
 | `-mirbase_db_name` | `miRBase` | external_db name of the miRBase
-| `-mirbase_version` | see [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) | version of miRBase files
+| `-mirbase_version` | see [RNAFeatures_conf.pm](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) | version of miRBase files
 | `-pipeline_name` | `rna_features_${ENS_VERSION}` | The hive database name will be `${USER}_${pipeline_name}`
 | `-production_lookup` | 1 |  Fetch analysis display name, description and web data from the production database; 0 -- to disable
 
@@ -112,16 +112,16 @@ Thus the pipeline can be run twice, with and without LCA filtering, to get two s
 
 #### Customised taxonomic filtering
 More control over the taxonomic filtering can be achived using the
-[scripts/rna_features/taxonomic_levels.pl](scripts/rna_features/taxonomic_levels.pl) script (see below).
+[scripts/rna_features/taxonomic_levels.pl](../scripts/rna_features/taxonomic_levels.pl) script (see below).
 
 
 #### Blacklisting and whitelisting Rfam models
 
 Some inappropriate models may slip past the taxonomic filtering.
-For the current blacklist see `rfam_blacklist` definition in [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm).
+For the current blacklist see `rfam_blacklist` definition in [RNAFeatures_conf.pm](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm).
 
 Sometimes we might want to always use a model that is excluded by the default taxonomic filtering.
-For the current whitelist see `rfam_whitelist` definition in [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm).
+For the current whitelist see `rfam_whitelist` definition in [RNAFeatures_conf.pm](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm).
 
 
 #### Running the pipeline on collections (Bacteria,Fungi, Protists)
@@ -162,12 +162,12 @@ Additionaly a file for use with customised taxonomic filters can be generated.
 
 N.B. This should be done only once for the release.
 
-* [scripts/rna_features/add_rfam_desc.pl](scripts/rna_features/add_rfam_desc.pl) is used to add model descritions (reported by `cmscan`) into the file with the Rfam covariance models (`Rfam.cm`). Usage instructions are given at the top of the script. Sample usage is shown below.
+* [scripts/rna_features/add_rfam_desc.pl](../scripts/rna_features/add_rfam_desc.pl) is used to add model descritions (reported by `cmscan`) into the file with the Rfam covariance models (`Rfam.cm`). Usage instructions are given at the top of the script. Sample usage is shown below.
 
-* [scripts/rna_features/taxonomic_levels.pl](scripts/rna_features/taxonomic_levels.pl) is used to extract data about the species that have sequences aligned for each Rfam model, cross-references with the ncbi_taxonomy database to get counts of each species (or subspecies) at the level of division and store this information into a single file. Usage instructions are given at the top of the script. Sample use cases areshown below.
+* [scripts/rna_features/taxonomic_levels.pl](../scripts/rna_features/taxonomic_levels.pl) is used to extract data about the species that have sequences aligned for each Rfam model, cross-references with the ncbi_taxonomy database to get counts of each species (or subspecies) at the level of division and store this information into a single file. Usage instructions are given at the top of the script. Sample use cases areshown below.
 
 Here's an example of a typical setup process:
-(don't forget to get/edit/add [RFAM_VERSIONS_DIR](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) )
+(don't forget to get/edit/add [RFAM_VERSIONS_DIR](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) )
 
 ```
 # initialize with proper values
@@ -236,7 +236,7 @@ gzip "${RFAM_DIR}/Rfam.full_region"
 ```
 
 Now you can update `RFAM_VERSION` in
-[PrivateConfDetails::Impl](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example)
+[PrivateConfDetails::Impl](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example)
 
 
 #### Custom taxonomic filters preparation
@@ -260,7 +260,7 @@ This custom filter can be passed to init command using `-rfam_taxonomy_file` (an
 
 
 ### Parts
-A few generic from [Common::RunnableDB](docs/Common_RunnableDB.md).
+A few generic from [Common::RunnableDB](../docs/Common_RunnableDB.md).
 
-A few from [RNAFeatures](lib/perl/Bio/EnsEMBL/EGPipeline/RNAFeatures/).
+A few from [RNAFeatures](../lib/perl/Bio/EnsEMBL/EGPipeline/RNAFeatures/).
 

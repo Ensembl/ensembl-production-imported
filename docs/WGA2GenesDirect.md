@@ -1,5 +1,5 @@
 ## WGA2GenesDirect 
-### [Bio::EnsEMBL::EGPipeline::PipeConfig::WGA2GenesDirect_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/WGA2GenesDirect_conf.pm)
+### [Bio::EnsEMBL::EGPipeline::PipeConfig::WGA2GenesDirect_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/WGA2GenesDirect_conf.pm)
 
 Project transripts and create genes based on compara lastz mappings
 
