@@ -1,5 +1,5 @@
 ## Xref_GPR
-### Module [Bio::EnsEMBL::EGPipeline::PipeConfig::Xref_GPR_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/Xref_GPR_conf.pm)
+### Module [Bio::EnsEMBL::EGPipeline::PipeConfig::Xref_GPR_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/Xref_GPR_conf.pm)
 
 Adding [metabolic reaction annotations from the [Gramene Plant Reactome](https://plantreactome.gramene.org) project to plant genes as xrefs 
 
@@ -85,7 +85,7 @@ allow usage of uppercase gene stable IDs for mapping (i.e. for _Oryza sativa_ (r
 3. Make sure you have a proper `analysis_description` entry in you database(s).
 
 ### Parts
-A few generic from [Common::RunnableDB](docs/Common_RunnableDB.md).
+A few generic from [Common::RunnableDB](../docs/Common_RunnableDB.md).
 
-A few from [Xref](lib/perl/Bio/EnsEMBL/EGPipeline/Xref/).
+A few from [Xref](../lib/perl/Bio/EnsEMBL/EGPipeline/Xref/).
 

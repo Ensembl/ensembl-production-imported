@@ -1,6 +1,6 @@
 ## EGGeneric
 
-### Module: [Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/EGGeneric_conf.pm).
+### Module: [Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/EGGeneric_conf.pm).
 
 This is a `EGPipeline`'s base class, used as a generic configuration by the other pipelines.
 Contains predefined resource classes and a few options shared by other pipelines.

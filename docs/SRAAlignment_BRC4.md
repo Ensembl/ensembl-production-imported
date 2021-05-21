@@ -1,5 +1,5 @@
 ## SRAAlignment_BRC4 
-### Module [Bio::EnsEMBL::EGPipeline::PipeConfig::SRAAlignment_BRC4_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/SRAAlignment_BRC4_conf.pm)
+### Module [Bio::EnsEMBL::EGPipeline::PipeConfig::SRAAlignment_BRC4_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/SRAAlignment_BRC4_conf.pm)
 
 Perform RNA(DNA) short read aligments
 
@@ -51,9 +51,9 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 
 
 ### Parts
-A few generic from [Common::RunnableDB](docs/Common_RunnableDB.md).
+A few generic from [Common::RunnableDB](../docs/Common_RunnableDB.md).
 
-A few from [EnsEMBL::ENA::SRA](lib/perl/Bio/EnsEMBL/ENA/SRA/).
+A few from [EnsEMBL::ENA::SRA](../lib/perl/Bio/EnsEMBL/ENA/SRA/).
 
-A few from [BRC4Aligner](lib/perl/Bio/EnsEMBL/EGPipeline/BRC4Aligner/).
+A few from [BRC4Aligner](../lib/perl/Bio/EnsEMBL/EGPipeline/BRC4Aligner/).
 

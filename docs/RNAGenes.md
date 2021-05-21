@@ -1,8 +1,8 @@
 ## RNAGenes
-#### Module [Bio::EnsEMBL::EGPipeline::PipeConfig::RNAGenes_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAGenes_conf.pm)
+#### Module [Bio::EnsEMBL::EGPipeline::PipeConfig::RNAGenes_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAGenes_conf.pm)
 
 This pipeline annotates RNA genes based on Rfam alignments, tRNAscan predictions, and miRBase data.
-A subset of the alignments produced by the [RNAFeatures_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) ([doc](docs/RNAFeatures.md)),
+A subset of the alignments produced by the [RNAFeatures_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) ([doc](../docs/RNAFeatures.md)),
 with strict taxonomic filtering, is used as a requisite.
 
 
@@ -60,13 +60,13 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | `-mirbase_target_logic_name` | `mirbase_gene` | `logic_name` for the genes to be created
 | `-trnascan_source_logic_name` | `trnascan_align` | `logic_name` of the source alignments (already existing in the DB)
 | `-trnascan_target_logic_name` | `trnascan_gene` | `logic_name` for the genes to be created
-| `-rfam_version` | [RFAM_VERSION](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | set `rfam_version` to be included into default `-cmscan_source_logic_name` and `-cmscan_target_logic_name` values
+| `-rfam_version` | [RFAM_VERSION](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | set `rfam_version` to be included into default `-cmscan_source_logic_name` and `-cmscan_target_logic_name` values
 | `-cmscan_source_logic_name` | `cmscan_rfam_${rfam_version}_lca` | `logic_name` of the source alignments (default `_lca` assumes strict taxonomic filtering was used)
 | `-cmscan_target_logic_name` | `rfam_${rfam_version}_gene` | `logic_name` for the genes to be created
-| `-id_db_host` | [ENSEMBL_ENA_IDENTIFIERS_HOST](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
-| `-id_db_port` | [ENSEMBL_ENA_IDENTIFIERS_PORT](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
-| `-id_db_user` | [ENSEMBL_ENA_IDENTIFIERS_USER](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
-| `-id_db_dbname` | [ENSEMBL_ENA_IDENTIFIERS_DBNAME](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
+| `-id_db_host` | [ENSEMBL_ENA_IDENTIFIERS_HOST](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
+| `-id_db_port` | [ENSEMBL_ENA_IDENTIFIERS_PORT](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
+| `-id_db_user` | [ENSEMBL_ENA_IDENTIFIERS_USER](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
+| `-id_db_dbname` | [ENSEMBL_ENA_IDENTIFIERS_DBNAME](../lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
 | `-id_db_pass` | | connection details for the stable IDs DB
 | `-pipeline_tag` |  | Tag to append to the  default `-pipeline_name`
 | `-pipeline_name` | `rna_genes_${ENS_VERSION}_<pipeline_tag>` | The hive database name will be `${USER}_${pipeline_name}`
@@ -76,7 +76,7 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 ### Notes
 
 #### Filtering
-The taxonomic filtering itself, if enabled, for the [RNAFeatures_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) ([doc](docs/RNAFeatures.md)), removes many false positives.
+The taxonomic filtering itself, if enabled, for the [RNAFeatures_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) ([doc](../docs/RNAFeatures.md)), removes many false positives.
 This pipeline assumes that RNA gene creation is conservative,
 and expects the taxonomic filtering be based on shared ancestry (rather than at the level of divisions).
 
@@ -118,7 +118,7 @@ There's an option to preserve stable IDs between releases and reruns runs using 
 
 
 ### Parts
-A few generic from [Common::RunnableDB](docs/Common_RunnableDB.md).
+A few generic from [Common::RunnableDB](../docs/Common_RunnableDB.md).
 
-A few from [RNAFeatures](lib/perl/Bio/EnsEMBL/EGPipeline/RNAFeatures/).
+A few from [RNAFeatures](../lib/perl/Bio/EnsEMBL/EGPipeline/RNAFeatures/).
 
