@@ -171,7 +171,7 @@ Here's an example of a typical setup process:
 
 ```
 # initialize with proper values
-RFAM_VERSION=14.2
+RFAM_VERSION=14.5
 RFAM_VERSION_DIR=... # dir to store Rfam data in
 
 ENS_ROOT_DIR=... # dir with Ensembl repos
@@ -186,6 +186,12 @@ lftp -e 'mirror database_files; mget README Rfam.full_region.gz Rfam.clanin Rfam
   ftp://ftp.ebi.ac.uk/pub/databases/Rfam/CURRENT
 
 gunzip Rfam.cm.gz Rfam.full_region.gz database_files/family.txt.gz database_files/rfamseq.txt.gz
+
+# source production environment settings if you have any
+source $ENS_ROOT_DIR/setup.sh
+
+# for the sake of it
+md5sum Rfam.cm
 
 # patch Rfam with family info
 perl ${ENS_ROOT_DIR}/ensembl-production-imported/scripts/rna_features/add_rfam_desc.pl \
@@ -219,15 +225,18 @@ pushd database_files
     xargs -n 1 -I XXX \
       ${CMD_W} -D ${RFAM_DB} -e 'set foreign_key_checks = 0; load data local infile "XXX.txt" into table XXX; set foreign_key_checks = 1;'
 
-  # gzip *txt # if you need to preserve raw data
+  gzip *txt # if you need to preserve raw data
 popd
 
+gzip "${RFAM_DIR}/Rfam.full_region"
+
 # drop raw (useless) data
-rm "${RFAM_DIR}/Rfam.full_region"
-rm -rf "${RFAM_DIR}/database_files"  # if you don't need raw data
+# rm "${RFAM_DIR}/Rfam.full_region.gz"
+# rm -rf "${RFAM_DIR}/database_files"  # if you don't need raw data
 ```
 
-Now you can update `rfam_version` in [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm).
+Now you can update `RFAM_VERSION` in
+[PrivateConfDetails::Impl](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example)
 
 
 #### Custom taxonomic filters preparation
