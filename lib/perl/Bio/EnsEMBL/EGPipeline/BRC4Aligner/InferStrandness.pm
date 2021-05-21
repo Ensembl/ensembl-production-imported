@@ -216,9 +216,14 @@ sub parse_inference {
   my $aligned = (1 - $stats{failed});
   my $max = $aligned * 0.85; # Anything above 85% is considered stranded
   my $min_ambiguous = 0.65;
+  my $max_failed = 0.25;
+  
+  # Too much failed: can't infer strandness
+  if ($stats{failed} > $max_failed) {
+    $strandness = '';
 
   # Stranded forward
-  if ($stats{ forward } > $min_ambiguous) {
+  } elsif ($stats{ forward } > $min_ambiguous) {
     $strandness = $is_paired ? 'FR' : 'F';
     
     # Not enough power to infer: use input
