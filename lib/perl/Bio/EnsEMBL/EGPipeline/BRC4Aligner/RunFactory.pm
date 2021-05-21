@@ -35,6 +35,7 @@ sub param_defaults {
   return {
     'tax_id_restrict' => 0,
     'check_library' => 1,
+    'default_direction' => 'reverse',
   };
 }
 
@@ -52,6 +53,7 @@ sub run {
   my $datasets_file = $self->param('datasets_file');
   my $organism = $self->param('organism');
   my $results_dir = $self->param('results_dir');
+  my $default_direction = $self->param('default_direction');
 
   print "Get datasets for $organism from $datasets_file\n";
   my $datasets = $self->get_datasets($datasets_file, $organism);
@@ -89,7 +91,7 @@ sub run {
         if ($sample->{strandDirection}) {
           $sample_data{input_strand_direction} = $sample->{strandDirection};
         } else {
-          $self->throw("Input data is stranded, but no direction is given!");
+          $sample_data{input_strand_direction} = $default_direction;
         }
         
         if ($sample_data{input_is_paired}) {
