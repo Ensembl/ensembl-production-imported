@@ -63,7 +63,7 @@ sub default_options {
     run_context => 'eg',
     
     # Analysis settings
-    rfam_version             => '14.2',
+    rfam_version        => $self->private_conf('RFAM_VERSION'),
     cmscan_source_logic_name => 'cmscan_rfam_'.$self->o('rfam_version').'_lca',
     cmscan_target_logic_name => 'rfam_'.$self->o('rfam_version').'_gene',
     cmscan_analysis_module   => 'Bio::EnsEMBL::EGPipeline::RNAFeatures::CreateCmscanGenes',

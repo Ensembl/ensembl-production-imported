@@ -54,7 +54,7 @@ use Bio::EnsEMBL::EGPipeline::PrivateConfDetails;
   BIN_DIR  => private_conf('ENSEMBL_EXT_BINDIR'),
   LIB_DIR  => private_conf('ENSEMBL_EXT_LIBDIR'),
   DATA_DIR => private_conf('ENSEMBL_DATADIR'),
-  ANALYSIS_WORK_DIR => '/tmp',
+  ANALYSIS_WORK_DIR => private_conf('ENSEMBL_TMPDIR'),
   CORE_VERBOSITY    => 'WARNING',
   LOGGER_VERBOSITY  => 0,
 );

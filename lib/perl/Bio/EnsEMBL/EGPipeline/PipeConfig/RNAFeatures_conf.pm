@@ -102,7 +102,7 @@ sub default_options {
     # nonetheless inappropriate. (An alternative is to ratchet up the strictness
     # of the taxonomic filter, but you may then start excluding appropriate
     # models...)
-    rfam_version        => '14.2',
+    rfam_version        => $self->private_conf('RFAM_VERSION'),
     rfam_dir            => catdir($self->private_conf('RFAM_VERSIONS_DIR'), $self->o('rfam_version')),
     rfam_cm_file        => catdir($self->o('rfam_dir'), 'Rfam.cm'),
     rfam_logic_name     => 'cmscan_rfam_'.$self->o('rfam_version'),

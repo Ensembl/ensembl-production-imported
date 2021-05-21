@@ -84,7 +84,8 @@ sub default_options {
     fasta2esd_exe        => catdir($self->o('exonerate_2_4_dir'), 'fasta2esd'),
     esd2esi_exe          => catdir($self->o('exonerate_2_4_dir'), 'esd2esi'),
     server_exe           => catdir($self->o('exonerate_2_4_dir'), 'exonerate-server'),
-    log_file             => '/tmp/exonerate-server.'.$self->o('ENV', 'USER').'.out',
+    tmp_dir              => $self->private_conf('ENSEMBL_TMPDIR') || '/tmp',
+    log_file             => $self->o('tmp_dir') . '/exonerate-server.'.$self->o('ENV', 'USER').'.out',
 
     reformat_header => 1,
     trim_est        => 1,
