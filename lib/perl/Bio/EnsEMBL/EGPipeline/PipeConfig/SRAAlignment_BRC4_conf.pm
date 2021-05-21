@@ -67,6 +67,7 @@ sub default_options {
     # (do nothing otherwise)
     redo_htseqcount => 0,
     features => ['exon', 'CDS'],
+    alignments_dir => undef,
     
     # Use input metadata, instead of inferring them (pair/strand)
     infer_metadata => 1,
@@ -446,6 +447,7 @@ sub pipeline_analyses {
       },
     },
 
+    # HTseq recount path
     {
       -logic_name        => 'GenesCheckForRedo',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::GenesCheck',
@@ -453,22 +455,22 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        2 => {"ReadMetadata" => INPUT_PLUS() },
+        2 => { "SyncAlignmentFiles" => INPUT_PLUS() },
       },
     },
 
     {
-      -logic_name        => 'Merge_fastq',
-      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::MergeFastq',
-      -parameters        => {
-        work_dir => '#species_work_dir#',
+      -logic_name        => 'SyncAlignmentFiles',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SyncAlignmentFiles',
+      -analysis_capacity => 4,
+      -max_retry_count   => 0,
+      -rc_name           => 'datamove',
+      -parameters => {
+        alignments_dir => $self->o('alignments_dir'),
       },
-      -analysis_capacity => 1,
-      -max_retry_count => 0,
-      -rc_name           => 'normal',
       -flow_into         => {
-        2 => { "PreAlignment" => INPUT_PLUS() },
-      }
+        2 => "ReadMetadata",
+      },
     },
 
     {
@@ -510,6 +512,21 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -analysis_capacity => 25,
       -max_retry_count => 0,
+    },
+
+    # Normal alignment path
+    {
+      -logic_name        => 'Merge_fastq',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::MergeFastq',
+      -parameters        => {
+        work_dir => '#species_work_dir#',
+      },
+      -analysis_capacity => 1,
+      -max_retry_count => 0,
+      -rc_name           => 'normal',
+      -flow_into         => {
+        2 => { "PreAlignment" => INPUT_PLUS() },
+      }
     },
 
     {
