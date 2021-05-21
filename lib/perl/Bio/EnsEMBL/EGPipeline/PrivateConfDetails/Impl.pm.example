@@ -42,6 +42,7 @@ our @ISA = qw(Exporter);
 our $CONFIG = {
   # Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf
   ENSEMBL_QUEUE_NAME => undef,
+  ENSEMBL_DATAMOVE_QUEUE_NAME => undef,
 
   # Bio::EnsEMBL::EGPipeline::PipeConfig::DNAFeatures_conf
   REDAT_REPEATMASKER_LIBRARY_PATH => undef,
