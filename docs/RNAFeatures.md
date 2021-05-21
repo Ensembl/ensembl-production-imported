@@ -176,6 +176,9 @@ RFAM_VERSION_DIR=... # dir to store Rfam data in
 
 ENS_ROOT_DIR=... # dir with Ensembl repos
 
+PROD_SERVER=... # server alias (RO) to get 'ncbi_taxonomy' DB from
+CMD_W=... # server alias (RW) to store Rfam DB clone
+
 # get data
 RFAM_DIR=${RFAM_VERSION_DIR}/${RFAM_VERSION}
 
