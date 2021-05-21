@@ -78,6 +78,7 @@ sub default_options {
 
     # default LSF queueu name
     queue_name =>  $self->private_conf('ENSEMBL_QUEUE_NAME'),
+    datamove_queue_name =>  $self->private_conf('ENSEMBL_DATAMOVE_QUEUE_NAME'),
 
     # pipeline tag
     pipeline_tag => '',
@@ -94,6 +95,7 @@ Description: Interface method that should return a hash of
 sub resource_classes {
   my ($self) = @_;
   return {
+    'datamove'          => {'LSF' => '-q ' . $self->o('datamove_queue_name')},
     'default'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
     'normal'            => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
     '2Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  2000 -R "rusage[mem=2000]"'},
