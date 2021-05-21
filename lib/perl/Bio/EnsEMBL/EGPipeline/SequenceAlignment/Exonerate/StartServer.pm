@@ -28,7 +28,8 @@ sub param_defaults {
   
   return {
     %{$self->SUPER::param_defaults},
-    'log_file'        => '/tmp/exonerate-server.out',
+    'tmp_dir'         => $self->private_conf('ENSEMBL_TMPDIR') || '/tmp',
+    'log_file'        => $self->o('tmp_dir') . '/exonerate-server.out',
     'max_connections' => 10,
   };
 }

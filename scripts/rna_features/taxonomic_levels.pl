@@ -120,7 +120,7 @@ my $count_type = $count_seqs ? 'Sequences' : 'Taxa';
 if (-e $rfam2taxonomy_file) {
   print STDERR "Mapping file '$rfam2taxonomy_file' exists, so won't be regenerated.\n";
 } else {
-  $tmp_dir = '/tmp'   unless $tmp_dir;
+  $tmp_dir = (exists $ENV{TMPDIR} && $ENV{TMPDIR} || '/tmp') unless $tmp_dir;
   make_path($tmp_dir) unless -e $tmp_dir;
   
   my $rfam2rfamseq_file = catdir($tmp_dir, 'rfam2rfamseq.txt');

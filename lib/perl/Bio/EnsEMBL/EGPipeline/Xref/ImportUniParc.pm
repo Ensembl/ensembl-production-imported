@@ -51,7 +51,7 @@ sub param_defaults {
   my ($self) = @_;
   return {
     'ftp_file' => $self->private_conf('ENSEMBL_UNIPARC_UPI_LIST'),
-    'tmp_dir'  => '/tmp',
+    'tmp_dir'  => $self->private_conf('ENSEMBL_TMPDIR') || '/tmp',
   };
 }
 
