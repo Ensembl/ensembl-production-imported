@@ -66,6 +66,7 @@ sub default_options {
     # If there is already an alignment for a sample, redo its htseq-count only
     # (do nothing otherwise)
     redo_htseqcount => 0,
+    features => ['exon', 'CDS'],
     
     # Use input metadata, instead of inferring them (pair/strand)
     infer_metadata => 1,
@@ -497,8 +498,8 @@ sub pipeline_analyses {
       -logic_name        => 'SRASeqFileFromENA',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SRASeqFile',
       -analysis_capacity => 4,
-      -max_retry_count => 2,
-      -can_be_empty      => 1,
+      -max_retry_count => 3,
+      -failed_job_tolerance => 10,
       -parameters        => {
         work_dir => '#species_work_dir#',
         use_ncbi => $self->o('use_ncbi'),
@@ -817,6 +818,7 @@ sub pipeline_analyses {
       -parameters        => {
         bam_file => '#sorted_bam_file#',
         is_paired => "#input_is_paired#",
+        features => $self->o('features'),
       },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
