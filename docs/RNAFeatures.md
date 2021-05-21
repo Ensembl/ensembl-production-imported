@@ -65,7 +65,7 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | `-max_hive_capacity` | 50 | The default hive capacity (i.e. the maximum number of concurrent workers) (no enforced upper limit, but above 150 you might run into problems with locking or database connections).
 | `-cmscan_exe` | `cmscan` |  Path to the cmscan executable file.
 | `-cmscan_parameters` | | Parameters that are passed directly to the cmscan executable
-| `-rfam_version` | see [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) | set `rfam_version` to be included into default `-rfam_dir` value (see [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm))
+| `-rfam_version` | [RFAM_VERSION](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | set `rfam_version` to be included into default `-rfam_dir` value (see [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm))
 | `-rfam_dir` | [RFAM_VERSIONS_DIR](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example)/`${rfam_version}` | path to directory containing Rfam files
 | `-rfam_cm_file` | `${rfam_dir}/Rfam.cm` | Path to the Rfam CM file
 | `-rfam_logic_name` | `cmscan_rfam_${rfam_version}` | Logic name for the Rfam analysis

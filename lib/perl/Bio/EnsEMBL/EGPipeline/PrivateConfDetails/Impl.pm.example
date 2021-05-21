@@ -47,6 +47,7 @@ our $CONFIG = {
   REDAT_REPEATMASKER_LIBRARY_PATH => undef,
 
   # Bio::EnsEMBL::EGPipeline::PipeConfig::RNAFeatures_conf
+  RFAM_VERSION => undef, # Rfam DB version, i.e. '14.5' 
   RFAM_VERSIONS_DIR => undef, # part, preciding "rfam_version"  
 
   # Bio::EnsEMBL::EGPipeline::Common::RunnableDB::AnalysisRun
@@ -54,6 +55,7 @@ our $CONFIG = {
   ENSEMBL_LIBDIR => undef,
   ENSEMBL_DATADIR => undef,
   ENSEMBL_WORKDIR => undef,
+  ENSEMBL_TMPDIR => undef,
 
   # Bio::EnsEMBL::EGPipeline::PipeConfig::RNAGenes_conf
   ENSEMBL_ENA_IDENTIFIERS_DBNAME => undef,

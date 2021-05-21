@@ -60,8 +60,9 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | `-mirbase_target_logic_name` | `mirbase_gene` | `logic_name` for the genes to be created
 | `-trnascan_source_logic_name` | `trnascan_align` | `logic_name` of the source alignments (already existing in the DB)
 | `-trnascan_target_logic_name` | `trnascan_gene` | `logic_name` for the genes to be created
-| `-cmscan_source_logic_name` | `cmscan_rfam_${rfam_version}_lca` | `logic_name` of the source alignments (default `_lca` assumes strict taxonomic filtering was used); for `rfam_version` see [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) and [RNAGenes_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAGenes_conf.pm)
-| `-cmscan_target_logic_name` | `rfam_${rfam_version}_gene` | `logic_name` for the genes to be created; for `rfam_version` see [RNAFeatures_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAFeatures_conf.pm) and [RNAGenes_conf.pm](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/RNAGenes_conf.pm) 
+| `-rfam_version` | [RFAM_VERSION](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | set `rfam_version` to be included into default `-cmscan_source_logic_name` and `-cmscan_target_logic_name` values
+| `-cmscan_source_logic_name` | `cmscan_rfam_${rfam_version}_lca` | `logic_name` of the source alignments (default `_lca` assumes strict taxonomic filtering was used)
+| `-cmscan_target_logic_name` | `rfam_${rfam_version}_gene` | `logic_name` for the genes to be created
 | `-id_db_host` | [ENSEMBL_ENA_IDENTIFIERS_HOST](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
 | `-id_db_port` | [ENSEMBL_ENA_IDENTIFIERS_PORT](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
 | `-id_db_user` | [ENSEMBL_ENA_IDENTIFIERS_USER](lib/perl/Bio/EnsEMBL/EGPipeline/PrivateConfDetails/Impl.pm.example) | connection details for the stable IDs DB
