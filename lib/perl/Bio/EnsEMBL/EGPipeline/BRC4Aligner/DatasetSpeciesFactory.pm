@@ -34,6 +34,7 @@ sub run {
   my $ma = $dba->get_adaptor('MetaContainer');
   my ($organism) = @{ $ma->list_value_by_key("BRC4.organism_abbrev") };
   my ($component) = @{ $ma->list_value_by_key("BRC4.component") };
+  $dba->dbc->disconnect_if_idle();
   
   # Slurp json
   my $json;
