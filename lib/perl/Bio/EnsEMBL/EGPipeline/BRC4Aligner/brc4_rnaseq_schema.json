@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "$id": "https://.../.../meta/schemas/v0.0.0/brc4_rnaseq_schema.json",
+  "description" : "JSON schema for exchanging meta information for RNA-Seq",
+
+  "type" : "array",
+  "items" : { "$ref" : "#/definitions/dataset_info" },
+
+  "definitions" : {
+    "dataset_info": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "component" : { "type" : "string" },
+        "species" : { "type" : "string" },
+        "name" : { "type" : "string" },
+
+        "runs" : {
+          "type" : "array",
+          "items" :  { "$ref" : "#/definitions/sample_info" }
+        }
+      },
+      "required": [
+        "component",
+        "species",
+        "name",
+        "runs"
+        ]
+    },
+    "sample_info": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accessions" : {
+          "type" : "array",
+          "items" : { "type" : "string" },
+          "description" : "List of SRA accessions"
+        },
+        "name" : { "type" : "string", "pattern" : "^[A-Za-z0-9_\\.-]+$" },
+        "isStrandSpecific" : { "type" : "boolean" },
+        "strandDirection" : { "type" : "string" },
+        "hasPairedEnds" : { "type" : "boolean" },
+        "trim_reads" : { "type" : "boolean" }
+      },
+      "required": [
+        "accessions"
+      ]
+    }
+  },
+
+    "examples": [
+    { "taxonomy_id": 180454 }
+  ]
+}
+
