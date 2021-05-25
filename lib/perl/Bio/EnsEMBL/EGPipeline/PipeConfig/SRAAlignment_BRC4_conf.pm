@@ -27,7 +27,12 @@ use base ('Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf');
 use Bio::EnsEMBL::Hive::PipeConfig::HiveGeneric_conf;
 use Bio::EnsEMBL::Hive::Version 2.5;
 
-use File::Spec::Functions qw(catdir);
+use File::Spec::Functions qw(catdir catfile);
+
+use File::Basename;
+use Class::Inspector;
+my $package_path = Class::Inspector->loaded_filename(__PACKAGE__);
+my $package_dir = dirname($package_path);
 
 sub default_options {
   my ($self) = @_;
@@ -42,6 +47,7 @@ sub default_options {
     # INPUT
     # Datasets to align
     datasets_file => $self->o('datasets_file'),
+    datasets_json_schema => catfile($package_dir, '../BRC4Aligner/brc4_rnaseq_schema.json'),
 
     # Species factory
     species => [],
@@ -161,10 +167,25 @@ sub pipeline_analyses {
       -logic_name => 'Start',
       -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
       -input_ids  => [{}],
+      -rc_name    => 'normal',
+      -meadow_type       => 'LSF',
+      -analysis_capacity => 1,
+      -flow_into  => { 1 => 'Check_schema' },
+    },
+
+    {
+      -logic_name => 'Check_schema',
+      -module     => 'ensembl.pipeline.json.schema_validator',
+      -language     => 'python3',
+      -parameters => {
+        json_file => $self->o('datasets_file'),
+        json_schema => $self->o('datasets_json_schema'),
+      },
       -flow_into  => {
         '1->A' => 'Species_factory',
         'A->1' => 'Email_report',
       },
+      -max_retry_count => 0,
       -rc_name    => 'normal',
       -meadow_type       => 'LSF',
       -analysis_capacity => 1,
