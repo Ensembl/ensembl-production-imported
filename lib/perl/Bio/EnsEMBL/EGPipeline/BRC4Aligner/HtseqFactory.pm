@@ -25,25 +25,48 @@ use base ('Bio::EnsEMBL::EGPipeline::Common::RunnableDB::Base');
 
 use Path::Tiny qw(path);
 
+sub param_defaults {
+  my ($self) = @_;
+  
+  return {
+    # Features on which to count the reads
+    features => ['exon'],
+  };
+}
+
 sub write_output {
   my ($self) = @_;
 
   my $bam = $self->param_required('bam_file');
   my $is_stranded = $self->param_required('is_stranded');
+  my $features = $self->param_required('features');
 
   my @strands = qw(firststrand secondstrand);
   my @numbers = qw(unique total);
   my @cases;
-  # We need htseq-count for:
-  if ($is_stranded) {
-    for my $number (@numbers) {
-      for my $strand (@strands) {
-        push @cases, { bam_file => $bam, strand => $strand, number => $number };
+  
+  for my $feature (@$features) {
+    # We need htseq-count for:
+    if ($is_stranded) {
+      for my $number (@numbers) {
+        for my $strand (@strands) {
+          push @cases, {
+            bam_file => $bam,
+            strand => $strand,
+            number => $number,
+            feature => $feature,
+          };
+        }
       }
-    }
-  } else {
-    for my $number (@numbers) {
-      push @cases, { bam_file => $bam, strand => 'unstranded', number => $number };
+    } else {
+      for my $number (@numbers) {
+        push @cases, {
+          bam_file => $bam,
+          strand => 'unstranded',
+          number => $number,
+          feature => $feature,
+        };
+      }
     }
   }
 

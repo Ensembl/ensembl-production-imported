@@ -35,6 +35,7 @@ sub param_defaults {
   return {
     'tax_id_restrict' => 0,
     'check_library' => 1,
+    'default_direction' => 'reverse',
   };
 }
 
@@ -52,6 +53,7 @@ sub run {
   my $datasets_file = $self->param('datasets_file');
   my $organism = $self->param('organism');
   my $results_dir = $self->param('results_dir');
+  my $default_direction = $self->param('default_direction');
 
   print "Get datasets for $organism from $datasets_file\n";
   my $datasets = $self->get_datasets($datasets_file, $organism);
@@ -72,9 +74,13 @@ sub run {
       (my $sorted_bam_file = $sample_bam_file) =~ s/\.bam/_name.bam/;
       (my $sample_sam_file = $sample_bam_file) =~ s/\.bam/.sam/;
 
+      my $metadata_file = catdir($sample_dir, "metadata.json");
+
       my @run_ids = $self->runs_from_sra_ids($sample->{accessions});
 
       my %sample_data = (
+        component => $dataset->{component},
+        organism => $dataset->{organism},
         study_name => $dataset->{name},
         input_is_paired => $sample->{hasPairedEnds} ? 1 : 0,
         input_is_stranded => $sample->{isStrandSpecific} ? 1 : 0,
@@ -84,12 +90,13 @@ sub run {
         sample_bam_file => $sample_bam_file,
         sample_sam_file => $sample_sam_file,
         sorted_bam_file => $sorted_bam_file,
+        metadata_file => $metadata_file,
       );
       if ($sample_data{input_is_stranded}) {
         if ($sample->{strandDirection}) {
           $sample_data{input_strand_direction} = $sample->{strandDirection};
         } else {
-          $self->throw("Input data is stranded, but no direction is given!");
+          $sample_data{input_strand_direction} = $default_direction;
         }
         
         if ($sample_data{input_is_paired}) {
@@ -107,14 +114,11 @@ sub run {
         }
       }
       
-      # Don't remake an existing file
-      # We check against the name sorted file which is the only bam file that should remain
-      if (-s $sorted_bam_file) {
-        $self->dataflow_output_id(\%sample_data, 3);
+      # In all cases, output the runs metadata (useful for htseq-count)
+      $self->dataflow_output_id(\%sample_data, 3);
       
-      # Otherwise:  get the run data
-      } else {
-        # Runs data
+      # Don't remake an existing file
+      if (not -s $sorted_bam_file) {
         for my $run_id (@run_ids) {
           my %run_data = (
             run_id => $run_id,

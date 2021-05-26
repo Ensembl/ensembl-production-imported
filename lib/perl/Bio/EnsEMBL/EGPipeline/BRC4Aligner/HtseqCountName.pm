@@ -28,6 +28,15 @@ use Path::Tiny qw(path);
 use File::Basename qw(dirname);
 use File::Spec::Functions qw(catfile);
 
+sub param_defaults {
+  my ($self) = @_;
+  
+  return {
+    # Features on which to count the read
+    features => 'exon',
+  };
+}
+
 sub run {
   my ($self) = @_;
 
@@ -38,13 +47,15 @@ sub run {
   my $strand = $self->param_required('strand');
   my $number = $self->param_required('number');
   my $strand_direction = $self->param('strand_direction');
+  my $feature = $self->param('feature');
 
   my $results_dir = dirname($bam);
 
-  my $htseq_file = 'genes.htseq-union.' . $strand;
+  my $htseq_file = 'genes.htseq-union.' . $feature . '.' . $strand;
   if ($number eq 'total') {
     $htseq_file .= '.nonunique';
   }
+  #$htseq_file .= '.' . $feature;
   $htseq_file .= '.counts';
 
   $htseq_file = catfile($results_dir, $htseq_file);
@@ -77,7 +88,11 @@ sub run {
   } else {
     $stranded_flag = "--stranded=no";
   }
-  my $params = "$number_flag $stranded_flag";
+  my $feature_flag;
+  if ($feature) {
+    $feature_flag = "--type=$feature";
+  }
+  my $params = "$number_flag $stranded_flag $feature_flag";
 
   # Run
   my $cmd = $self->run_htseq_count($bam, $gtf, $htseq_file, $params);
@@ -124,7 +139,7 @@ sub run_htseq_count {
 
   my $order = $by_pos ? '--order=pos' : '--order=name';
 
-  my $base_cmd = "htseq-count -a 0 --format=bam --type=exon --idattr=gene_id --mode=union -q";
+  my $base_cmd = "htseq-count -a 0 --format=bam --idattr=gene_id --mode=union -q";
   my $cmd = "$base_cmd $order $params $bam $gtf > $htseq_file";
   my ($stdout, $stderr, $exit) = capture {
     system($cmd);

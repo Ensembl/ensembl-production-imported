@@ -29,13 +29,14 @@ use File::Path qw(make_path);
 use File::Spec::Functions qw(catdir);
 use IO::Zlib;
 use Try::Tiny;
+use Digest::MD5;
 
 sub param_defaults {
   my ($self) = @_;
   
   return {
-    # Check the files downloaded: thorough but takes a long time
-    'check_fastq'  => 0,
+    # Check the files downloaded (checksum)
+    'check_fastq'  => 1,
   };
 }
 
@@ -158,9 +159,8 @@ sub retrieve_files {
       my $reuse_file = 0;
       if (-s $seq_file and not -s $fastq_dl) {
         # Check the file first
-        my $seq_count = $self->check_file($seq_file);
-        $counts{$seq_file} = $seq_count;
-        if (not $seq_count) {
+        my $checksum_ok = $self->check_file($seq_file, $file->{md5});
+        if (not $checksum_ok) {
           print STDERR "Current file $seq_file is corrupted.\n";
           $reuse_file = 0;
         } else {
@@ -178,12 +178,11 @@ sub retrieve_files {
         $file->retrieve($work_dir);
 
         # Check downloaded file
-        my $seq_count = $self->check_file($fastq_dl);
-        if (not $seq_count) {
+        my $checksum_ok = $self->check_file($fastq_dl, $file->{md5});
+        if (not $checksum_ok) {
           $self->throw("Downloaded file $fastq_dl is corrupted.\n");
         } else {
           rename $fastq_dl, $seq_file;
-          $counts{$seq_file} = $seq_count;
         }
         
         if (not -s $seq_file) {
@@ -195,57 +194,27 @@ sub retrieve_files {
     }
   }
 
-  # Check for files corruption
-  if ($new_files) {
-    if ($paired) {
-      my $reads1 = $counts{$seq_file_1};
-      my $reads2 = $counts{$seq_file_2};
-      
-      die("File $seq_file_1 is likely corrupted") if not $reads1;
-      die("File $seq_file_2 is likely corrupted") if not $reads2;
-      die("Files $seq_file_1 and $seq_file_2 have different read count: $reads1 vs $reads2") if $reads1 != $reads2;
-    } else {
-      my $reads = $counts{$seq_file_1};
-      die("File $seq_file_1 is likely corrupted") if not $reads;
-    }
-  }
-  
   return ($seq_file_1, $seq_file_2, $sam_file);
 }
 
 sub check_file {
-  my ($self, $path) = @_;
+  my ($self, $path, $md5) = @_;
   
   return 1 unless $self->param('check_fastq');
   
   print STDERR "Checking file $path...\n";
   
-  # Check that all reads are whole, and return a count
-  # If it is not whole, return undef
+  open my $fileh, "<", $path or die("Couldn't read: $!");
   
-  my $read_count = 0;
-  my $whole_count = 0;
+  my $ctx = Digest::MD5->new;
+  $ctx->addfile($fileh);
   
-  my $fh = IO::Zlib->new($path, "rb");
-  if ($fh) {
-    while (my $read = readline $fh) {
-      # Read lines 4 by 4
-      my $seq = readline $fh;
-      my $strand = readline $fh;
-      my $quality = readline $fh;
-      if ($read =~ /^@/ and $seq and $quality and length($seq) == length($quality)) {
-        $whole_count++;
-      }
-      $read_count++;
-    }
-    $fh->close;
-  }
+  my $dl_md5 = $ctx->hexdigest();
   
-  if ($read_count == $whole_count) {
-    return $read_count;
-  } else {
-    return;
-  }
+  print STDERR "Expected md5:   $md5\n";
+  print STDERR "calculated md5: $dl_md5\n";
+  
+  return $dl_md5 eq $md5;
 }
 
 1;

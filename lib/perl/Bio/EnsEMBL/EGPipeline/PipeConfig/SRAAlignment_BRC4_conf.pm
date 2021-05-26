@@ -27,7 +27,12 @@ use base ('Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf');
 use Bio::EnsEMBL::Hive::PipeConfig::HiveGeneric_conf;
 use Bio::EnsEMBL::Hive::Version 2.5;
 
-use File::Spec::Functions qw(catdir);
+use File::Spec::Functions qw(catdir catfile);
+
+use File::Basename;
+use Class::Inspector;
+my $package_path = Class::Inspector->loaded_filename(__PACKAGE__);
+my $package_dir = dirname($package_path);
 
 sub default_options {
   my ($self) = @_;
@@ -42,6 +47,7 @@ sub default_options {
     # INPUT
     # Datasets to align
     datasets_file => $self->o('datasets_file'),
+    datasets_json_schema => catfile($package_dir, '../BRC4Aligner/brc4_rnaseq_schema.json'),
 
     # Species factory
     species => [],
@@ -58,6 +64,7 @@ sub default_options {
     
     # Download via SRA from NCBI if ENA fails (fallback)
     use_ncbi => 0,
+    sra_dir => undef,
     
     # Clean up temp files at the end (split bam etc.)
     clean_up      => 1,
@@ -65,6 +72,8 @@ sub default_options {
     # If there is already an alignment for a sample, redo its htseq-count only
     # (do nothing otherwise)
     redo_htseqcount => 0,
+    features => ['exon', 'CDS'],
+    alignments_dir => undef,
     
     # Use input metadata, instead of inferring them (pair/strand)
     infer_metadata => 1,
@@ -76,9 +85,9 @@ sub default_options {
     ###########################################################################
     # PATHS
     # Path to trimmomatic binary and adapters folders
-    trimmomatic_bin => $self->o('trimmomatic_bin'),
-    trim_adapters_pe => $self->o('trimmomatic_pe'),
-    trim_adapters_se => $self->o('trimmomatic_se'),
+    trimmomatic_bin => undef,
+    trim_adapters_pe => undef,
+    trim_adapters_se => undef,
     
     # Path to hisat2 binaries
     hisat2_dir    => undef,
@@ -158,10 +167,25 @@ sub pipeline_analyses {
       -logic_name => 'Start',
       -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
       -input_ids  => [{}],
+      -rc_name    => 'normal',
+      -meadow_type       => 'LSF',
+      -analysis_capacity => 1,
+      -flow_into  => { 1 => 'Check_schema' },
+    },
+
+    {
+      -logic_name => 'Check_schema',
+      -module     => 'ensembl.pipeline.json.schema_validator',
+      -language     => 'python3',
+      -parameters => {
+        json_file => $self->o('datasets_file'),
+        json_schema => $self->o('datasets_json_schema'),
+      },
       -flow_into  => {
         '1->A' => 'Species_factory',
         'A->1' => 'Email_report',
       },
+      -max_retry_count => 0,
       -rc_name    => 'normal',
       -meadow_type       => 'LSF',
       -analysis_capacity => 1,
@@ -193,6 +217,7 @@ sub pipeline_analyses {
       -rc_name    => 'normal',
       -meadow_type       => 'LSF',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
     },
 
     {
@@ -206,6 +231,7 @@ sub pipeline_analyses {
                             },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
     },
 
     {
@@ -218,6 +244,7 @@ sub pipeline_analyses {
                             },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
     },
 
     # Prepare genome
@@ -231,6 +258,7 @@ sub pipeline_analyses {
         pipeline_dir => $self->o('pipeline_dir'),
       },
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
         1 => { 'Genome_data_factory' => INPUT_PLUS() },
@@ -260,6 +288,7 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -flow_into         => 'Dump',
+      -max_retry_count => 0,
     },
 
     {
@@ -276,8 +305,8 @@ sub pipeline_analyses {
       -logic_name        => 'GenesCheck',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::GenesCheck',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -rc_name           => 'normal',
-      -analysis_capacity => 1,
       -flow_into         => {
         2 => [
           WHEN('not -s #genome_bed_file#', 'Dump_gff3'),
@@ -310,12 +339,14 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -flow_into         => 'gff3_to_bed',
+      -max_retry_count => 0,
     },
 
     {
       -logic_name        => 'gff3_to_bed',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::GFF3_to_bed',
       -rc_name           => 'normal',
+      -max_retry_count => 0,
       -parameters        => {
         gff_file          => '#genome_gff_file#',
         bed_file          => '#genome_bed_file#',
@@ -341,12 +372,14 @@ sub pipeline_analyses {
         cmd => 'mv "#out_file#" #genome_gtf_file#',
       },
       -rc_name           => 'normal',
+      -max_retry_count => 0,
     },
 
     {
       -logic_name        => 'Dump_genome',
       -module            => 'Bio::EnsEMBL::EGPipeline::Common::RunnableDB::DumpGenome',
       -analysis_capacity => 5,
+      -max_retry_count => 0,
       -batch_size        => 2,
       -parameters        => {
         genome_dir         => '#genome_dir#',
@@ -362,6 +395,7 @@ sub pipeline_analyses {
       -logic_name        => 'Index_genome',
       -module            => 'Bio::EnsEMBL::EGPipeline::Common::RunnableDB::IndexGenome',
       -analysis_capacity => 5,
+      -max_retry_count => 0,
       -batch_size        => 2,
       -parameters        => {
         aligner_class => $aligner_class,
@@ -382,6 +416,7 @@ sub pipeline_analyses {
       -logic_name        => 'Index_genome_HighMem',
       -module            => 'Bio::EnsEMBL::EGPipeline::Common::RunnableDB::IndexGenome',
       -analysis_capacity => 5,
+      -max_retry_count => 0,
       -batch_size        => 2,
       -can_be_empty      => 1,
       -parameters        => {
@@ -398,6 +433,7 @@ sub pipeline_analyses {
       -logic_name        => 'Sequences_lengths',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SequenceLengths',
       -analysis_capacity => 5,
+      -max_retry_count => 0,
       -batch_size        => 2,
       -can_be_empty      => 1,
       -parameters        => {
@@ -423,6 +459,7 @@ sub pipeline_analyses {
         check_library => 0,
       },
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
         '2->A' => WHEN("not #redo_htseqcount#", 'SRASeqFileFromENA'),
@@ -431,28 +468,30 @@ sub pipeline_analyses {
       },
     },
 
+    # HTseq recount path
     {
       -logic_name        => 'GenesCheckForRedo',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::GenesCheck',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -rc_name           => 'normal',
-      -analysis_capacity => 1,
       -flow_into         => {
-        2 => {"ReadMetadata" => INPUT_PLUS() },
+        2 => { "SyncAlignmentFiles" => INPUT_PLUS() },
       },
     },
 
     {
-      -logic_name        => 'Merge_fastq',
-      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::MergeFastq',
-      -parameters        => {
-        work_dir => '#species_work_dir#',
+      -logic_name        => 'SyncAlignmentFiles',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SyncAlignmentFiles',
+      -analysis_capacity => 4,
+      -max_retry_count   => 0,
+      -rc_name           => 'datamove',
+      -parameters => {
+        alignments_dir => $self->o('alignments_dir'),
       },
-      -analysis_capacity => 1,
-      -rc_name           => 'normal',
       -flow_into         => {
-        2 => { "PreAlignment" => INPUT_PLUS() },
-      }
+        2 => "ReadMetadata",
+      },
     },
 
     {
@@ -463,6 +502,7 @@ sub pipeline_analyses {
                             },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into         => {
         2 => { 'HtseqFactory_redo' => INPUT_PLUS() },
       },
@@ -473,9 +513,11 @@ sub pipeline_analyses {
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::HtseqFactory',
       -parameters        => {
         bam_file => '#sorted_bam_file#',
+        features => $self->o('features'),
       },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into         => {
         2 => { 'HtseqCount_redo' => INPUT_PLUS() },
       },
@@ -490,14 +532,30 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -analysis_capacity => 25,
+      -max_retry_count => 0,
+    },
+
+    # Normal alignment path
+    {
+      -logic_name        => 'Merge_fastq',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::MergeFastq',
+      -parameters        => {
+        work_dir => '#species_work_dir#',
+      },
+      -analysis_capacity => 1,
+      -max_retry_count => 0,
+      -rc_name           => 'normal',
+      -flow_into         => {
+        2 => { "PreAlignment" => INPUT_PLUS() },
+      }
     },
 
     {
       -logic_name        => 'SRASeqFileFromENA',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SRASeqFile',
       -analysis_capacity => 4,
-      -max_retry_count => 2,
-      -can_be_empty      => 1,
+      -max_retry_count => 3,
+      -failed_job_tolerance => 10,
       -parameters        => {
         work_dir => '#species_work_dir#',
         use_ncbi => $self->o('use_ncbi'),
@@ -580,8 +638,8 @@ sub pipeline_analyses {
       -logic_name        => 'CheckMetadata',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::GenesCheck',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -rc_name           => 'normal',
-      -analysis_capacity => 1,
       -flow_into         => {
         2 => WHEN("#infer_metadata#", { "SubsetSequence" => INPUT_PLUS() }, ELSE({ "UseInputMetadata" => INPUT_PLUS() })),
         3 => { "UseInputMetadata" => INPUT_PLUS() },
@@ -593,6 +651,7 @@ sub pipeline_analyses {
       -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into         => {
         '1' => { "AlignSequence" => {
             is_paired => "#input_is_paired#",
@@ -612,6 +671,7 @@ sub pipeline_analyses {
         seq_file_2     => '#sample_seq_file_2#',
       },
       -analysis_capacity => 50,
+      -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
         '1' => { 'AlignSubsetSequence' => INPUT_PLUS() },
@@ -622,6 +682,7 @@ sub pipeline_analyses {
       -logic_name        => 'AlignSubsetSequence',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::AlignSequence',
       -analysis_capacity => 50,
+      -max_retry_count => 0,
       -parameters        => {
         aligner_class  => $aligner_class,
         aligner_dir    => $aligner_dir,
@@ -653,6 +714,7 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -analysis_capacity => 50,
+      -max_retry_count => 0,
       -failed_job_tolerance => 50,
       -flow_into         => {
         '1' => 'AlignSequence',
@@ -665,6 +727,7 @@ sub pipeline_analyses {
       -logic_name        => 'AlignSequence',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::AlignSequence',
       -analysis_capacity => 50,
+      -max_retry_count => 0,
       -parameters        => {
         aligner_class  => $aligner_class,
         aligner_dir    => $aligner_dir,
@@ -688,6 +751,7 @@ sub pipeline_analyses {
       -logic_name        => 'AlignSequence_HighMem',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::AlignSequence',
       -analysis_capacity => 30,
+      -max_retry_count => 0,
       -can_be_empty      => 1,
       -parameters        => {
         aligner_class  => $aligner_class,
@@ -709,6 +773,7 @@ sub pipeline_analyses {
       -logic_name        => 'SamToBam',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SamToBam',
       -analysis_capacity => 30,
+      -max_retry_count => 0,
       -parameters        => {
         samtools_dir   => $self->o('samtools_dir'),
         memory         => $self->o('samtobam_memory'),
@@ -751,6 +816,7 @@ sub pipeline_analyses {
       },
       -rc_name           => '8Gb_mem',
       -analysis_capacity => 10,
+      -max_retry_count => 0,
       -flow_into         => {
         2 => 'DNASeq_BigWig',
         3 => '?accu_name=bam_stats&accu_address=[]',
@@ -765,6 +831,7 @@ sub pipeline_analyses {
       },
       -rc_name           => '16GB',
       -analysis_capacity => 10,
+      -max_retry_count => 0,
     },
 
     # RNA-Seq
@@ -780,6 +847,7 @@ sub pipeline_analyses {
       },
       -rc_name           => '16GB_multicpu',
       -analysis_capacity => 10,
+      -max_retry_count => 0,
       -flow_into         => ['MainBamStats', 'ExtractJunctions']
     },
 
@@ -792,6 +860,7 @@ sub pipeline_analyses {
       },
       -rc_name           => '8Gb_mem',
       -analysis_capacity => 10,
+      -max_retry_count => 0,
       -flow_into         => {
         2 => 'Split_unique',
         3 => '?accu_name=bam_stats&accu_address=[]',
@@ -808,6 +877,7 @@ sub pipeline_analyses {
       -flow_into         => WHEN("-s #genome_gtf_file#", "HtseqFactory"),
       -rc_name           => 'normal',
       -analysis_capacity => 25,
+      -max_retry_count => 0,
     },
 
     {
@@ -816,9 +886,11 @@ sub pipeline_analyses {
       -parameters        => {
         bam_file => '#sorted_bam_file#',
         is_paired => "#input_is_paired#",
+        features => $self->o('features'),
       },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into         => {
         2 => 'HtseqCount',
       },
@@ -833,6 +905,7 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -analysis_capacity => 25,
+      -max_retry_count => 0,
     },
 
     {
@@ -843,6 +916,7 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -analysis_capacity => 25,
+      -max_retry_count => 0,
       -flow_into         => {
         2 => { 'Split_strands' => INPUT_PLUS() },
       },
@@ -856,6 +930,7 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -analysis_capacity => 25,
+      -max_retry_count => 0,
       -flow_into         => {
         2 => 'BamStats',
       },
@@ -869,6 +944,7 @@ sub pipeline_analyses {
       },
       -rc_name           => '8Gb_mem',
       -analysis_capacity => 10,
+      -max_retry_count => 0,
       -flow_into         => {
         1 => { 'CreateBedGraph' => INPUT_PLUS() },
         3 => '?accu_name=bam_stats&accu_address=[]',
@@ -885,6 +961,7 @@ sub pipeline_analyses {
       -failed_job_tolerance => 100,
       -rc_name           => '8Gb_mem',
       -analysis_capacity => 25,
+      -max_retry_count => 0,
       -flow_into         => {
         -1 => 'CreateBedGraph_highmem',
       }
@@ -899,6 +976,7 @@ sub pipeline_analyses {
                             },
       -failed_job_tolerance => 100,
       -analysis_capacity => 5,
+      -max_retry_count => 0,
       -rc_name           => '16Gb_mem',
     },
   );
@@ -920,6 +998,7 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into         => 'WriteCmdFile',
     },
     {
@@ -931,6 +1010,7 @@ sub pipeline_analyses {
                             },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into         => 'WriteMetadata',
     },
     {
@@ -941,6 +1021,7 @@ sub pipeline_analyses {
                             },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into         => 'Cleanup',
     },
     {
@@ -952,6 +1033,7 @@ sub pipeline_analyses {
                             },
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into         => 'Report',
     },
     {
@@ -960,6 +1042,7 @@ sub pipeline_analyses {
       -parameters        => {},
       -rc_name           => 'normal',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
     },
   );
 
