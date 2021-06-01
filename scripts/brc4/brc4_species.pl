@@ -73,6 +73,7 @@ for my $sp (sort @$sps) {
   push @genomes, \%stats;
 }
 
+# Print all genomes metadata in order
 for my $genome (sort {
     $a->{'BRC4.component'} cmp $b->{'BRC4.component'}
       or $a->{'species.scientific_name'} cmp $b->{'species.scientific_name'}
@@ -96,12 +97,9 @@ sub usage {
     $help = "[ $error ]\n";
   }
   $help .= <<'EOF';
-    Show species metadata in a registry (especially for bRC4)
+    Create a list of all species metadata in BRC4 prod.
 
     --registry <path> : Ensembl registry
-
-    --species <str>   : production_name from core db
-    --organism <str>  : organism_abbrev from brc4
     
     --help            : show this help message
     --verbose         : show detailed progress
@@ -115,8 +113,6 @@ sub opt_check {
   my %opt = ();
   GetOptions(\%opt,
     "registry=s",
-    "species=s",
-    "organism=s",
     "help",
     "verbose",
     "debug",
