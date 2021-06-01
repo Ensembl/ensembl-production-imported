@@ -14,11 +14,12 @@ use Capture::Tiny ':all';
 use Bio::EnsEMBL::Registry;
 use Try::Tiny;
 
+# Ordered list of meta fields to use
 my @fields = qw(
 BRC4.component
-BRC4.organism_abbrev
 species.scientific_name
 species.strain
+BRC4.organism_abbrev
 assembly.accession
 );
 
