@@ -62,6 +62,13 @@ for my $sp (sort @$sps) {
             $skip = 1;
           }
         }
+        if ($opt{species}) {
+          if ($sp and $sp =~ /$opt{species}/) {
+            $skip = 0;
+          } else {
+            $skip = 1;
+          }
+        }
 
       };
       $core->dbc->disconnect_if_idle();
