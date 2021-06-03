@@ -71,8 +71,38 @@ def parse_dataset(issue):
     
     # Get samples/runs
     samples_str = get_custom_value(customs, "Sample Names")
+    try:
+        samples = parse_samples(samples_str)
+        dataset["runs"] = samples
+        return dataset
+    except Exception as e:
+        print("Errors: %s" % e)
+        return
 
-    return dataset
+def parse_samples(sample_str):
+    samples = []
+    
+    # Parse each line
+    lines = sample_str.split("\n")
+    for line in lines:
+        line = line.strip()
+        # Assuming only one :
+        parts = line.split(":")
+        if len(parts) == 2:
+            sample_name = parts[0].strip()
+            accessions_str = parts[1].strip()
+            accessions = [x.strip() for x in accessions_str.split(",")]
+            sample = {
+                    "name": sample_name,
+                    "accessions": accessions
+                    }
+            samples.append(sample)
+        elif len(parts) > 2:
+            raise Exception("More than two parts (sample name may have a ':' in it)")
+        else:
+            raise Exception("Sample line doesn't have 2 parts: '%s'" % line)
+    
+    return samples
 
 def get_custom_fields(issue):
     """
