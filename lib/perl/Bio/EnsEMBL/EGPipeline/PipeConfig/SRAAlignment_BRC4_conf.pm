@@ -138,8 +138,6 @@ sub pipeline_create_commands {
 
   return [
     @{$self->SUPER::pipeline_create_commands},
-    'mkdir -p '.$self->o('pipeline_dir'),
-    'mkdir -p '.$self->o('results_dir'),
     $self->db_cmd($align_cmds_table),
   ];
 }
@@ -164,14 +162,20 @@ sub pipeline_analyses {
 
   my @backbone = (
     {
-      -logic_name => 'Start',
-      -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -logic_name        => 'Init',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
+      -parameters => {
+        cmd => 'mkdir -p ' . $self->o('pipeline_dir') . "; " .
+               'mkdir -p ' . $self->o('results_dir'),
+      },
       -input_ids  => [{}],
-      -rc_name    => 'normal',
+      -rc_name           => 'normal',
       -meadow_type       => 'LSF',
       -analysis_capacity => 1,
+      -max_retry_count => 0,
       -flow_into  => { 1 => 'Check_schema' },
     },
+
 
     {
       -logic_name => 'Check_schema',
