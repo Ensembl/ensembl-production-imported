@@ -46,7 +46,7 @@ def retrieve_rnaseq_datasets(redmine, output_dir, build=None):
             dataset_file = output_dir + "/" + file_name
             print(dataset_file)
             f = open(dataset_file, "w")
-            json.dump(dataset, f, indent=True)
+            json.dump([dataset], f, indent=True)
             f.close()
         except Exception as error:
             print("Skipped issue %d (%s). %s." % (issue.id, issue.subject, error))
