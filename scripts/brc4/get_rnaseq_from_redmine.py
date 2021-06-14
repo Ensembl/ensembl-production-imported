@@ -5,6 +5,7 @@ import argparse
 import os, json, re, time
 import requests
 import xml.etree.ElementTree as ET
+from unidecode import unidecode
  
 url = 'https://redmine.apidb.org'
 default_fields = dict(
@@ -69,15 +70,46 @@ def parse_dataset(issue):
     dataset["species"] = get_custom_value(customs, "Organism Abbreviation")
     dataset["name"] = get_custom_value(customs, "Internal dataset name")
     
+    failed = False
+    if not dataset["species"]:
+        print("Missing Organism Abbreviation")
+        failed = True
+    if not dataset["name"]:
+        print("Missing Internal dataset name")
+        failed = True
+    else:
+        dataset["name"] = normalize_name(dataset["name"])
+    
     # Get samples/runs
     samples_str = get_custom_value(customs, "Sample Names")
     try:
         samples = parse_samples(samples_str)
+        
+        if not samples:
+            print("Missing Samples")
+            failed = True
+        
         dataset["runs"] = samples
         return dataset
     except Exception as e:
         print("Errors: %s" % e)
+        failed = True
+    
+    if not failed:
+        return dataset
+    else:
         return
+    
+def normalize_name(name):
+    """Remove special characters, keep ascii only"""
+    
+    # Remove any diacritics
+    name = name.strip()
+    name = unidecode(name)
+    name = re.sub(r"[ /]", "_", name)
+    name = re.sub(r"[;:.,()\[\]{}]", "", name)
+    
+    return name
 
 def parse_samples(sample_str):
     samples = []
@@ -86,6 +118,8 @@ def parse_samples(sample_str):
     lines = sample_str.split("\n")
     for line in lines:
         line = line.strip()
+        if line == "": continue
+
         # Assuming only one :
         parts = line.split(":")
         if len(parts) == 2:
@@ -93,7 +127,7 @@ def parse_samples(sample_str):
             accessions_str = parts[1].strip()
             accessions = [x.strip() for x in accessions_str.split(",")]
             sample = {
-                    "name": sample_name,
+                    "name": normalize_name(sample_name),
                     "accessions": accessions
                     }
             samples.append(sample)
