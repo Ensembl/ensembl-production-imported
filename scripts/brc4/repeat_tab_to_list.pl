@@ -21,6 +21,7 @@ use Carp;
 use autodie qw(:all);
 use Readonly;
 use Getopt::Long qw(:config no_ignore_case);
+use Capture::Tiny qw(capture);
 use Log::Log4perl qw( :easy );
 Log::Log4perl->easy_init($WARN);
 my $logger = get_logger();
@@ -32,8 +33,8 @@ use Bio::EnsEMBL::Registry;
 # Get command line args
 my %opt = %{ opt_check() };
 
-my $ref = get_references($opt{tab});
-my $map = get_ref_map($opt{ref_registry});
+my $tab = get_references($opt{tab});
+my $map = get_ref_map($opt{ref_registry}, $opt{verbose});
 
 my $registry = 'Bio::EnsEMBL::Registry';
 $registry->load_all($opt{registry}, 1);
@@ -53,8 +54,8 @@ for my $species (sort @$sps) {
   my ($db_gca) = @{ $meta->list_value_by_key("assembly.accession") };
 
   # We only need to consider the cores for the reference species
-  if (exists $ref->{$org}) {
-    my $ref_org = $ref->{$org};
+  if (exists $tab->{$org}) {
+    my $ref_org = $tab->{$org};
 
     if (exists $map->{$ref_org}) {
       my $ref_name = $map->{$ref_org};
@@ -63,7 +64,7 @@ for my $species (sort @$sps) {
       warn("No reference core genome found for $ref_org (reference for $org)\n");
     }
   } else {
-    warn("No reference found for $org\n");
+    warn("The organism $org is not in the tab file\n");
   }
   $meta->dbc->disconnect_if_idle();
 }
@@ -74,21 +75,31 @@ for my $map_ref (sort keys %new_map) {
 
 ###############################################################################
 sub get_ref_map {
-  my ($reg_path) = @_;
-
-  my $registry = 'Bio::EnsEMBL::Registry';
-  $registry->load_all($reg_path, 1);
+  my ($reg_path, $verbose) = @_;
 
   my %map;
-  my $sps = $registry->get_all_species();
-  for my $species (sort @$sps) {
-    my $meta = $registry->get_adaptor($species, 'core', 'MetaContainer');
-    if (not $meta) {
-      warn "Can't find meta for the core of $species";
-    }
+  my ($stdout, $stderr, $status) = capture {
+    my $registry = 'Bio::EnsEMBL::Registry';
+    $registry->load_all($reg_path, 1);
 
-    my ($org) = @{ $meta->list_value_by_key("brc4.organism_abbrev") };
-    $map{$org} = $species;
+    my $sps = $registry->get_all_species();
+    for my $species (sort @$sps) {
+      my $meta = $registry->get_adaptor($species, 'core', 'MetaContainer');
+      if (not $meta) {
+        warn "Can't find meta for the core of $species";
+      }
+
+      my ($org) = @{ $meta->list_value_by_key("brc4.organism_abbrev") };
+      $map{$org} = $species;
+    }
+  };
+  if ($stderr) {
+    if ($verbose) {
+      warn "Registry loading full log: $stderr\n";
+    } else {
+      my $nlines = scalar(split "\n", $stderr);
+      warn "The Registry loading sent errors ($nlines lines), usually just release differences (check with -v)\n";
+    }
   }
   return \%map;
 }
@@ -108,8 +119,12 @@ sub get_references {
     my %sp_data;
     @sp_data{@head} = @values;
 
-    next if not $sp_data{"INSDC Accession"};
-    $data{$sp_data{organismAbbrev}} = \%sp_data;
+    #    next if not $sp_data{"INSDC Accession"};
+    if (not ($sp_data{"organismAbbrev"})) {
+      warn("Missing organism_abbrev in: $line");
+    } else {
+      $data{$sp_data{organismAbbrev}} = \%sp_data;
+    }
   }
   close $tab_fh;
 
@@ -117,7 +132,10 @@ sub get_references {
   my %ref_data;
   for my $sp (keys %data) {
     my $ref_sp = $data{$sp}->{referenceStrainAbbrev};
-    if (not exists $data{$ref_sp}) {
+    if (not $ref_sp) {
+      warn("No reference species given for $sp");
+    }
+    elsif (not exists $data{$ref_sp}) {
       warn("The reference species ($ref_sp) for species $sp is not in the tab\n");
     }
     $ref_data{$sp} = $ref_sp;
