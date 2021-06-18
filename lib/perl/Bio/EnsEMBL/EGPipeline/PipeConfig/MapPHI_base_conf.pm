@@ -95,7 +95,6 @@ sub default_options {
     antitaxons   => [],
     run_all      => 0,
     meta_filters => {},
-        
     db_type => 'core',
     unique_rows => 1,
   };
@@ -126,7 +125,7 @@ sub pipeline_analyses {
   return [
     {
       -logic_name => 'inputfile',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.BasicRunnable',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.TestRunnable',
       -language   => 'python3',
       -input_ids  => [{
                        #seeding the pipeline from user provided value
@@ -149,6 +148,16 @@ sub hive_meta_table {
 sub resource_classes {
   my ($self) = @_;
   my $reg_requirement = '--reg_conf ' . $self->o('registry'); #pass registry on to the workers without needing to specify it with the beekeeper
+  return {
+    %{$self->SUPER::resource_classes},  # inherit 'default' from the parent class
+    'default'   => {'LSF' => ['-C0 -q ' . $self->o('queue_name') . ' -M 100   -R"select[mem>100]   rusage[mem=100]"',   $reg_requirement], 'LOCAL' => ['', $reg_requirement] },
+    '4Gb_job'   => {'LSF' => ['-C0 -q ' . $self->o('queue_name') . ' -M 4000  -R"select[mem>4000]  rusage[mem=4000]"',  $reg_requirement], 'LOCAL' => ['', $reg_requirement] },
+    '8Gb_job'   => {'LSF' => ['-C0 -q ' . $self->o('queue_name') . ' -M 8000  -R"select[mem>8000]  rusage[mem=8000]"',  $reg_requirement], 'LOCAL' => ['', $reg_requirement] },
+    '10Gb_job'  => {'LSF' => ['-C0 -q ' . $self->o('queue_name') . ' -M 10000 -R"select[mem>10000] rusage[mem=10000]"', $reg_requirement], 'LOCAL' => ['', $reg_requirement] },
+    '16Gb_job'  => {'LSF' => ['-C0 -q ' . $self->o('queue_name') . ' -M 16000 -R"select[mem>16000] rusage[mem=16000]"', $reg_requirement], 'LOCAL' => ['', $reg_requirement] },
+    '32Gb_job'  => {'LSF' => ['-C0 -q ' . $self->o('queue_name') . ' -M 32000 -R"select[mem>32000] rusage[mem=32000]"', $reg_requirement], 'LOCAL' => ['', $reg_requirement] },
+  };
+
 }
 
 1;
