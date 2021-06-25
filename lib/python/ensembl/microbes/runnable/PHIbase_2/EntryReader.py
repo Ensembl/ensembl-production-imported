@@ -30,10 +30,10 @@ class EntryReader(eHive.BaseRunnable):
 
     def fetch_input(self):
        self.warning("Fetch line!")
-       print("PHI_id line is", self.param_required('PHI_id'))
+       print("PHI_id", self.param_required('PHI_id'))
+       print("patho_uniprot_id", self.param_required('patho_uniprot_id'))
 
     def run(self):
         self.warning("EntryLine run")
 
-    def write_output(self):
-        self.warning("Write a line to the world !")
+    #def write_output(self):

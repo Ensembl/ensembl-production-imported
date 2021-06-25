@@ -43,8 +43,9 @@ class FileReader(eHive.BaseRunnable):
 
     def write_output(self):
         self.warning("Write to the world !")
-        print("entries_list is", self.param('entries_list'))
-        self.dataflow( {'entries_list': self.param('entries_list')}, 2)
+        entries_list = self.param('entries_list')
+        for entry in entries_list:
+            self.dataflow(entry, 2)
 
     def read_lines(self):
         self.warning("read_lines running")
