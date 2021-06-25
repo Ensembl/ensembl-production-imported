@@ -106,7 +106,7 @@ sub pipeline_wide_parameters {
   return {
      %{$self->SUPER::pipeline_wide_parameters},
 
-    'inputfile'             => $self->o('input_file'),
+    'inputfile'             => $self->o('inputfile'),
     # 'blast_db_directory'    => $self->o('blast_db_dir'),    
     # 'phi_release'           => $self->o('phi_release'),
     # '_division'             => $self->o('division'),
@@ -125,14 +125,27 @@ sub pipeline_analyses {
   return [
     {
       -logic_name => 'inputfile',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.TestRunnable',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.FileReader',
       -language   => 'python3',
       -input_ids  => [{
                        #seeding the pipeline from user provided value
-                       'inputfile' => $self->o('input_file'),
+                       'inputfile' => $self->o('inputfile'),
                      }],
+      -parameters => {
+		       delimiter => ',',
+		       column_names => 1,
+		       output_ids => '#output_ids#',
+		       inputfile => '#inputfile#',
+                      },
+      -flow_into    => {
+	                2 => { 'entryreader' => INPUT_PLUS() },
+		       },
     },
-
+    { 
+      -logic_name => 'entryreader',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.EntryReader',
+      -language   => 'python3',
+    },
   ];
 }
 

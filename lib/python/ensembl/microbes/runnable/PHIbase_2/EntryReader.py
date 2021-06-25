@@ -1,0 +1,39 @@
+
+# Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+# Copyright [2016-2021] EMBL-European Bioinformatics Institute
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#      http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# standaloneJob.pl eHive.examples.TestRunnable -language python3
+
+import os
+import subprocess
+import unittest
+
+import eHive
+
+class EntryReader(eHive.BaseRunnable):
+    """PHI-base entry line parser"""
+
+    def param_defaults(self):
+        return { }
+
+    def fetch_input(self):
+       self.warning("Fetch line!")
+       print("PHI_id line is", self.param_required('PHI_id'))
+
+    def run(self):
+        self.warning("EntryLine run")
+
+    def write_output(self):
+        self.warning("Write a line to the world !")
