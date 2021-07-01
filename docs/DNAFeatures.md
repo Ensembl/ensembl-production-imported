@@ -76,7 +76,9 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 
 #### Notes
 
-To add use plants specific *nrTEplants* libary, define `$NRPLANTSLIB` path and add this ooption to the init command:
+To add use plants specific *nrTEplants* library, 
+which can be obtained at https://github.com/Ensembl/plant-scripts/releases/tag/v0.3,
+define `$NRPLANTSLIB` path and add these options to the init command:
 ```
   -repeatmasker_library zea_mays=$NRPLANTSLIB \
   -repeatmasker_logic_name zea_mays=repeatmask_nrplants
