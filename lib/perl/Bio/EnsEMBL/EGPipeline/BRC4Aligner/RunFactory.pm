@@ -80,7 +80,7 @@ sub run {
 
       my %sample_data = (
         component => $dataset->{component},
-        organism => $dataset->{organism},
+        organism => $dataset->{species},
         study_name => $dataset->{name},
         input_is_paired => $sample->{hasPairedEnds} ? 1 : 0,
         input_is_stranded => $sample->{isStrandSpecific} ? 1 : 0,
