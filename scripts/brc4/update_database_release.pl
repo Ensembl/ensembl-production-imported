@@ -21,6 +21,8 @@ use DBI;
 # Get command line args
 my %opt = %{ opt_check() };
 
+my $update = $opt{update};
+
 my $release = software_version();
 die("Can't find the release of the current Perl API!") if not $release;
 my $ens_dir = $ENV{ENSEMBL_ROOT_DIR};
@@ -40,10 +42,13 @@ my $dbh = DBI->connect($connect_string, $opt{user}, $opt{pass}) or die("Can't co
 
 my $databases = get_databases($dbh);
 say scalar(@$databases) . " databases in $opt{host}";
-my @core_dbs = grep { $_ =~ /_core_/ } @$databases;
-my @var_dbs  = grep { $_ =~ /_variation_/ } @$databases;
+my @core_dbs = grep { $_ =~ /_core_\d+_\d+_\d+/ } @$databases;
+my @var_dbs  = grep { $_ =~ /_variation_\d+_\d+_\d+/ } @$databases;
 say scalar(@core_dbs) . " core databases";
 say scalar(@var_dbs) . " variation databases";
+
+update_dbs(\@core_dbs, $release, $core_sql_dir, $update);
+update_dbs(\@var_dbs,  $release, $var_sql_dir,  $update);
 
 ###############################################################################
 sub get_databases {
@@ -52,6 +57,51 @@ sub get_databases {
   my $db_array = $dbh->selectcol_arrayref("SHOW DATABASES;");
   
   return $db_array;
+}
+
+sub update_dbs {
+  my ($dbs, $cur_release, $sql_dir, $update) = @_;
+  
+  for my $db (@$dbs) {
+    try {
+      my $db_release = get_db_release($db);
+      next if not $db_release;
+
+      my ($db_name_release) = ($db =~ /_(\d+)_\d+$/);
+
+      if ($db_release != $db_name_release) {
+        warn("$db\tRelease version differs between db name and meta table: $db_release vs $db_name_release\n");
+        die;
+      }
+
+      if ($cur_release > $db_release) {
+        say STDERR "$db\tRelease is older than current: need updating from $db_release to $cur_release";
+      } elsif($cur_release == $db_release) {
+        say STDERR "$db\tUp to date";
+      } else {
+        say STDERR "$db\tRelease is newer than current: $db_release to $cur_release";
+      }
+      #lastA
+    } catch {
+      warn("Can't get release from db $db");
+      next;
+    };
+  }
+}
+
+sub get_db_release {
+  my ($db_name) = @_;
+  
+  my @connect_list = ("DBI:mysql:$db_name", "host=$opt{host}", "port=$opt{port}");
+  my $connect_string = join(";", @connect_list);
+  my $dbh = DBI->connect($connect_string, $opt{user}, $opt{pass}) or die("Can't connect to the server");
+  
+  my $col = $dbh->selectcol_arrayref("SELECT meta_value FROM meta WHERE meta_key='schema_version';");
+  my $db_release = $col->[0];
+  
+  $dbh->disconnect();
+  
+  return $db_release;
 }
 
 ###############################################################################
