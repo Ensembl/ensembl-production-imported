@@ -14,6 +14,7 @@ use Capture::Tiny ':all';
 use Bio::EnsEMBL::ApiVersion;
 use Try::Tiny;
 use File::Spec::Functions;
+use DBI;
 
 ###############################################################################
 # MAIN
@@ -33,7 +34,25 @@ die("Can't find core sql directory in $core_sql_dir") if not -e $core_sql_dir;
 die("Can't find variation sql directory in $var_sql_dir") if not -e $var_sql_dir;
 
 # Open server
-# TODO: get DBI connection
+my @connect_list = ("DBI:mysql:", "host=$opt{host}", "port=$opt{port}");
+my $connect_string = join(";", @connect_list);
+my $dbh = DBI->connect($connect_string, $opt{user}, $opt{pass}) or die("Can't connect to the server");
+
+my $databases = get_databases($dbh);
+say scalar(@$databases) . " databases in $opt{host}";
+my @core_dbs = grep { $_ =~ /_core_/ } @$databases;
+my @var_dbs  = grep { $_ =~ /_variation_/ } @$databases;
+say scalar(@core_dbs) . " core databases";
+say scalar(@var_dbs) . " variation databases";
+
+###############################################################################
+sub get_databases {
+  my ($dbh) = @_;
+  
+  my $db_array = $dbh->selectcol_arrayref("SHOW DATABASES;");
+  
+  return $db_array;
+}
 
 ###############################################################################
 # Parameters and usage
