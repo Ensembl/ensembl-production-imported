@@ -145,7 +145,15 @@ sub pipeline_analyses {
       -logic_name => 'entryreader',
       -module     => 'ensembl.microbes.runnable.PHIbase_2.EntryReader',
       -language   => 'python3',
+      -flow_into    => {
+                        2 => { 'dbwriter' => INPUT_PLUS() },
+                       },
     },
+    { 
+      -logic_name => 'dbwriter',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.DBwriter',
+      -language   => 'python3',
+    }
   ];
 }
 

@@ -19,23 +19,23 @@
 import os
 import subprocess
 import unittest
-
+import sqlalchemy as db
+import sqlalchemy_utils as db_utils
+import pymysql
 import eHive
 
-class EntryReader(eHive.BaseRunnable):
-    """PHI-base entry line parser"""
+class DBwriter(eHive.BaseRunnable):
+    """PHI-base entry writer to mysql DB"""
 
     def param_defaults(self):
         return { }
 
     def fetch_input(self):
-       self.warning("Fetch line!")
+       self.warning("Fetch dbWriter!")
        print("PHI_id", self.param_required('PHI_id'))
        print("patho_uniprot_id", self.param_required('patho_uniprot_id'))
 
     def run(self):
-        self.warning("EntryLine run")
+        self.warning("DBWriter run")
 
-    def write_output(self):
-       phi_id = self.param('PHI_id')
-       self.dataflow({"PHI_id": phi_id,}, 2)
+    #def write_output(self):
