@@ -19,7 +19,7 @@ use DBI;
 ###############################################################################
 # MAIN
 # Get command line args
-my %opt = %{ opt_check() };
+our %opt = %{ opt_check() };
 
 my $update = $opt{update};
 
@@ -75,11 +75,12 @@ sub update_dbs {
       }
 
       if ($cur_release > $db_release) {
-        say STDERR "$db\tRelease is older than current: need updating from $db_release to $cur_release";
+        say STDERR "$db\tRelease is older than current: need updating from $db_release to $cur_release" if $opt{v};
+        update_db($db, $cur_release, $update);
       } elsif($cur_release == $db_release) {
-        say STDERR "$db\tUp to date";
+        say STDERR "$db\tUp to date" if $opt{v};
       } else {
-        say STDERR "$db\tRelease is newer than current: $db_release to $cur_release";
+        say STDERR "$db\tRelease is newer than current: $db_release to $cur_release" if $opt{v};
       }
       #lastA
     } catch {
@@ -102,6 +103,19 @@ sub get_db_release {
   $dbh->disconnect();
   
   return $db_release;
+}
+
+sub update_db {
+  my ($db, $cur_release, $update) = @_;
+  
+  my $new_db = $db;
+  $new_db =~ s/_(core|variation)_(\d+)_(\d+)_(\d+)$/_$1_$2_${cur_release}_$4/;
+  
+  my $remove_prefix = 1;
+  if ($remove_prefix) {
+    $new_db =~ s/^[^_]+_//;
+  }
+  say "Rename $db to $new_db";
 }
 
 ###############################################################################
