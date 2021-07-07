@@ -22,6 +22,7 @@ use DBI;
 our %opt = %{ opt_check() };
 
 my $update = $opt{update};
+my $server = $opt{server};
 
 my $release = software_version();
 die("Can't find the release of the current Perl API!") if not $release;
@@ -47,8 +48,8 @@ my @var_dbs  = grep { $_ =~ /_variation_\d+_\d+_\d+/ } @$databases;
 say scalar(@core_dbs) . " core databases";
 say scalar(@var_dbs) . " variation databases";
 
-update_dbs(\@core_dbs, $release, $core_sql_dir, $update);
-update_dbs(\@var_dbs,  $release, $var_sql_dir,  $update);
+update_dbs($server, \@core_dbs, $release, $core_sql_dir, $update);
+update_dbs($server, \@var_dbs,  $release, $var_sql_dir,  $update);
 
 ###############################################################################
 sub get_databases {
@@ -60,33 +61,40 @@ sub get_databases {
 }
 
 sub update_dbs {
-  my ($dbs, $cur_release, $sql_dir, $update) = @_;
+  my ($server, $dbs, $cur_release, $sql_dir, $update) = @_;
   
   for my $db (@$dbs) {
+    my $db_release;
     try {
-      my $db_release = get_db_release($db);
-      next if not $db_release;
-
-      my ($db_name_release) = ($db =~ /_(\d+)_\d+$/);
-
-      if ($db_release != $db_name_release) {
-        warn("$db\tRelease version differs between db name and meta table: $db_release vs $db_name_release\n");
-        die;
-      }
-
-      if ($cur_release > $db_release) {
-        say STDERR "$db\tRelease is older than current: need updating from $db_release to $cur_release" if $opt{v};
-        update_db($db, $cur_release, $update);
-      } elsif($cur_release == $db_release) {
-        say STDERR "$db\tUp to date" if $opt{v};
-      } else {
-        say STDERR "$db\tRelease is newer than current: $db_release to $cur_release" if $opt{v};
-      }
-      #lastA
+      $db_release = get_db_release($db);
     } catch {
-      warn("Can't get release from db $db");
+      warn("Can't get release from db $db: $_");
       next;
     };
+
+    my ($db_name_release) = ($db =~ /_(\d+)_\d+$/);
+    
+    # Check that release versions are ok
+    if (not defined $db_release) {
+      warn("$db\tDB release from db is not defined");
+      next;
+    }
+    if (not defined $db_name_release) {
+      warn("$db\tCan't get db release from db name");
+      next;
+    }
+    if ($db_release != $db_name_release) {
+      warn("$db\tRelease version differs between db name and meta table: $db_release vs $db_name_release\n");
+      next;
+    }
+
+    # Check if db needs to be updated
+    if ($cur_release >= $db_release) {
+      my $new_db = update_db($server, $db, $cur_release, $update);
+      update_db_release($server, $new_db, $db_release, $cur_release, $sql_dir, $update);
+    } else {
+      say STDERR "$db\tRelease is newer than current: $db_release to $cur_release" if $opt{verbose};
+    }
   }
 }
 
@@ -106,16 +114,58 @@ sub get_db_release {
 }
 
 sub update_db {
-  my ($db, $cur_release, $update) = @_;
-  
+  my ($server, $db, $cur_release, $update) = @_;
+
   my $new_db = $db;
   $new_db =~ s/_(core|variation)_(\d+)_(\d+)_(\d+)$/_$1_$2_${cur_release}_$4/;
-  
+
+  # One time prefix removal step, to be removed
   my $remove_prefix = 1;
   if ($remove_prefix) {
     $new_db =~ s/^[^_]+_//;
   }
-  say "Rename $db to $new_db";
+
+  if ($db eq $new_db) {
+    say "$db\tNo update to the name" if $opt{verbose};
+  } else {
+    rename_db($server, $db, $new_db, $update);
+  }
+  return $new_db;
+}
+
+sub rename_db {
+  my ($server, $old_name, $new_name, $update) = @_;
+  
+  my $command = "rename_db $server $old_name $new_name";
+  say STDERR "Use command '$command'" if $opt{debug};
+  
+  system($command) if $update;
+}
+
+sub update_db_release {
+  my ($server, $new_db, $db_release, $cur_release, $sql_dir, $update) = @_;
+  
+  for (my $rel = $db_release+1; $rel <= $cur_release; ++$rel) {
+    # Get sql files
+    my @sql_files = get_sql_files($sql_dir, $rel);
+    for my $file (@sql_files) {
+      my $command = "$server $new_db < $file";
+      say STDERR "Use command '$command'" if $opt{debug};
+      
+      system($command) if $update;
+    }
+  }
+}
+
+sub get_sql_files {
+  my ($sql_dir, $release) = @_;
+  
+  opendir(my $DIR, $sql_dir);
+  my @files;
+  while (my $file = readdir $DIR) {
+    push @files, catfile($sql_dir, $file) if $file =~ /^patch_${release}_/;
+  }
+  return @files;
 }
 
 ###############################################################################
@@ -133,6 +183,7 @@ sub usage {
     --port
     --user
     --pass            : server parameters to use
+    --server <str>    : server short name from mysql-cmd
     
     --update          : Actually rename databases
     
@@ -151,6 +202,7 @@ sub opt_check {
     "port=s",
     "user=s",
     "pass=s",
+    "server=s",
     "update",
     "help",
     "verbose",
@@ -160,7 +212,7 @@ sub opt_check {
   usage("Server host needed") if not $opt{host};
   usage("Server port needed") if not $opt{port};
   usage("Server user needed") if not $opt{user};
-  usage("Server pass needed") if not $opt{pass};
+  usage("Server short name needed") if not $opt{server};
   usage()                if $opt{help};
   Log::Log4perl->easy_init($INFO) if $opt{verbose};
   Log::Log4perl->easy_init($DEBUG) if $opt{debug};
