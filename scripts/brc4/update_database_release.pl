@@ -150,7 +150,7 @@ sub rename_db {
 sub update_db_release {
   my ($server, $new_db, $db_release, $cur_release, $sql_dir, $update) = @_;
   
-  for (my $rel = $db_release+1; $rel <= $cur_release; ++$rel) {
+  for (my $rel = $db_release; $rel <= $cur_release; ++$rel) {
     # Get sql files
     my @sql_files = get_sql_files($sql_dir, $rel);
     for my $file (@sql_files) {
