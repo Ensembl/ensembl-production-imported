@@ -122,7 +122,7 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 ## Replaced pipelines
 | Old pipeline module | Alternative | Description | Document | Comment |
 | - | - | - | - | - |
-| CoreStatistics | [Bio::EnsEMBL::Production::Pipeline::PipeConfig::CoreStatistics_conf](https://github.com/Ensembl/ensembl-production/blob/master/modules/Bio/EnsEMBL/Production/Pipeline/PipeConfig/CoreStatistics_conf.pm) | Core stats pipeline | | use `-skip_metadata_check 1` if core is not submitted (always for new species) 
+| CoreStatistics | [Bio::EnsEMBL::Production::Pipeline::PipeConfig::CoreStatistics_conf](https://github.com/Ensembl/ensembl-production/blob/master/modules/Bio/EnsEMBL/Production/Pipeline/PipeConfig/CoreStatistics_conf.pm) | Core stats pipeline | | use `-skip_metadata_check 1` if core is not submitted (always for new species); set proper `-pipeline_dir`, `-scratch_small_dir` and `-scratch_large_dir` (see `Bio::EnsEMBL::Production::Pipeline::PipeConfig::Base_conf`)
 | FileDump | [Bio::EnsEMBL::Production::Pipeline::PipeConfig::FileDump_conf](https://github.com/Ensembl/ensembl-production/blob/master/modules/Bio/EnsEMBL/Production/Pipeline/PipeConfig/FileDump_conf.pm) | Serialize core 
 | FileDump{Compara,GFF} | same as above
 | FileDumpVEP | [Bio::EnsEMBL::Production::Pipeline::PipeConfig::FileDumpVEP_conf](https://github.com/Ensembl/ensembl-production/blob/master/modules/Bio/EnsEMBL/Production/Pipeline/PipeConfig/FileDumpVEP_conf.pm) | Dump VEP data
