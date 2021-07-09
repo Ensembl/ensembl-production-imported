@@ -23,7 +23,6 @@ our %opt = %{ opt_check() };
 
 my $update = $opt{update};
 my $server = $opt{server};
-my $remove_prefix = $opt{remove_prefix};
 
 my $release = software_version();
 die("Can't find the release of the current Perl API!") if not $release;
@@ -51,8 +50,8 @@ $logger->info(scalar(@core_dbs) . " core databases");
 $logger->info(scalar(@var_dbs) . " variation databases");
 
 # Update both cores and variation dbs
-update_dbs($server, \@core_dbs, $release, $core_sql_dir, $update, $remove_prefix);
-update_dbs($server, \@var_dbs,  $release, $var_sql_dir,  $update, $remove_prefix);
+update_dbs($server, \@core_dbs, $release, $core_sql_dir, $update);
+update_dbs($server, \@var_dbs,  $release, $var_sql_dir,  $update);
 
 ###############################################################################
 sub get_databases {
@@ -64,7 +63,7 @@ sub get_databases {
 }
 
 sub update_dbs {
-  my ($server, $dbs, $cur_release, $sql_dir, $update, $remove_prefix) = @_;
+  my ($server, $dbs, $cur_release, $sql_dir, $update) = @_;
   
   for my $db (@$dbs) {
     my $db_release;
@@ -93,7 +92,7 @@ sub update_dbs {
 
     # Check if db needs to be updated
     if ($cur_release >= $db_release) {
-      my $new_db = update_db($server, $db, $cur_release, $update, $remove_prefix);
+      my $new_db = update_db($server, $db, $cur_release, $update);
       update_db_release($server, $new_db, $db_release, $cur_release, $sql_dir, $update);
     } else {
       $logger->warn("$db\tRelease in db is newer than current API: $db_release to $cur_release\n");
@@ -117,18 +116,10 @@ sub get_db_release {
 }
 
 sub update_db {
-  my ($server, $db, $cur_release, $update, $remove_prefix) = @_;
+  my ($server, $db, $cur_release, $update) = @_;
 
   my $new_db = $db;
   $new_db =~ s/_(core|variation)_(\d+)_(\d+)_(\d+)$/_$1_$2_${cur_release}_$4/;
-
-  # One time prefix removal step, to be removed
-  if ($remove_prefix) {
-    my ($prefix, @rest) = split("_", $new_db);
-    if ($prefix =~ /^(amoeba|crypto|fungi|giardia|hostdb|microsp|piro|plasmo|toxo|trich|tritryp|vector)/) {
-      $new_db =~ s/^${prefix}_//;
-    }
-  }
 
   if ($db eq $new_db) {
     $logger->info("$db\tDatabase name does not change");
@@ -193,7 +184,6 @@ sub usage {
     
     Optional:
     --update          : Actually rename databases
-    --remove_prefix   : Remove a brc4 prefix from the database name
     
     --help            : show this help message
     --verbose         : show detailed progress
@@ -212,7 +202,6 @@ sub opt_check {
     "pass=s",
     "server=s",
     "update",
-    "remove_prefix",
     "help",
     "verbose",
     "debug",
