@@ -6,6 +6,7 @@ import os, json, re, time
 import requests
 import xml.etree.ElementTree as ET
 from unidecode import unidecode
+from pathlib import Path
  
 url = 'https://redmine.apidb.org'
 default_fields = dict(
@@ -16,7 +17,7 @@ insdc_pattern = "^GC[AF]_\d{9}(\.\d+)?$"
 accession_api_url = "https://www.ebi.ac.uk/ena/browser/api/xml/%s"
 veupathdb_id = 1976
 
-def retrieve_rnaseq_datasets(redmine, output_dir, build=None):
+def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
     """
     Get RNA-Seq metadata from Redmine, store them in json files.
     Each issue/dataset is stored as one file in the output dir
@@ -27,30 +28,41 @@ def retrieve_rnaseq_datasets(redmine, output_dir, build=None):
         return
     
     # Create the output dir
-    try:
-        os.mkdir(output_dir)
-    except:
-        pass
+    output_dir = Path(output_dir_path)
+    output_dir.mkdir(exist_ok=True)
     
+    # Write all datasets in files
+    all_datasets = []
     for issue in issues:
         dataset = parse_dataset(issue)
         if not dataset:
             print("Skipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
             continue
+        all_datasets.append(dataset)
 
         try:
             component = dataset["component"]
             organism = dataset["species"]
             dataset_name = dataset["name"]
+            
+            # Create directory
+            dataset_dir = output_dir / component
+            dataset_dir.mkdir(exist_ok=True)
+            
+            # Create file
             file_name = organism + "_" + dataset_name + ".json"
-            dataset_file = output_dir + "/" + file_name
+            dataset_file = dataset_dir / file_name
             print(dataset_file)
-            f = open(dataset_file, "w")
-            json.dump([dataset], f, indent=True)
-            f.close()
+            with open(dataset_file, "w") as f:
+                json.dump([dataset], f, indent=True)
         except Exception as error:
             print("Skipped issue %d (%s). %s." % (issue.id, issue.subject, error))
             pass
+
+    # Create a single merged file as well
+    merged_file = Path(output_dir) / "all.json"
+    with open(merged_file, "w") as f:
+        json.dump(all_datasets, f, indent=True)
  
 def parse_dataset(issue):
     """
