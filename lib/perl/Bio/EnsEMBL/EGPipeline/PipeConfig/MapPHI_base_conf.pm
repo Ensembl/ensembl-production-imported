@@ -107,6 +107,7 @@ sub pipeline_wide_parameters {
      %{$self->SUPER::pipeline_wide_parameters},
 
     'inputfile'             => $self->o('inputfile'),
+    'interactions_db_url'   => $self->o('interactions_db_url'),
     # 'blast_db_directory'    => $self->o('blast_db_dir'),    
     # 'phi_release'           => $self->o('phi_release'),
     # '_division'             => $self->o('division'),
@@ -130,12 +131,14 @@ sub pipeline_analyses {
       -input_ids  => [{
                        #seeding the pipeline from user provided value
                        'inputfile' => $self->o('inputfile'),
+		       'interactions_db_url' => $self->o('interactions_db_url'),
                      }],
       -parameters => {
 		       delimiter => ',',
 		       column_names => 1,
 		       output_ids => '#output_ids#',
 		       inputfile => '#inputfile#',
+		       interactions_db_url   => '#interactions_db_url#',
                       },
       -flow_into    => {
 	                2 => { 'entryreader' => INPUT_PLUS() },

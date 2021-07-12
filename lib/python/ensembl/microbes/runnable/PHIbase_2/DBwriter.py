@@ -24,6 +24,8 @@ import sqlalchemy_utils as db_utils
 import pymysql
 import eHive
 
+pymysql.install_as_MySQLdb()
+
 class DBwriter(eHive.BaseRunnable):
     """PHI-base entry writer to mysql DB"""
 
@@ -32,8 +34,10 @@ class DBwriter(eHive.BaseRunnable):
 
     def fetch_input(self):
        self.warning("Fetch dbWriter!")
-       print("PHI_id", self.param_required('PHI_id'))
-       print("patho_uniprot_id", self.param_required('patho_uniprot_id'))
+       phi_id = self.param_required('PHI_id')
+       interactions_db_url = self.param_required('interactions_db_url')
+       print(f'phi_id--{phi_id}')
+       print(f'interactions_db_url--{interactions_db_url}')
 
     def run(self):
         self.warning("DBWriter run")

@@ -28,14 +28,14 @@ class FileReader(eHive.BaseRunnable):
 
     def param_defaults(self):
         return {
-            'alpha' : 37,
-            'beta' : 78,
             'inputfile' : '#inputfile#',
+            'interactions_db_url' : '#interactions_db_url#',
         }
 
     def fetch_input(self):
         self.warning("Fetch input!")
         print("inputfile is", self.param_required('inputfile'))
+        print("interactions_db_url is ", self.param_required('interactions_db_url'))
     
     def run(self):
         self.warning("FileReader run")
@@ -49,6 +49,7 @@ class FileReader(eHive.BaseRunnable):
 
     def read_lines(self):
         self.warning("read_lines running")
+        int_db_url = self.param_required('interactions_db_url')
         with open(self.param('inputfile'), newline='') as csvfile:
             spamreader = csv.reader(csvfile, delimiter=',')
             next(spamreader)
@@ -73,6 +74,7 @@ class FileReader(eHive.BaseRunnable):
                     "pathogen_mutant_phenotype": row[32],
                     "experimental_evidence": row[52],
                     "transient_assay_exp_ev": row[53],
+                    "interactions_db_url": int_db_url,
                 }   
                 lines_list.append(entry_line_dict)
             return lines_list
