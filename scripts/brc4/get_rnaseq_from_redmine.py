@@ -36,8 +36,9 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
     for issue in issues:
         dataset = parse_dataset(issue)
         if not dataset:
-            print("Skipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
+            print("\tSkipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
             continue
+         
         all_datasets.append(dataset)
 
         try:
@@ -52,7 +53,7 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             # Create file
             file_name = organism + "_" + dataset_name + ".json"
             dataset_file = dataset_dir / file_name
-            print(dataset_file)
+            print("\tFile written in %s" % dataset_file)
             with open(dataset_file, "w") as f:
                 json.dump([dataset], f, indent=True)
         except Exception as error:
@@ -84,10 +85,10 @@ def parse_dataset(issue):
     
     failed = False
     if not dataset["species"]:
-        print("Missing Organism Abbreviation")
+        print("\tMissing Organism Abbreviation")
         failed = True
     if not dataset["name"]:
-        print("Missing Internal dataset name")
+        print("\tMissing Internal dataset name")
         failed = True
     else:
         dataset["name"] = normalize_name(dataset["name"])
@@ -98,13 +99,13 @@ def parse_dataset(issue):
         samples = parse_samples(samples_str)
         
         if not samples:
-            print("Missing Samples")
+            print("\tMissing Samples")
             failed = True
         
         dataset["runs"] = samples
         return dataset
     except Exception as e:
-        print("Errors: %s" % e)
+        print("\tErrors: %s" % e)
         failed = True
     
     if not failed:
