@@ -103,7 +103,6 @@ def parse_dataset(issue):
             failed = True
         
         dataset["runs"] = samples
-        return dataset
     except Exception as e:
         print("\tErrors: %s" % e)
         failed = True
