@@ -32,6 +32,7 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
     output_dir.mkdir(exist_ok=True)
     
     # Write all datasets in files
+    failed_count = 0
     all_datasets = []
     for issue in issues:
         dataset = parse_dataset(issue)
@@ -39,7 +40,6 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             print("\tSkipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
             continue
          
-        all_datasets.append(dataset)
 
         try:
             component = dataset["component"]
@@ -58,7 +58,14 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
                 json.dump([dataset], f, indent=True)
         except Exception as error:
             print("Skipped issue %d (%s). %s." % (issue.id, issue.subject, error))
+            failed_count += 1
             pass
+        all_datasets.append(dataset)
+
+    print("%d issues total" % len(issues))
+    if len(all_datasets) != len(issues):
+        print("%d issues failed to load" % (len(issues) - len(all_datasets)))
+        print("%d issues loaded" % (len(all_datasets)))
 
     # Create a single merged file as well
     merged_file = Path(output_dir) / "all.json"
