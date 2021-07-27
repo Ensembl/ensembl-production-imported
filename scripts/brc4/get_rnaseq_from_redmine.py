@@ -34,6 +34,7 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
     # Write all datasets in files
     failed_count = 0
     all_datasets = []
+    used_names = []
     for issue in issues:
         dataset = parse_dataset(issue)
         if not dataset:
@@ -45,6 +46,12 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             component = dataset["component"]
             organism = dataset["species"]
             dataset_name = dataset["name"]
+            
+            if dataset_name in used_names:
+                print("\tWARNING: dataset name is already used! Please change it: %s" % dataset_name)
+                continue
+            else:
+                used_names.append(dataset_name)
             
             # Create directory
             dataset_dir = output_dir / component
@@ -77,7 +84,7 @@ def parse_dataset(issue):
     Extract RNA-Seq dataset metadata from a Redmine issue
     Return a nested dict
     """
-    print("Parsing issue %s (%s)" % (issue.id, issue.subject))
+    print("\nParsing issue %s (%s)" % (issue.id, issue.subject))
     customs = get_custom_fields(issue)
     dataset = {
             "component": "",
