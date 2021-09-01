@@ -25,10 +25,6 @@ import pymysql
 import eHive
 from datetime import datetime
 import re
-import ensembl.microbes.runnable.PHIbase_2.models
-import dbconnection
-from sqlalchemy.orm import sessionmaker
-
 
 pymysql.install_as_MySQLdb()
 
@@ -52,35 +48,23 @@ class DBwriter(eHive.BaseRunnable):
         self.param('p2p_port',int(port))
         self.param('p2p_db',db)
 
-        self.param('core_user',user)
-        self.param('core_pwd',pwd)
-        self.param('core_host',host)
-        self.param('core_port',int(port))
-        self.param('core_db',db)
-
-
     def connection_open(self):
         self.db = pymysql.connect(host=self.param("p2p_host"),user=self.param("p2p_user"),passwd=self.param("p2p_pwd"),db=self.param("p2p_db"),port=self.param("p2p_port"))
         self.cur = self.db.cursor()
 
     def run(self):
         self.warning("DBWriter run")
-        result_qry = self.myql_select("interaction")
+        result_qry=self.myql_select("interaction")
         print(f'read query result before insert -- {result_qry}')
-        fields = "interaction_id,interactor_1,interactor_2,doi,source_db_id,import_timestamp,interaction_meta_id"
-        values = "11, 117, 127, '10.1371', 50005, now(), 1003"
+        fields="interaction_id,interactor_1,interactor_2,doi,source_db_id,import_timestamp,interaction_meta_id"
+        values="11, 117, 127, '10.1371', 50005, now(), 1003"
         self.mysql_insert("interaction",fields,values)
-        result_qry = self.myql_select("interaction")
+        result_qry=self.myql_select("interaction")
         print(f'read query result after insert -- {result_qry}')
-        conditions = " interaction_id=11"
+        conditions=" interaction_id=11"
         self.mysql_delete("interaction",conditions)
-        result_qry = self.myql_select("interaction")
+        result_qry=self.myql_select("interaction")
         print(f'read query result after delete -- {result_qry}')
-        engine = db.create_engine('mysql://ensro@mysql-ens-microbes-prod-1:4239/saccharomyces_cerevisiae_core_51_104_4')
-        session = db.orm.sessionmaker(bind=engine)
-        for row in session.query(Meta, Meta.meta_key).all():
-            print(row.Meta, row.meta_key)
-
 
     def mysql_qry(self,sql,bool): # 1 for select and 0 for insert update delete
         self.connection_open()
