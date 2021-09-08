@@ -23,10 +23,11 @@ import sqlalchemy as db
 import sqlalchemy_utils as db_utils
 import pymysql
 import eHive
-from datetime import datetime
+import datetime
 import re
-import ensembl.microbes.runnable.PHIbase_2.models
-import dbconnection
+import ensembl.microbes.runnable.PHIbase_2.models as models
+import ensembl.microbes.runnable.PHIbase_2.interaction_DB_models as interaction_db_models
+#import dbconnection
 from sqlalchemy.orm import sessionmaker
 
 
@@ -39,32 +40,60 @@ class DBwriter(eHive.BaseRunnable):
         return { }
 
     def fetch_input(self):
-        self.warning("Fetch dbWriter!")
+        self.warning("Fetch WRAPPED dbWriter!")
         phi_id = self.param_required('PHI_id')
-        interactions_db_url = self.param_required('interactions_db_url')
+        p2p_db_url = self.param_required('interactions_db_url')
         print(f'phi_id--{phi_id}')
-        print(f'interactions_db_url--{interactions_db_url}')
+        print(f'p2p_db_url--{p2p_db_url}')
         jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
-        (user,pwd,host,port,db) = re.compile(jdbc_pattern).findall(interactions_db_url)[0]
-        self.param('p2p_user',user)
-        self.param('p2p_pwd',pwd)
-        self.param('p2p_host',host)
-        self.param('p2p_port',int(port))
-        self.param('p2p_db',db)
+        (i_user,i_pwd,i_host,i_port,i_db) = re.compile(jdbc_pattern).findall(p2p_db_url)[0]
+        self.param('p2p_user',i_user)
+        self.param('p2p_pwd',i_pwd)
+        self.param('p2p_host',i_host)
+        self.param('p2p_port',int(i_port))
+        self.param('p2p_db',i_db)
 
-        self.param('core_user',user)
-        self.param('core_pwd',pwd)
-        self.param('core_host',host)
-        self.param('core_port',int(port))
-        self.param('core_db',db)
+
+        core_db_url = self.param_required('core_db_url')
+        print(f'core_db_url--{core_db_url}')
+        (c_user,c_pwd,c_host,c_port,c_db) = re.compile(jdbc_pattern).findall(core_db_url)[0]
+        self.param('core_user',c_user)
+        self.param('core_pwd',c_pwd)
+        self.param('core_host',c_host)
+        self.param('core_port',int(c_port))
+        self.param('core_db',c_db)
 
     def run(self):
         self.warning("DBWriter run")
-        engine = db.create_engine('mysql://ensro@mysql-ens-microbes-prod-1:4239/saccharomyces_cerevisiae_core_51_104_4')
-        session = db.orm.sessionmaker(bind=engine)
-        for row in session.query(Meta, Meta.meta_key).all():
-            print(row.Meta, row.meta_key)
+        
+        p2p_db_url = self.param_required('interactions_db_url')
+        species_dummy_value = interaction_db_models.Species(species_id=1, ensembl_division='Protist', species_production_name='Toxoplasma gondii',species_taxon_id=5811)
+        engine = db.create_engine(p2p_db_url)
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        session.add(species_dummy_value)
+        species_value = session.query(interaction_db_models.Species).filter_by(species_production_name='Toxoplasma gondii').first()
+        print(f'species_value AFTER ADD -- {species_value}')
+        session.delete(species_dummy_value)
+        species_value = session.query(interaction_db_models.Species).filter_by(species_production_name='Toxoplasma gondii').first()
+        print(f'species_value AFTER DELETE -- {species_value}')
 
+
+        #core_db_url = self.param_required('core_db_url')
+        #meta_dummy_value = models.Meta(meta_id=408, species_id=1, meta_key='TEST_TO_DELETE', meta_value='DELETE_ME_NOW')
+        #engine = db.create_engine(core_db_url)
+        #Session = sessionmaker(bind=engine)
+        #session = Session()
+        #session.add(meta_dummy_value)
+        #meta_value = session.query(models.Meta).filter_by(meta_key='TEST_TO_DELETE').first()
+        #print(f'meta_value AFTER ADD -- {meta_value}')
+        #session.delete(meta_dummy_value)
+        #meta_value = session.query(models.Meta).filter_by(meta_key='TEST_TO_DELETE').first()
+        #print(f'meta_value AFTER DELETE -- {meta_value}')
+    
+        #for instance in session.query(models.Meta).order_by(models.Meta.meta_id).last():
+        #    print(instance.meta_id, instance.species_id, instance.meta_key, instance.meta_value)
+    
     def connection_open(self):
         self.db = pymysql.connect(host=self.param("p2p_host"),user=self.param("p2p_user"),passwd=self.param("p2p_pwd"),db=self.param("p2p_db"),port=self.param("p2p_port"))
         self.cur = self.db.cursor()

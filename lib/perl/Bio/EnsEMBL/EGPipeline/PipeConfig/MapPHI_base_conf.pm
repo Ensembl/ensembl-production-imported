@@ -108,6 +108,7 @@ sub pipeline_wide_parameters {
 
     'inputfile'             => $self->o('inputfile'),
     'interactions_db_url'   => $self->o('interactions_db_url'),
+    'core_db_url'	    => $self->o('core_db_url'), 
     # 'blast_db_directory'    => $self->o('blast_db_dir'),    
     # 'phi_release'           => $self->o('phi_release'),
     # '_division'             => $self->o('division'),
