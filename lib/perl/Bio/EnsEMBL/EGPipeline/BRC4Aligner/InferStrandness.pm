@@ -196,6 +196,9 @@ sub parse_inference {
         $stats{ $strand{$st} } = $fraction + 0;
       }
     }
+    elsif ($line =~ /Unknown Data type/) {
+      die("Unknown data type!: (stderr: $err)");
+    }
   }
   $stats{failed} //= 0;
 
