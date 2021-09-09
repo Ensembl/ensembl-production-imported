@@ -41,6 +41,7 @@ use XML::Simple;
 use LWP::Simple;
 use Bio::EnsEMBL::Taxonomy::DBSQL::TaxonomyDBAdaptor;
 use Bio::EnsEMBL::Utils::Exception qw/throw/;
+use Bio::EnsEMBL::ApiVersion;
 use base qw(Exporter);
 
 use constant PUBLIC_HOST => 'mysql-eg-publicsql.ebi.ac.uk';
@@ -54,7 +55,7 @@ my $logger = get_logger();
 
 our @EXPORT = qw(get_adaptor taxonomy_adaptor get_linked_objects);
 
-my $url = 'https://www.ebi.ac.uk/ena/data/view/%s&display=xml';
+my $url = 'https://www.ebi.ac.uk/ena/browser/api/xml/%s';
 
 my $adaptor_classes = {
     'experiment' => 'Bio::EnsEMBL::ENA::SRA::ExperimentAdaptor',
@@ -87,13 +88,14 @@ sub new {
     my $self = bless {}, $proto;
     ( $self->{taxonomy_adaptor} ) = rearrange( 'TAXONOMY_ADAPTOR', @args );
     if ( !defined $self->{taxonomy_adaptor} ) {
+        my $dbname = 'ncbi_taxonomy_' . software_version();
         my $tax_dba =
         Bio::EnsEMBL::Taxonomy::DBSQL::TaxonomyDBAdaptor->new(
           -host   => PUBLIC_HOST,
           -port   => PUBLIC_PORT,
           -user   => PUBLIC_USER,
           -pass   => PUBLIC_PASS,
-          -dbname => 'ncbi_taxonomy',
+          -dbname => $dbname,
         );
         $self->{taxonomy_adaptor} = $tax_dba->get_TaxonomyNodeAdaptor();
     }

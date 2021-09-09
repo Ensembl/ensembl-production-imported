@@ -84,7 +84,7 @@ sub get_by_taxon_id {
 }
 
 my $taxurl = 
-'https://www.ebi.ac.uk/ena/data/view/Taxon:%s&display=xml&portal=sample';
+'https://www.ebi.ac.uk/ena/browser/api/xml/Taxon:%s';
 
 sub get_accessions_for_taxon_id {
     my ( $self, $taxid ) = @_;
