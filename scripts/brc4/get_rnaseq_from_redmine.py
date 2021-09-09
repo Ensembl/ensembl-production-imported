@@ -126,14 +126,20 @@ def parse_dataset(issue):
     else:
         return
     
-def normalize_name(name):
+def normalize_name(old_name):
     """Remove special characters, keep ascii only"""
     
     # Remove any diacritics
-    name = name.strip()
+    name = old_name.strip()
     name = unidecode(name)
     name = re.sub(r"[ /]", "_", name)
     name = re.sub(r"[;:.,()\[\]{}]", "", name)
+    name = re.sub(r"\+", "_plus_", name)
+    name = re.sub(r"\*", "_star_", name)
+    name = re.sub(r"_+", "_", name)
+    if re.search(r"[^A-Za-z0-9_.-]", name):
+        print("WARNING: name contains special characters: %s (%s)" % (old_name, name))
+        return
     
     return name
 
