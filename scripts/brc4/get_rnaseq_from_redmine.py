@@ -136,6 +136,7 @@ def normalize_name(old_name):
     name = re.sub(r"[;:.,()\[\]{}]", "", name)
     name = re.sub(r"\+", "_plus_", name)
     name = re.sub(r"\*", "_star_", name)
+    name = re.sub(r"%", "pc_", name)
     name = re.sub(r"_+", "_", name)
     if re.search(r"[^A-Za-z0-9_.-]", name):
         print("WARNING: name contains special characters: %s (%s)" % (old_name, name))
