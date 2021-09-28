@@ -84,7 +84,6 @@ def parse_dataset(issue):
     Extract RNA-Seq dataset metadata from a Redmine issue
     Return a nested dict
     """
-    print("\nParsing issue %s (%s)" % (issue.id, issue.subject))
     customs = get_custom_fields(issue)
     dataset = {
             "component": "",
@@ -96,6 +95,8 @@ def parse_dataset(issue):
     dataset["component"] = get_custom_value(customs, "Component DB")
     dataset["species"] = get_custom_value(customs, "Organism Abbreviation")
     dataset["name"] = get_custom_value(customs, "Internal dataset name")
+
+    print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
     
     failed = False
     if not dataset["species"]:
