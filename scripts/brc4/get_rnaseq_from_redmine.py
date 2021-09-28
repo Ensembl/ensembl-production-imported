@@ -149,6 +149,8 @@ def parse_samples(sample_str):
     
     # Parse each line
     lines = sample_str.split("\n")
+
+    sample_names = dict()
     for line in lines:
         line = line.strip()
         if line == "": continue
@@ -157,6 +159,12 @@ def parse_samples(sample_str):
         parts = line.split(":")
         if len(parts) == 2:
             sample_name = parts[0].strip()
+            
+            if sample_name in sample_names:
+                raise Exception("Several samples have the same name '%s'" % sample_name)
+            else:
+                sample_names[sample_name] = True;
+            
             accessions_str = parts[1].strip()
             accessions = [x.strip() for x in accessions_str.split(",")]
             sample = {

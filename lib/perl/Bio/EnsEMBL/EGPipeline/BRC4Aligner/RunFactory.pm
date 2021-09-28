@@ -62,11 +62,18 @@ sub run {
   for my $dataset (@$datasets) {
     print "Number of runs for $dataset->{name}: " . scalar(@{ $dataset->{runs} }) . "\n";
 
+    my %unique_sample;
     for my $sample (@{ $dataset->{runs} }) {
       
       # Sample data
       my $sample_name = $sample->{name} // $sample->{accessions}->[0];
       die "Missing sample name for $dataset->{name}" if not $sample_name;
+      if (exists $unique_sample{$sample_name}) {
+        die("There are several samples with the name $sample_name in the dataset $dataset->{name}");
+      } else {
+        $unique_sample{$sample_name} = 1;
+      }
+      
       my $sample_dir = catdir($results_dir, $dataset->{name}, $sample_name);
       make_path($sample_dir);
 
