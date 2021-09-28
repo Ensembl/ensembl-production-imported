@@ -87,11 +87,8 @@ sub new {
     my ( $proto, @args ) = @_;
     my $self = bless {}, $proto;
     ( $self->{taxonomy_adaptor}, $self->{ensembl_version} ) = rearrange( 'TAXONOMY_ADAPTOR', 'ENSEMBL_VERSION', @args );
-    if ( !defined $self->{ensembl_version} ) {
-      $self->{ensembl_version} = software_version();
-    }
     if ( !defined $self->{taxonomy_adaptor} ) {
-        my $dbname = 'ncbi_taxonomy_' . $self->{ensembl_version};
+        my $dbname = $self->{ensembl_version} ? 'ncbi_taxonomy_' . $self->{ensembl_version} : 'ncbi_taxonomy';
         my $tax_dba =
         Bio::EnsEMBL::Taxonomy::DBSQL::TaxonomyDBAdaptor->new(
           -host   => PUBLIC_HOST,
