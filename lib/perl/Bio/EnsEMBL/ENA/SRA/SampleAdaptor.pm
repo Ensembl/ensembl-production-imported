@@ -40,6 +40,9 @@ use base qw( Bio::EnsEMBL::ENA::SRA::BaseSraAdaptor );
 use Bio::EnsEMBL::ENA::SRA::Sample;
 use Data::Dumper;
 
+my $taxurl = 
+'https://www.ebi.ac.uk/ena/browser/api/xml/Taxon:%s';
+
 sub new {
     my ( $proto, @args ) = @_;
     my $self = $proto->SUPER::new(@args);
@@ -82,9 +85,6 @@ sub get_by_taxon_id {
     }
     return $samples;
 }
-
-my $taxurl = 
-'https://www.ebi.ac.uk/ena/browser/api/xml/Taxon:%s';
 
 sub get_accessions_for_taxon_id {
     my ( $self, $taxid ) = @_;
