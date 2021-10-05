@@ -107,6 +107,7 @@ sub default_options {
     repeatmasker_parameters    => ' -nolow -gccalc ',
     repeatmasker_cache         => catdir($self->o('pipeline_dir'), 'cache'),
     repeatmasker_timer         => '18H',
+    repeatmasker_resource_class => 'normal',
     
     # Override species name to use with repbase
     repeatmasker_repbase_species => '',
@@ -268,6 +269,7 @@ sub pipeline_wide_parameters {
    'repeatmasker_library'           => $self->o('repeatmasker_library'),
    'repeatmasker_sensitivity'       => $self->o('repeatmasker_sensitivity'),
    'repeatmasker_logic_name'        => $self->o('repeatmasker_logic_name'),
+   'repeatmasker_resource_class'    => $self->o('repeatmasker_resource_class'),
  };
 }
 
@@ -468,7 +470,7 @@ sub pipeline_analyses {
                               logic_name      => 'dust',
                               parameters_hash => $self->o('dust_parameters_hash'),
                             },
-      -rc_name           => 'normal',
+      -rc_name           => '16Gb_mem',
     },
 
     {
@@ -496,7 +498,7 @@ sub pipeline_analyses {
                               rm_logic_name      => '#repeatmasker_logic_name#',
                               max_seq_length     => $self->o('max_seq_length'),
                             },
-      -rc_name           => '8Gb_mem',
+      -rc_name           => '16Gb_mem',
       -flow_into         => ['RepeatMasker'],
     },
 
@@ -509,7 +511,7 @@ sub pipeline_analyses {
                               repeatmasker_cache => $self->o('repeatmasker_cache'),
                               timer              => $self->o('repeatmasker_timer'),
                             },
-      -rc_name           => 'normal',
+      -rc_name           => $self->o('repeatmasker_resource_class'),
     },
 
     {
