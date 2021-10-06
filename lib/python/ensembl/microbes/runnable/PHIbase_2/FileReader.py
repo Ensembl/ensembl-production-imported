@@ -24,42 +24,44 @@ import codecs
 import eHive
 
 class FileReader(eHive.BaseRunnable):
-    """csv parser to fan 1 job per column0"""
+    """csv parser to fan 1 job per column"""
 
     def param_defaults(self):
         return {
             'inputfile' : '#inputfile#',
-            'interactions_db_url' : '#interactions_db_url#',
+            'registry'  : '#registry#',
         }
 
     def fetch_input(self):
         self.warning("Fetch input!")
         print("inputfile is", self.param_required('inputfile'))
-        print("interactions_db_url is ", self.param_required('interactions_db_url'))
-    
+        print("registry", self.param_required('registry'))
+
     def run(self):
         self.warning("FileReader run")
         self.param('entries_list', self.read_lines())
 
     def write_output(self):
-        self.warning("Write to the world !")
         entries_list = self.param('entries_list')
         for entry in entries_list:
             self.dataflow(entry, 2)
 
     def read_lines(self):
         self.warning("read_lines running")
-        int_db_url = self.param_required('interactions_db_url')
+        int_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
+        print("int_db_url:", int_db_url)
+        print("ncbi_tax_url:", ncbi_tax_url)
+        print("meta_db_url:", meta_db_url)
         with open(self.param('inputfile'), newline='') as csvfile:
-            spamreader = csv.reader(csvfile, delimiter=',')
-            next(spamreader)
+            reader = csv.reader(csvfile, delimiter=',')
+            next(reader)
             lines_list = []
-            for row in spamreader:
+            for row in reader:
                 entry_line_dict = {
                     "PHI_id": row[0],
                     "patho_uniprot_id": row[2],
                     "patho_sequence": row[5],
-                    "patho_gene_name": row[8],
+                    "patho_gene_name": row[4],
                     "patho_specie_taxon_id": row[15],
                     "patho_species_name": row[16],
                     "patho_species_strain": row[17],
@@ -75,7 +77,22 @@ class FileReader(eHive.BaseRunnable):
                     "experimental_evidence": row[52],
                     "transient_assay_exp_ev": row[53],
                     "interactions_db_url": int_db_url,
+                    "ncbi_taxonomy_url": ncbi_tax_url,
+                    "meta_ensembl_url": meta_db_url,
                 }   
                 lines_list.append(entry_line_dict)
             return lines_list
+
+    def read_registry(self):
+        with open(self.param('registry'), newline='') as reg_file:
+            url_reader = csv.reader(reg_file, delimiter='\t')
+            for url in url_reader:
+                if url[0] == 'interactions_db_url':
+                    int_db_url=url[1]
+                elif url[0] == 'ncbi_tax_url':
+                    ncbi_tax_url=url[1]
+                elif url[0] == 'meta_db_url':
+                    meta_db_url=url[1]
+
+            return int_db_url, ncbi_tax_url, meta_db_url
 

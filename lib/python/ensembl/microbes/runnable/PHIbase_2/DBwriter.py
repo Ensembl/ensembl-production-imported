@@ -29,7 +29,9 @@ import ensembl.microbes.runnable.PHIbase_2.models as models
 import ensembl.microbes.runnable.PHIbase_2.interaction_DB_models as interaction_db_models
 #import dbconnection
 from sqlalchemy.orm import sessionmaker
-
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy import exc
 
 pymysql.install_as_MySQLdb()
 
@@ -44,7 +46,6 @@ class DBwriter(eHive.BaseRunnable):
         phi_id = self.param_required('PHI_id')
         p2p_db_url = self.param_required('interactions_db_url')
         print(f'phi_id--{phi_id}')
-        print(f'p2p_db_url--{p2p_db_url}')
         jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
         (i_user,i_pwd,i_host,i_port,i_db) = re.compile(jdbc_pattern).findall(p2p_db_url)[0]
         self.param('p2p_user',i_user)
@@ -53,9 +54,7 @@ class DBwriter(eHive.BaseRunnable):
         self.param('p2p_port',int(i_port))
         self.param('p2p_db',i_db)
 
-
         core_db_url = self.param_required('core_db_url')
-        print(f'core_db_url--{core_db_url}')
         (c_user,c_pwd,c_host,c_port,c_db) = re.compile(jdbc_pattern).findall(core_db_url)[0]
         self.param('core_user',c_user)
         self.param('core_pwd',c_pwd)
@@ -63,72 +62,190 @@ class DBwriter(eHive.BaseRunnable):
         self.param('core_port',int(c_port))
         self.param('core_db',c_db)
 
+        meta_db_url = self.param_required('meta_ensembl_url')
+        (m_user,m_pwd,m_host,m_port,m_db) = re.compile(jdbc_pattern).findall(meta_db_url)[0]
+        self.param('meta_user',m_user)
+        self.param('meta_host',m_host)
+        self.param('meta_port',int(m_port))
+
     def run(self):
         self.warning("DBWriter run")
-        
+        self.insert_new_value()
+    
+    def insert_new_value(self):
         p2p_db_url = self.param_required('interactions_db_url')
-        species_dummy_value = interaction_db_models.Species(species_id=1, ensembl_division='Protist', species_production_name='Toxoplasma gondii',species_taxon_id=5811)
+        
         engine = db.create_engine(p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
-        session.add(species_dummy_value)
-        species_value = session.query(interaction_db_models.Species).filter_by(species_production_name='Toxoplasma gondii').first()
-        print(f'species_value AFTER ADD -- {species_value}')
-        session.delete(species_dummy_value)
-        species_value = session.query(interaction_db_models.Species).filter_by(species_production_name='Toxoplasma gondii').first()
-        print(f'species_value AFTER DELETE -- {species_value}')
+        
+        phi_id = self.param_required('PHI_id')
+        patho_uniprot_id = self.param_required('patho_uniprot_id')
+        patho_sequence = self.param_required('patho_sequence')
+        patho_gene_name = self.param_required('patho_gene_name')
+        patho_specie_taxon_id = int(self.param_required('patho_specie_taxon_id'))
+        patho_species_name = self.param_required('patho_species_name')
+        patho_species_strain = self.param_required('patho_species_strain')
+        host_uniprot_id = self.param_required('host_uniprot_id')
+        host_gene_name = self.param_required('host_gene_name')
+        host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
+        host_species_name = self.param_required('host_species_name')
+        litterature_id = self.param_required('litterature_id')
+        litterature_source = self.param_required('litterature_source')
+        doi = self.param_required('doi')
+        interaction_phenotype = self.param_required('interaction_phenotype')
+        pathogen_mutant_phenotype = self.param_required('pathogen_mutant_phenotype')
+        experimental_evidence = self.param_required('experimental_evidence')
+        transient_assay_exp_ev = self.param_required('transient_assay_exp_ev')
 
+        db_label = self.get_db_label()
 
-        #core_db_url = self.param_required('core_db_url')
-        #meta_dummy_value = models.Meta(meta_id=408, species_id=1, meta_key='TEST_TO_DELETE', meta_value='DELETE_ME_NOW')
-        #engine = db.create_engine(core_db_url)
-        #Session = sessionmaker(bind=engine)
-        #session = Session()
-        #session.add(meta_dummy_value)
-        #meta_value = session.query(models.Meta).filter_by(meta_key='TEST_TO_DELETE').first()
-        #print(f'meta_value AFTER ADD -- {meta_value}')
-        #session.delete(meta_dummy_value)
-        #meta_value = session.query(models.Meta).filter_by(meta_key='TEST_TO_DELETE').first()
-        #print(f'meta_value AFTER DELETE -- {meta_value}')
+        source_db_value = self.get_source_db_value(session, db_label)
+        self.add_if_not_exists(session, source_db_value)
+        
+        print(f'pathogen_species_value TO ADD -- {patho_species_name}')
+        pathogen_species_value = self.get_species_value(session, patho_specie_taxon_id)
+        self.add_if_not_exists(session, pathogen_species_value)
+        print(f'pathogen_species_value AFTER ADD -- {pathogen_species_value}')
+        
+        print(f'host_species_value TO ADD -- {host_species_name}')
+        host_species_value = self.get_species_value(session, host_species_taxon_id)
+        self.add_if_not_exists(session, host_species_value)
+        print(f'host_species_value AFTER ADD -- {host_species_value}')
     
-        #for instance in session.query(models.Meta).order_by(models.Meta.meta_id).last():
-        #    print(instance.meta_id, instance.species_id, instance.meta_key, instance.meta_value)
-    
-    def connection_open(self):
-        self.db = pymysql.connect(host=self.param("p2p_host"),user=self.param("p2p_user"),passwd=self.param("p2p_pwd"),db=self.param("p2p_db"),port=self.param("p2p_port"))
-        self.cur = self.db.cursor()
+        print(f'pathogen_gene_name -- {patho_gene_name} -- division -- {pathogen_species_value.ensembl_division}')
+        self.get_ensembl_id(patho_gene_name, patho_specie_taxon_id, pathogen_species_value.ensembl_division)
 
-    def mysql_qry(self,sql,bool): # 1 for select and 0 for insert update delete
-        self.connection_open()
+    def get_ensembl_id(self,gene_name, tax_id ,division):
+        
+        reported = False
+        gene_names = gene_name.split(';')
+        for gn in gene_names:
+            if " Ensembl: " in gn:
+                print (gn.replace(' Ensembl: ',''))
+                reported = True
+
+        if not reported:
+            print ("Mmmm..., we need to find out how we name this gene name in ensembl: " + gene_name)
+
+        core_db = self.get_core_db_name(tax_id)
+
+    def add_if_not_exists(self, session, value):
+        session.add(value)
         try:
-            self.cur.execute(sql)
-            if bool:
-                return self.cur.fetchall()
-            else:
-                self.db.commit()
-            return True
+            session.commit()
+        except pymysql.err.IntegrityError as e:
+            print(e)
+            session.rollback()
+        except exc.IntegrityError as e:
+            print(e)
+            session.rollback()
+        except Exception as e:
+            print(e)
+            session.rollback()
+
+    def get_species_name(self, taxon_id):
+        species_name = None
+        sql="SELECT name FROM ncbi_taxa_name WHERE taxon_id=%d AND name_class='scientific name'"
+        
+        self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ncbi_taxonomy',port=self.param('meta_port'))
+        self.cur = self.db.cursor()
+        try:
+            self.cur.execute(sql % taxon_id)
+            self.db.commit()
         except pymysql.Error as e:
             try:
                 print ("Mysql Error:- "+str(e))
             except IndexError:
                 print ("Mysql Error:- "+str(e))
-        self.connection_close()
-             
-    def connection_close(self):
+                self.connection_close()
+        for row in self.cur:
+            species_name = row[0]
         self.db.close()
+        print("species_name:" + species_name)
+        return species_name
+
+    def get_db_label(self):
+        return 'PHI-base'
+
+    def get_source_db_value(self, session, db_label):
+        source_db_value = None
+        try:
+            source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).one()
+        except MultipleResultsFound:
+            source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).first()
+        except NoResultFound:
+            source_db_value = interaction_db_models.SourceDb(label='PHI-base', external_db='Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity.')
         
-    def myql_select(self,table):
-        sql =  "SELECT * FROM "+table
-        return self.mysql_qry(sql,1)
+        return source_db_value
 
-    def mysql_insert(self,table,fields,values):
-        sql = "INSERT INTO " + table + " (" + fields + ") VALUES (" + values + ")";
-        return self.mysql_qry(sql,0)
+    def get_species_value(self, session, species_tax_id):
+        division = self.get_division(species_tax_id)
+        species_name = self.get_species_name(species_tax_id)
+        
+        try:
+            species_value = session.query(interaction_db_models.Species).filter_by(species_taxon_id=species_tax_id).one()
+        except MultipleResultsFound:
+            print(f"ERROR: Multiple results found for {species_name} - tx {species_tax_id}")
+        except NoResultFound:
+            species_value = interaction_db_models.Species(ensembl_division=division, species_production_name=species_name,species_taxon_id=species_tax_id)
+        return species_value
 
-    def mysql_update(self,table,values,conditions):
-        sql = "UPDATE " + table + " SET " + values + " WHERE " + conditions
-        return self.mysql_qry(sql,0)
+    def get_core_db_name(self, tax_id):
+        core_db_name = None
+        sql = "select gd.dbname from organism o join genome g using(organism_id) join genome_database gd using(genome_id) where o.species_taxonomy_id=%d and gd.type='core' and g.data_release_id=(select dr.data_release_id from data_release dr where is_current=1)"
 
-    def mysql_delete(self,table,conditions):
-        sql = "DELETE FROM " + table + " WHERE " + conditions;
-        return self.mysql_qry(sql,0)
+        self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
+        self.cur = self.db.cursor()
+        try:
+            self.cur.execute( sql % tax_id)
+            self.db.commit()
+        except pymysql.Error as e:
+            try:
+                print ("Mysql Error:- "+str(e))
+            except IndexError:
+                print ("Mysql Error:- "+str(e))
+        self.db.close()
+        for row in self.cur:
+            core_db_name = row[0]
+
+        print (f"core_DB -- {core_db_name}")
+        return core_db_name
+
+    def get_division(self, species_tax_id):
+        division = None
+        sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE short_name != 'EV' AND species_taxonomy_id=%d"
+        
+        self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
+        self.cur = self.db.cursor()
+        try:
+            self.cur.execute( sql % species_tax_id)
+            self.db.commit()
+        except pymysql.Error as e:
+            try:
+                print ("Mysql Error:- "+str(e))
+            except IndexError:
+                print ("Mysql Error:- "+str(e))
+                self.connection_close()
+        
+        for row in self.cur:
+            division = row[0]
+        
+        if division == 'EF':
+            division='fungi'
+        elif division == 'EPl':
+            division='plants'
+        elif division == 'EPr':
+            division='protists'
+        elif division == 'EB':
+            division='bacteria'
+        else:
+            print ("Division not recognised:" + str(division))
+            raise ValueError("Weird... That division is not supposed to be here")
+
+        self.db.close()
+        print("division:" + str(division))
+
+        return division
+
+

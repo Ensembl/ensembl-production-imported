@@ -109,6 +109,7 @@ sub pipeline_wide_parameters {
     'inputfile'             => $self->o('inputfile'),
     'interactions_db_url'   => $self->o('interactions_db_url'),
     'core_db_url'	    => $self->o('core_db_url'), 
+    'registry'		    => $self->o('reg_file')
     # 'blast_db_directory'    => $self->o('blast_db_dir'),    
     # 'phi_release'           => $self->o('phi_release'),
     # '_division'             => $self->o('division'),
@@ -132,14 +133,14 @@ sub pipeline_analyses {
       -input_ids  => [{
                        #seeding the pipeline from user provided value
                        'inputfile' => $self->o('inputfile'),
-		       'interactions_db_url' => $self->o('interactions_db_url'),
+		       'registry' => $self->o('reg_file'),
                      }],
       -parameters => {
 		       delimiter => ',',
 		       column_names => 1,
 		       output_ids => '#output_ids#',
 		       inputfile => '#inputfile#',
-		       interactions_db_url   => '#interactions_db_url#',
+		       registry   => '#registry#',
                       },
       -flow_into    => {
 	                2 => { 'entryreader' => INPUT_PLUS() },
@@ -172,7 +173,7 @@ sub hive_meta_table {
 
 sub resource_classes {
   my ($self) = @_;
-  my $reg_requirement = '--reg_conf ' . $self->o('registry'); #pass registry on to the workers without needing to specify it with the beekeeper
+  my $reg_requirement = '--reg_conf ' . $self->o('reg_file'); #pass registry on to the workers without needing to specify it with the beekeeper
   return {
     %{$self->SUPER::resource_classes},  # inherit 'default' from the parent class
 	     'datamove'          => {'LSF' => '-q ' . $self->o('datamove_queue_name')},

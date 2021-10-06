@@ -784,7 +784,9 @@ class Meta(Base):
     species = relationship(
         "CoordSystem", primaryjoin="Meta.species_id == CoordSystem.species_id"
     )
-
+    def __repr__(self):
+        return "<Meta(meta_id='%d', species_id='%d', meta_key='%s', meta_value='%s')>" % (
+                self.meta_id, self.species_id, self.meta_key, self.meta_value)
 
 class MetaCoord(Base):
     __tablename__ = "meta_coord"

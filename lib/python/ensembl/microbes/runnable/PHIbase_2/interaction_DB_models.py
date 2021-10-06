@@ -9,6 +9,7 @@ from sqlalchemy import (
         Float,
         ForeignKey,
         Index,
+        Identity,
         String,
         Table,
         Text,
@@ -171,7 +172,7 @@ class ReferenceOntology(Base):
 class SourceDb(Base):
     __tablename__ = 'source_db'
 
-    source_db_id = Column(INTEGER(11), primary_key=True)
+    source_db_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     label = Column(String(255), nullable=False)
     external_db = Column(String(255), nullable=False)
 
@@ -179,13 +180,13 @@ class SourceDb(Base):
     interactions= relationship("Interaction", back_populates="source_dbs")
 
     def __repr__(self): 
-        return "<SourceDb(source_db_id='%d', label='%s', external_db='%s')>" % (
-                self.source_db_id, self.label, self.external_db)
+        return "<SourceDb(label='%s', external_db='%s')>" % (
+                self.label, self.external_db)
 
 class Species(Base):
     __tablename__ = 'species'
 
-    species_id = Column(INTEGER(11), primary_key=True)
+    species_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     ensembl_division = Column(String(255), nullable=False)
     species_production_name = Column(String(255), nullable=False)
     species_taxon_id = Column(INTEGER(11), nullable=False, unique=True)
@@ -193,5 +194,5 @@ class Species(Base):
     ensembl_genes = relationship("EnsemblGene", back_populates="species_ids_r")
 
     def __repr__(self): 
-        return "<Species(species_id='%d', ensembl_division='%s', species_production_name='%s', species_taxon_id='%d')>" % (
-                self.species_id, self.ensembl_division, self.species_production_name, self. species_taxon_id)
+        return "<Species(ensembl_division='%s', species_production_name='%s', species_taxon_id='%d')>" % (
+                self.ensembl_division, self.species_production_name, self. species_taxon_id)
