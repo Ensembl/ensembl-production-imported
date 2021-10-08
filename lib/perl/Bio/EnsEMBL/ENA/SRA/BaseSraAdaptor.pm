@@ -54,7 +54,7 @@ my $logger = get_logger();
 
 our @EXPORT = qw(get_adaptor taxonomy_adaptor get_linked_objects);
 
-my $url = 'https://www.ebi.ac.uk/ena/data/view/%s&display=xml';
+my $url = 'https://www.ebi.ac.uk/ena/browser/api/xml/%s';
 
 my $adaptor_classes = {
     'experiment' => 'Bio::EnsEMBL::ENA::SRA::ExperimentAdaptor',
