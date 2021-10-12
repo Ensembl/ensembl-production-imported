@@ -127,7 +127,7 @@ sub pipeline_analyses {
   
   return [
     {
-      -logic_name => 'inputfile',
+      -logic_name => 'input_file',
       -module     => 'ensembl.microbes.runnable.PHIbase_2.FileReader',
       -language   => 'python3',
       -input_ids  => [{
@@ -143,19 +143,19 @@ sub pipeline_analyses {
 		       registry   => '#registry#',
                       },
       -flow_into    => {
-	                2 => { 'entryreader' => INPUT_PLUS() },
+	                2 => { 'meta_ensembl_reader' => INPUT_PLUS() },
 		       },
     },
     { 
-      -logic_name => 'entryreader',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.EntryReader',
+      -logic_name => 'meta_ensembl_reader',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.MetaEnsemblReader',
       -language   => 'python3',
       -flow_into    => {
-                        2 => { 'dbwriter' => INPUT_PLUS() },
+                        1 => { 'db_writer' => INPUT_PLUS() },
                        },
     },
     { 
-      -logic_name => 'dbwriter',
+      -logic_name => 'db_writer',
       -module     => 'ensembl.microbes.runnable.PHIbase_2.DBwriter',
       -language   => 'python3',
     }

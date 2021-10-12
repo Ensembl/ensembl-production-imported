@@ -80,15 +80,12 @@ class DBwriter(eHive.BaseRunnable):
         session = Session()
         
         phi_id = self.param_required('PHI_id')
-        patho_uniprot_id = self.param_required('patho_uniprot_id')
         patho_sequence = self.param_required('patho_sequence')
         patho_gene_name = self.param_required('patho_gene_name')
         patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
         patho_species_name = self.param_required('patho_species_name')
         patho_core_dbname = self.param_required("patho_core_dbname")
         patho_division = self.param_required("patho_division")
-        patho_species_strain = self.param_required('patho_species_strain')
-        host_uniprot_id = self.param_required('host_uniprot_id')
         host_gene_name = self.param_required('host_gene_name')
         host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
         host_species_name = self.param_required('host_species_name')
@@ -111,21 +108,19 @@ class DBwriter(eHive.BaseRunnable):
         print(f'pathogen_species_value TO ADD -- {patho_species_name} division {patho_division} coreDB {patho_core_dbname}')
         pathogen_species_value = self.get_species_value(session, patho_species_taxon_id, patho_division, patho_species_name)
         self.add_if_not_exists(session, pathogen_species_value)
-        print(f'pathogen_species_value AFTER ADD -- {pathogen_species_value}')
+        print(f'pathogen_species_value AFTER ADD -- {pathogen_species_value} with species_id {pathogen_species_value.species_id}')
         
         print(f'host_species_value TO ADD -- {host_species_name} division {host_division} coreDB {host_core_dbname}')
         host_species_value = self.get_species_value(session, host_species_taxon_id, host_division, host_species_name)
         self.add_if_not_exists(session, host_species_value)
-        print(f'host_species_value AFTER ADD -- {host_species_value}')
+        print(f'host_species_value AFTER ADD -- {host_species_value}  with species_id {host_species_value.species_id}')
     
         print(f'pathogen_gene_name -- {patho_gene_name} -- division -- {pathogen_species_value.ensembl_division}')
         patho_ensembl_stable_id = self.get_ensembl_id(patho_gene_name, patho_species_taxon_id, pathogen_species_value.ensembl_division)
         host_ensembl_stable_id = self.get_ensembl_id(host_gene_name, host_species_taxon_id, host_species_value.ensembl_division)
 
-        patho_species_id = session.query(interaction_db_models.Species).filter_by(species_taxon_id=patho_species_taxon_id).one().species_id
-        host_species_id = session.query(interaction_db_models.Species).filter_by(species_taxon_id=host_species_taxon_id).one().species_id
-        patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_stable_id,patho_species_id)
-        host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_stable_id,host_species_id)
+        patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_stable_id, pathogen_species_value.species_id)
+        host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_stable_id, host_species_value.species_id)
 
         self.add_if_not_exists(session, patho_ensembl_gene_value)
         self.add_if_not_exists(session, host_ensembl_gene_value)
@@ -184,7 +179,7 @@ class DBwriter(eHive.BaseRunnable):
         return species_value
     
 
-    def get_ensembl_gene_value(self, session, stable_id,species_id):
+    def get_ensembl_gene_value(self, session, stable_id, species_id):
         try:
             ensembl_gene_value = session.query(interaction_db_models.EnsemblGene).filter_by(ensembl_stable_id=stable_id).one()
         except MultipleResultsFound:
