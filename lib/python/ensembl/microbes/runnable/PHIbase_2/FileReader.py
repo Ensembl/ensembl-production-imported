@@ -64,7 +64,7 @@ class FileReader(eHive.BaseRunnable):
                     "patho_gene_name": row[4],
                     "patho_species_taxon_id": row[15],
                     "patho_species_strain": row[17],
-                    "host_uniprot_id": row[47],
+                    "host_uniprot_id": self.get_uniprot_id(row[47]),
                     "host_gene_name": row[47],
                     "host_species_taxon_id": row[21],
                     "litterature_id": row[56],
@@ -80,6 +80,21 @@ class FileReader(eHive.BaseRunnable):
                 }   
                 lines_list.append(entry_line_dict)
             return lines_list
+
+    def get_uniprot_id(self,accessions):
+        result = None
+        reported = False
+        accessions_list = accessions.split(';')
+        for ac in accessions_list:
+            if "Uniprot: " in ac:
+                result = ac.replace('Uniprot: ','')
+                reported = True
+        try:
+            if not reported:
+                raise (AssertionError)
+        except AssertionError:
+            print("Mmmm..., we need to find out the uniprot accession for this interactor: " + accessions)
+        return result
 
     def read_registry(self):
         with open(self.param('registry'), newline='') as reg_file:
