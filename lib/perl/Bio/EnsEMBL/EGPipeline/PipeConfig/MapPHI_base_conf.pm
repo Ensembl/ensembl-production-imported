@@ -110,9 +110,6 @@ sub pipeline_wide_parameters {
     'interactions_db_url'   => $self->o('interactions_db_url'),
     'core_db_url'	    => $self->o('core_db_url'), 
     'registry'		    => $self->o('reg_file')
-    # 'blast_db_directory'    => $self->o('blast_db_dir'),    
-    # 'phi_release'           => $self->o('phi_release'),
-    # '_division'             => $self->o('division'),
   };
 }
 
@@ -151,8 +148,16 @@ sub pipeline_analyses {
       -module     => 'ensembl.microbes.runnable.PHIbase_2.MetaEnsemblReader',
       -language   => 'python3',
       -flow_into    => {
-                        1 => { 'db_writer' => INPUT_PLUS() },
+                        1 => { 'interactor_data_manager' => INPUT_PLUS() },
                        },
+    },
+    {
+      -logic_name => 'interactor_data_manager',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractorDataManager',
+      -language   => 'python3',
+      -flow_into    => {
+                        1 => { 'db_writer' => INPUT_PLUS() },
+                        },
     },
     { 
       -logic_name => 'db_writer',
