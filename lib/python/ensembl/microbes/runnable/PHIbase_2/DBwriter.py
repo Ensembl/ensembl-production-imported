@@ -25,9 +25,11 @@ import pymysql
 import eHive
 import datetime
 import re
-import ensembl.microbes.runnable.PHIbase_2.models as models
+import ensembl.microbes.runnable.PHIbase_2.core_DB_models as core_db_models
 import ensembl.microbes.runnable.PHIbase_2.interaction_DB_models as interaction_db_models
-#import dbconnection
+import requests
+from xml.etree import ElementTree
+
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -78,9 +80,9 @@ class DBwriter(eHive.BaseRunnable):
         engine = db.create_engine(p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
-        
+
         phi_id = self.param_required('PHI_id')
-        patho_sequence = self.param_required('patho_sequence')
+        #patho_sequence = self.param_required('patho_sequence')
         patho_gene_name = self.param_required('patho_gene_name')
         patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
         patho_species_name = self.param_required('patho_species_name')
@@ -94,7 +96,7 @@ class DBwriter(eHive.BaseRunnable):
 
         litterature_id = self.param_required('litterature_id')
         litterature_source = self.param_required('litterature_source')
-        doi = self.param_required('doi')
+        #doi = self.param_required('doi')
         interaction_phenotype = self.param_required('interaction_phenotype')
         pathogen_mutant_phenotype = self.param_required('pathogen_mutant_phenotype')
         experimental_evidence = self.param_required('experimental_evidence')
@@ -125,13 +127,19 @@ class DBwriter(eHive.BaseRunnable):
         self.add_if_not_exists(session, patho_ensembl_gene_value)
         self.add_if_not_exists(session, host_ensembl_gene_value)
 
+        print(f"patho_uniprot: {self.param('patho_uniprot_id')}")
+        print(f"host_uniprot: {self.param('host_uniprot_id')}")
+        patho_molecular_structure = self.get_molecular_structure(self.param("patho_uniprot_id"), patho_ensembl_gene_value.ensembl_stable_id)
+        host_molecular_structure = self.get_molecular_structure(self.param("host_uniprot_id"), host_ensembl_gene_value.ensembl_stable_id)
+
+
     def get_ensembl_id(self,gene_name, tax_id ,division):
         result = None
         reported = False
         gene_names = gene_name.split(';')
         for gn in gene_names:
-            if " Ensembl: " in gn:
-                result = gn.replace(' Ensembl: ','')
+            if "Ensembl:" in gn:
+                result = gn.strip().replace("Ensembl:",'').strip()                
                 print ('Ensembl_id:' + result)
                 reported = True
                 
@@ -188,4 +196,42 @@ class DBwriter(eHive.BaseRunnable):
             ensembl_gene_value = interaction_db_models.EnsemblGene(ensembl_stable_id=stable_id, species_id=species_id,import_time_stamp=db.sql.functions.now())
         return ensembl_gene_value
 
+    def get_molecular_structure(self, uniprot_id, ensembl_gene_id):
+        uniprot_seq = self.get_uniprot_sequence(uniprot_id)
+        ensembl_seqs = self.get_ensembl_sequences(ensembl_gene_id)
+        phi_id = self.param('PHI_id')
+        try:
+            if not self.check_equals(uniprot_seq,ensembl_seqs):
+                raise (AssertionError)
+            else:
+                print(f"**** {phi_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
+        except AssertionError:
+            print(f"**** {phi_id} NO SEQUENCE MATCH for uniprot accession {uniprot_id} and ensembl_accession {ensembl_gene_id}")
+        return uniprot_seq
 
+    def check_equals(self, uniprot_seq, ensembl_seqs):
+        for seq in ensembl_seqs:
+            if uniprot_seq == seq:
+                return True
+        return False
+
+    def get_uniprot_sequence(self, uniprot_id):
+        uniprot_url = "https://www.uniprot.org/uniprot/" + uniprot_id + ".fasta"
+        response = requests.get(uniprot_url)
+        uniprot_seq = ''
+        for line in response.iter_lines():
+            dc_l = line.decode('utf-8')
+            if dc_l[0] != ">":
+                uniprot_seq = uniprot_seq + str(dc_l)
+        return uniprot_seq
+
+    def get_ensembl_sequences(self,ensembl_gene_id):
+        ensembl_api_url = "https://rest.ensembl.org/sequence/id/" + ensembl_gene_id + "?type=protein;multiple_sequences=1;content-type=text/x-seqxml%2Bxml"
+        response = requests.get(ensembl_api_url, stream=True)
+        ensembl_seq_list = []
+
+        for line in response.iter_lines():
+            dc_l = line.decode('utf-8').strip().replace("</AAseq>",'')
+            if dc_l.startswith("<AAseq>"):
+                ensembl_seq_list.append(dc_l.replace("<AAseq>",''))
+        return ensembl_seq_list
