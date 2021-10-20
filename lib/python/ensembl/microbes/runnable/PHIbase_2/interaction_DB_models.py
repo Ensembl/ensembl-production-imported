@@ -90,7 +90,7 @@ class EnsemblGene(Base):
 
     def __repr__(self):
         return "<EnsemblGene(gene_id='%d', ensembl_stable_id='%s', species_id='%d', import_time_stamp='%s')>" % (
-                self.gene_id, self.ensembl_stable_id, self.species_id, str(self.import_timestamp))
+                self.gene_id, self.ensembl_stable_id, self.species_id, str(self.import_time_stamp))
 
 class Interaction(Base):
     __tablename__ = 'interaction'
