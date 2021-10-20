@@ -148,8 +148,16 @@ sub pipeline_analyses {
       -module     => 'ensembl.microbes.runnable.PHIbase_2.MetaEnsemblReader',
       -language   => 'python3',
       -flow_into    => {
-                        1 => { 'interactor_data_manager' => INPUT_PLUS() },
+                        1 => { 'sequence_finder' => INPUT_PLUS() },
                        },
+    },
+    { 
+       -logic_name => 'sequence_finder',
+       -module     => 'ensembl.microbes.runnable.PHIbase_2.SequenceFinder',
+       -language   => 'python3',
+       -flow_into    => {
+                        1 => { 'interactor_data_manager' => INPUT_PLUS() },
+                        },
     },
     {
       -logic_name => 'interactor_data_manager',
