@@ -77,7 +77,8 @@ class FileReader(eHive.BaseRunnable):
                     "interactions_db_url": int_db_url,
                     "ncbi_taxonomy_url": ncbi_tax_url,
                     "meta_ensembl_url": meta_db_url,
-                }   
+                    "source_db_label": self.get_db_label(),
+        }   
                 lines_list.append(entry_line_dict)
             return lines_list
 
@@ -95,6 +96,10 @@ class FileReader(eHive.BaseRunnable):
         except AssertionError:
             print("Mmmm..., we need to find out the uniprot accession for this interactor: " + accessions)
         return result
+
+    def get_db_label(self):
+	#TODO: implement a discriminating method to determine provenance of file(PHI-base, IntAct, HPIDD...)
+        return 'PHI-base'
 
     def read_registry(self):
         with open(self.param('registry'), newline='') as reg_file:
