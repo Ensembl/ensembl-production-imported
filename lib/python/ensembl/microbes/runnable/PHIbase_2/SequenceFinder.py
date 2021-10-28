@@ -18,24 +18,8 @@
 
 import os
 import subprocess
-import unittest
-import sqlalchemy as db
-import sqlalchemy_utils as db_utils
-import pymysql
 import eHive
-import datetime
-import re
-import ensembl.microbes.runnable.PHIbase_2.core_DB_models as core_db_models
-import ensembl.microbes.runnable.PHIbase_2.interaction_DB_models as interaction_db_models
 import requests
-from xml.etree import ElementTree
-import time
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
-from sqlalchemy import exc
-
-pymysql.install_as_MySQLdb()
 
 class SequenceFinder(eHive.BaseRunnable):
     """Finds the molecular structure of the interactor"""
@@ -45,34 +29,27 @@ class SequenceFinder(eHive.BaseRunnable):
 
     def fetch_input(self):
         self.warning("Fetch Sequence Finder")
-        phi_id = self.param_required('PHI_id')
-        print(f'phi_id--{phi_id}')
-        core_db_url = self.param_required('core_db_url')
-        (c_user,c_pwd,c_host,c_port,c_db) = re.compile(jdbc_pattern).findall(core_db_url)[0]
-        self.param('core_user',c_user)
-        self.param('core_pwd',c_pwd)
-        self.param('core_host',c_host)
-        self.param('core_port',int(c_port))
-        self.param('core_db',c_db)
-
+        self.param('branch_to_flow_on_fail', -1)
+        self.param('failed_job', '')
+        phi_id = self.param('PHI_id')
+        self.check_param("patho_ensembl_gene_stable_id")
+        self.check_param("host_ensembl_gene_stable_id")
+        self.check_param("patho_uniprot_id")
+        self.check_param("host_uniprot_id")
 
     def run(self):
         self.warning("Sequence finder run")
         self.get_values()
 
     def get_values(self):
+        phi_id = self.param('PHI_id')
+        patho_ensembl_gene_stable_id = self.param("patho_ensembl_gene_stable_id")
+        host_ensembl_gene_stable_id = self.param("host_ensembl_gene_stable_id")
+        patho_uniprot_id = self.param("patho_uniprot_id")
+        host_uniprot_id = self.param("host_uniprot_id")
 
-        phi_id = self.param_required('PHI_id')
-        patho_ensembl_gene_stable_id = self.param_required("patho_ensembl_gene_stable_id")
-        host_ensembl_gene_stable_id= self.param_required("host_ensembl_gene_stable_id")
-        patho_uniprot_id = self.param_required("patho_uniprot_id")
-        host_uniprot_id = self.param_required("host_uniprot_id")
-
-        patho_ensembl_gene_stable_id = self.param_required("patho_ensembl_gene_stable_id")
-        host_ensembl_gene_stable_id = self.param_required("host_ensembl_gene_stable_id")
-        
-        patho_molecular_structure = self.get_molecular_structure(self.param("patho_uniprot_id"), patho_ensembl_gene_stable_id)
-        host_molecular_structure = self.get_molecular_structure(self.param("host_uniprot_id"), host_ensembl_gene_stable_id)
+        patho_molecular_structure = self.get_molecular_structure(patho_uniprot_id, patho_ensembl_gene_stable_id)
+        host_molecular_structure = self.get_molecular_structure(host_uniprot_id, host_ensembl_gene_stable_id)
         self.param("patho_molecular_structure",patho_molecular_structure)
         self.param("host_molecular_structure",host_molecular_structure)
 
@@ -126,6 +103,19 @@ class SequenceFinder(eHive.BaseRunnable):
         return lines_list
 
     def write_output(self):
-        entries_list = self.build_output_hash()
-        for entry in entries_list:
-            self.dataflow(entry, 1)
+        if self.param('failed_job') == '':
+            entries_list = self.build_output_hash()
+            for entry in entries_list:
+                self.dataflow(entry, 1)
+        else:
+            output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
+            self.dataflow(output_hash, self.param('branch_to_flow_on_fail'))
+
+    def check_param(self, param):
+        try:
+            self.param_required(param)
+        except:
+            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            self.param('failed_job', error_msg)
+            print(error_msg)
+

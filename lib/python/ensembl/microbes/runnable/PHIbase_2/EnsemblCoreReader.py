@@ -1,0 +1,141 @@
+
+# Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+# Copyright [2016-2021] EMBL-European Bioinformatics Institute
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#      http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# standaloneJob.pl eHive.examples.TestRunnable -language python3
+
+import os
+import subprocess
+import unittest
+import sqlalchemy as db
+import sqlalchemy_utils as db_utils
+import pymysql
+import eHive
+import datetime
+import re
+import ensembl.microbes.runnable.PHIbase_2.core_DB_models as core_db_models
+import ensembl.microbes.runnable.PHIbase_2.interaction_DB_models as interaction_db_models
+import requests
+from xml.etree import ElementTree
+import time
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy import exc
+
+pymysql.install_as_MySQLdb()
+
+class EnsemblCoreReader(eHive.BaseRunnable):
+    """Reads from CoreDB to gather fields to attach interactor to the ensembl_gene (mostly ensembl_gene_stable_id)"""
+
+    def param_defaults(self):
+        return { }
+
+    def fetch_input(self):
+        self.warning("Fetch EnsemblCoreReader")
+        self.param('branch_to_flow_on_fail', -1)
+        self.param('failed_job', '')
+        phi_id = self.param_required('PHI_id')
+        
+        core_db_url = self.param_required('core_db_url')
+        self.check_param('patho_division')
+        self.check_param('host_division')
+        self.check_param('patho_species_name')
+        self.check_param('patho_species_taxon_id')
+        self.check_param('host_species_name')
+        self.check_param('host_species_taxon_id')
+        self.check_param('patho_core_dbname')
+        self.check_param('host_core_dbname')
+        self.check_param('patho_gene_name')
+        self.check_param('host_gene_name')
+
+        jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
+        (c_user,c_pwd,c_host,c_port,c_db) = re.compile(jdbc_pattern).findall(core_db_url)[0]
+        self.param('core_user',c_user)
+        self.param('core_pwd',c_pwd)
+        self.param('core_host',c_host)
+        self.param('core_port',int(c_port))
+        self.param('core_db',c_db)
+    
+    def run(self):
+        self.warning("EnsemblCoreReader run")
+        self.get_values()
+
+    def get_values(self):
+        
+        phi_id = self.param('PHI_id')
+        patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
+        patho_division = self.param_required("patho_division")
+        patho_gene_name = self.param_required('patho_gene_name')
+        host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
+        host_division = self.param_required("host_division")
+        host_gene_name = self.param_required('host_gene_name')
+        
+        patho_ensembl_gene_stable_id = self.get_ensembl_id(patho_gene_name, patho_species_taxon_id, patho_division)
+        host_ensembl_gene_stable_id = self.get_ensembl_id(host_gene_name, host_species_taxon_id, host_division)
+
+        self.param("patho_ensembl_gene_stable_id",patho_ensembl_gene_stable_id)
+        self.param("host_ensembl_gene_stable_id",host_ensembl_gene_stable_id)
+        
+
+    def get_ensembl_id(self,gene_name, tax_id ,division):
+        result = None
+        reported = False
+        gene_names = gene_name.split(';')
+        for gn in gene_names:
+            if "Ensembl:" in gn:
+                result = gn.strip().replace("Ensembl:",'').strip()                
+                print ('Ensembl_id:' + result)
+                reported = True
+                
+        if not reported:
+            print ("Mmmm..., we need to find out how we name this gene name in ensembl: " + gene_name)
+        return result
+
+    def get_ensembl_gene_value(self, session, stable_id, species_id):
+        try:
+            ensembl_gene_value = session.query(interaction_db_models.EnsemblGene).filter_by(ensembl_stable_id=stable_id).one()
+        except MultipleResultsFound:
+            print(f"ERROR: Multiple results found for species: {species_id} - gene stable_id {stable_id}")
+        except NoResultFound:
+            ensembl_gene_value = interaction_db_models.EnsemblGene(ensembl_stable_id=stable_id, species_id=species_id,import_time_stamp=db.sql.functions.now())
+        return ensembl_gene_value
+
+
+    def build_output_hash(self):
+        lines_list = []
+        entry_line_dict = {
+                "patho_ensembl_gene_stable_id": self.param("patho_ensembl_gene_stable_id"),
+                "host_ensembl_gene_stable_id": self.param("host_ensembl_gene_stable_id"),
+                }
+        lines_list.append(entry_line_dict)
+        return lines_list
+
+    def write_output(self):
+        if self.param('failed_job') == '':
+            entries_list = self.build_output_hash()
+            for entry in entries_list:
+                self.dataflow(entry, 1)
+        else:
+            output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
+            self.dataflow(output_hash, self.param('branch_to_flow_on_fail'))
+
+    def check_param(self, param):
+        try:
+            self.param_required(param)
+        except:
+            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            self.param('failed_job', error_msg)
+            print(error_msg)

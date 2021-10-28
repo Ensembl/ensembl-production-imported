@@ -44,10 +44,12 @@ class DBwriter(eHive.BaseRunnable):
         return { }
 
     def fetch_input(self):
-        self.warning("Fetch WRAPPED dbWriter!")
         phi_id = self.param_required('PHI_id')
+        self.warning("Fetch WRAPPED dbWriter!" + phi_id)
+        self.param('branch_to_flow_on_fail', -1)
+        self.param('failed_job', '')
+        
         p2p_db_url = self.param_required('interactions_db_url')
-        print(f'phi_id--{phi_id}')
         jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
         (i_user,i_pwd,i_host,i_port,i_db) = re.compile(jdbc_pattern).findall(p2p_db_url)[0]
         self.param('p2p_user',i_user)
@@ -55,20 +57,19 @@ class DBwriter(eHive.BaseRunnable):
         self.param('p2p_host',i_host)
         self.param('p2p_port',int(i_port))
         self.param('p2p_db',i_db)
+           
+        self.check_param('source_db_label')
+        self.check_param('patho_species_taxon_id')
+        self.check_param('patho_species_name')
+        self.check_param('patho_division')
+        self.check_param('patho_ensembl_gene_stable_id')
+        self.check_param('patho_molecular_structure')
 
-        core_db_url = self.param_required('core_db_url')
-        (c_user,c_pwd,c_host,c_port,c_db) = re.compile(jdbc_pattern).findall(core_db_url)[0]
-        self.param('core_user',c_user)
-        self.param('core_pwd',c_pwd)
-        self.param('core_host',c_host)
-        self.param('core_port',int(c_port))
-        self.param('core_db',c_db)
-
-        meta_db_url = self.param_required('meta_ensembl_url')
-        (m_user,m_pwd,m_host,m_port,m_db) = re.compile(jdbc_pattern).findall(meta_db_url)[0]
-        self.param('meta_user',m_user)
-        self.param('meta_host',m_host)
-        self.param('meta_port',int(m_port))
+        self.check_param('host_species_taxon_id')
+        self.check_param('host_species_name')
+        self.check_param('host_division')
+        self.check_param('host_ensembl_gene_stable_id')
+        self.check_param('host_molecular_structure')
 
     def run(self):
         self.warning("DBWriter run")
@@ -81,74 +82,34 @@ class DBwriter(eHive.BaseRunnable):
         Session = sessionmaker(bind=engine)
         session = Session()
 
-        phi_id = self.param_required('PHI_id')
-        #patho_sequence = self.param_required('patho_sequence')
-        patho_gene_name = self.param_required('patho_gene_name')
-        patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
-        patho_species_name = self.param_required('patho_species_name')
-        patho_core_dbname = self.param_required("patho_core_dbname")
-        patho_division = self.param_required("patho_division")
-        host_gene_name = self.param_required('host_gene_name')
-        host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
-        host_species_name = self.param_required('host_species_name')
-        host_core_dbname = self.param_required("host_core_dbname")
-        host_division = self.param_required("host_division")
+        phi_id = self.param('PHI_id')
+        patho_species_taxon_id = int(self.param('patho_species_taxon_id'))
+        patho_species_name = self.param('patho_species_name')
+        patho_division = self.param('patho_division')
+        host_species_taxon_id = int(self.param('host_species_taxon_id'))
+        host_species_name = self.param('host_species_name')
+        host_division = self.param('host_division')
 
-        litterature_id = self.param_required('litterature_id')
-        litterature_source = self.param_required('litterature_source')
-        #doi = self.param_required('doi')
-        interaction_phenotype = self.param_required('interaction_phenotype')
-        pathogen_mutant_phenotype = self.param_required('pathogen_mutant_phenotype')
-        experimental_evidence = self.param_required('experimental_evidence')
-        transient_assay_exp_ev = self.param_required('transient_assay_exp_ev')
+        source_db_label = self.param('source_db_label')
 
-        db_label = self.get_db_label()
+        patho_ensembl_gene_stable_id = self.param('patho_ensembl_gene_stable_id')
+        host_ensembl_gene_stable_id = self.param('host_ensembl_gene_stable_id')
+        patho_molecular_structure = self.param('patho_molecular_structure')
+        host_molecular_structure = self.param('host_molecular_structure')
 
         source_db_value = self.get_source_db_value(session, db_label)
-        self.add_if_not_exists(session, source_db_value)
-        
-        print(f'pathogen_species_value TO ADD -- {patho_species_name} division {patho_division} coreDB {patho_core_dbname}')
         pathogen_species_value = self.get_species_value(session, patho_species_taxon_id, patho_division, patho_species_name)
-        self.add_if_not_exists(session, pathogen_species_value)
-        print(f'pathogen_species_value AFTER ADD -- {pathogen_species_value} with species_id {pathogen_species_value.species_id}')
-        
-        print(f'host_species_value TO ADD -- {host_species_name} division {host_division} coreDB {host_core_dbname}')
         host_species_value = self.get_species_value(session, host_species_taxon_id, host_division, host_species_name)
-        self.add_if_not_exists(session, host_species_value)
-        print(f'host_species_value AFTER ADD -- {host_species_value}  with species_id {host_species_value.species_id}')
-    
-        print(f'pathogen_gene_name -- {patho_gene_name} -- division -- {pathogen_species_value.ensembl_division}')
-        patho_ensembl_stable_id = self.get_ensembl_id(patho_gene_name, patho_species_taxon_id, pathogen_species_value.ensembl_division)
-        host_ensembl_stable_id = self.get_ensembl_id(host_gene_name, host_species_taxon_id, host_species_value.ensembl_division)
 
-        patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_stable_id, pathogen_species_value.species_id)
-        host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_stable_id, host_species_value.species_id)
+        session.add(source_db_value)
+        session.add(pathogen_species_value)
+        session.add(host_species_value)
+        
+        patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_gene_stable_id, pathogen_species_value.species_id)
+        host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_gene_stable_id, host_species_value.species_id)
 
-        self.add_if_not_exists(session, patho_ensembl_gene_value)
-        self.add_if_not_exists(session, host_ensembl_gene_value)
-
-        print(f"patho_uniprot: {self.param('patho_uniprot_id')}")
-        print(f"host_uniprot: {self.param('host_uniprot_id')}")
-        patho_molecular_structure = self.get_molecular_structure(self.param("patho_uniprot_id"), patho_ensembl_gene_value.ensembl_stable_id)
-        host_molecular_structure = self.get_molecular_structure(self.param("host_uniprot_id"), host_ensembl_gene_value.ensembl_stable_id)
-
-
-    def get_ensembl_id(self,gene_name, tax_id ,division):
-        result = None
-        reported = False
-        gene_names = gene_name.split(';')
-        for gn in gene_names:
-            if "Ensembl:" in gn:
-                result = gn.strip().replace("Ensembl:",'').strip()                
-                print ('Ensembl_id:' + result)
-                reported = True
-                
-        if not reported:
-            print ("Mmmm..., we need to find out how we name this gene name in ensembl: " + gene_name)
-        return result
-
-    def add_if_not_exists(self, session, value):
-        session.add(value)
+        session.add(patho_ensembl_gene_value)
+        session.add(host_ensembl_gene_value)
         try:
             session.commit()
         except pymysql.err.IntegrityError as e:
@@ -162,9 +123,6 @@ class DBwriter(eHive.BaseRunnable):
             session.rollback()
 
 
-    def get_db_label(self):
-        return 'PHI-base'
-
     def get_source_db_value(self, session, db_label):
         source_db_value = None
         try:
@@ -176,16 +134,6 @@ class DBwriter(eHive.BaseRunnable):
         
         return source_db_value
 
-    def get_species_value(self, session, species_tax_id, division, species_name):
-        
-        try:
-            species_value = session.query(interaction_db_models.Species).filter_by(species_taxon_id=species_tax_id).one()
-        except MultipleResultsFound:
-            print(f"ERROR: Multiple results found for {species_name} - tx {species_tax_id}")
-        except NoResultFound:
-            species_value = interaction_db_models.Species(ensembl_division=division, species_production_name=species_name,species_taxon_id=species_tax_id)
-        return species_value
-    
 
     def get_ensembl_gene_value(self, session, stable_id, species_id):
         try:
@@ -196,42 +144,22 @@ class DBwriter(eHive.BaseRunnable):
             ensembl_gene_value = interaction_db_models.EnsemblGene(ensembl_stable_id=stable_id, species_id=species_id,import_time_stamp=db.sql.functions.now())
         return ensembl_gene_value
 
-    def get_molecular_structure(self, uniprot_id, ensembl_gene_id):
-        uniprot_seq = self.get_uniprot_sequence(uniprot_id)
-        ensembl_seqs = self.get_ensembl_sequences(ensembl_gene_id)
-        phi_id = self.param('PHI_id')
+    def get_species_value(self, session, species_tax_id, division, species_name):
+        
         try:
-            if not self.check_equals(uniprot_seq,ensembl_seqs):
-                raise (AssertionError)
-            else:
-                print(f"**** {phi_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
-        except AssertionError:
-            print(f"**** {phi_id} NO SEQUENCE MATCH for uniprot accession {uniprot_id} and ensembl_accession {ensembl_gene_id}")
-        return uniprot_seq
+            species_value = session.query(interaction_db_models.Species).filter_by(species_taxon_id=species_tax_id).one()
+        except MultipleResultsFound:
+            print(f"ERROR: Multiple results found for {species_name} - tx {species_tax_id}")
+        except NoResultFound:
+            species_value = interaction_db_models.Species(ensembl_division=division, species_production_name=species_name,species_taxon_id=species_tax_id)
+        return species_value
 
-    def check_equals(self, uniprot_seq, ensembl_seqs):
-        for seq in ensembl_seqs:
-            if uniprot_seq == seq:
-                return True
-        return False
+    #def write_output(self):
 
-    def get_uniprot_sequence(self, uniprot_id):
-        uniprot_url = "https://www.uniprot.org/uniprot/" + uniprot_id + ".fasta"
-        response = requests.get(uniprot_url)
-        uniprot_seq = ''
-        for line in response.iter_lines():
-            dc_l = line.decode('utf-8')
-            if dc_l[0] != ">":
-                uniprot_seq = uniprot_seq + str(dc_l)
-        return uniprot_seq
-
-    def get_ensembl_sequences(self,ensembl_gene_id):
-        ensembl_api_url = "https://rest.ensembl.org/sequence/id/" + ensembl_gene_id + "?type=protein;multiple_sequences=1;content-type=text/x-seqxml%2Bxml"
-        response = requests.get(ensembl_api_url, stream=True)
-        ensembl_seq_list = []
-
-        for line in response.iter_lines():
-            dc_l = line.decode('utf-8').strip().replace("</AAseq>",'')
-            if dc_l.startswith("<AAseq>"):
-                ensembl_seq_list.append(dc_l.replace("<AAseq>",''))
-        return ensembl_seq_list
+    def check_param(self, param):
+        try:
+            self.param_required(param)
+        except:
+            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            self.param('failed_job', error_msg)
+            print(error_msg)

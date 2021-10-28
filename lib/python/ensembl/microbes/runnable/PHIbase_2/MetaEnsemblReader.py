@@ -37,6 +37,8 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         return { }
 
     def fetch_input(self):
+        self.param('branch_to_flow_on_fail', -1)
+        self.param('failed_job', '')
         meta_db_url = self.param_required('meta_ensembl_url')
         jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
         (m_user,m_pwd,m_host,m_port,m_db) = re.compile(jdbc_pattern).findall(meta_db_url)[0]
@@ -45,22 +47,25 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         self.param('meta_port',int(m_port))
 
         phi_id = self.param_required('PHI_id')
-        self.warning(f'phi_id--{phi_id}')
+        self.check_param('patho_species_taxon_id')
+        self.check_param('host_species_taxon_id')
 
     def run(self):
         self.warning("EntryLine run")
-        patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
-        host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
-        patho_division, patho_db_name = self.get_meta_ensembl_info(patho_species_taxon_id)
-        patho_species_name = self.get_species_name(patho_species_taxon_id)
-        self.param("patho_division",patho_division)
-        self.param("patho_dbname",patho_db_name)
-        self.param("patho_species_name",patho_species_name)
+	
+        patho_species_taxon_id = int(self.param('patho_species_taxon_id'))
+       	host_species_taxon_id = int(self.param('host_species_taxon_id'))
+       	patho_division, patho_db_name = self.get_meta_ensembl_info(patho_species_taxon_id)
+       	patho_species_name = self.get_species_name(patho_species_taxon_id)
+       	self.param("patho_division",patho_division)
+       	self.param("patho_dbname",patho_db_name)
+       	self.param("patho_species_name",patho_species_name)
+        
         host_division, host_db_name = self.get_meta_ensembl_info(host_species_taxon_id)
-        host_species_name = self.get_species_name(host_species_taxon_id)
-        self.param("host_division",host_division)
-        self.param("host_dbname",host_db_name)
-        self.param("host_species_name",host_species_name)
+       	host_species_name = self.get_species_name(host_species_taxon_id)
+       	self.param("host_division",host_division)
+       	self.param("host_dbname",host_db_name)
+       	self.param("host_species_name",host_species_name)
 
     def get_meta_ensembl_info(self, species_tax_id):
         div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE short_name != 'EV' AND species_taxonomy_id=%d"
@@ -152,18 +157,29 @@ class MetaEnsemblReader(eHive.BaseRunnable):
     def build_output_hash(self):
        lines_list = []
        entry_line_dict = {
-               "patho_division": self.param("patho_division"),
-               "host_division": self.param("host_division"),
-               "patho_species_name": self.param("patho_species_name"),
-               "host_species_name": self.param("host_species_name"),
-               "patho_core_dbname": self.param("patho_dbname"),
-               "host_core_dbname": self.param("host_dbname"),
+           "patho_division": self.param("patho_division"),
+           "host_division": self.param("host_division"),
+           "patho_species_name": self.param("patho_species_name"),
+           "host_species_name": self.param("host_species_name"),
+           "patho_core_dbname": self.param("patho_dbname"),
+           "host_core_dbname": self.param("host_dbname"),
        }
        lines_list.append(entry_line_dict)
        return lines_list
 
     def write_output(self):
-        entries_list = self.build_output_hash()
-        for entry in entries_list:
-            self.dataflow(entry, 1)
+        if self.param('failed_job') == '':
+            entries_list = self.build_output_hash()
+            for entry in entries_list:
+                self.dataflow(entry, 1)
+        else:
+            output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
+            self.dataflow(output_hash, self.param('branch_to_flow_on_fail'))
 
+    def check_param(self, param):
+        try:
+            self.param_required(param)
+        except:
+            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            self.param('failed_job', error_msg)
+            print(error_msg)

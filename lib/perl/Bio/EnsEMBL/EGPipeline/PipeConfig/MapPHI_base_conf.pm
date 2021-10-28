@@ -148,15 +148,26 @@ sub pipeline_analyses {
       -module     => 'ensembl.microbes.runnable.PHIbase_2.MetaEnsemblReader',
       -language   => 'python3',
       -flow_into    => {
+                        1 => { 'ensembl_core_reader' => INPUT_PLUS() },
+                        -1 => ['failed_entries'],
+			},
+    },
+    {  
+       -logic_name => 'ensembl_core_reader',
+       -module     => 'ensembl.microbes.runnable.PHIbase_2.EnsemblCoreReader',
+       -language   => 'python3',
+       -flow_into    => {
                         1 => { 'sequence_finder' => INPUT_PLUS() },
-                       },
+                        -1 => ['failed_entries'],
+			},
     },
     { 
        -logic_name => 'sequence_finder',
        -module     => 'ensembl.microbes.runnable.PHIbase_2.SequenceFinder',
        -language   => 'python3',
        -flow_into    => {
-                        1 => { 'interactor_data_manager' => INPUT_PLUS() },
+                        1  => { 'interactor_data_manager' => INPUT_PLUS() },
+			-1 => ['failed_entries'],
                         },
     },
     {
@@ -164,8 +175,14 @@ sub pipeline_analyses {
       -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractorDataManager',
       -language   => 'python3',
       -flow_into    => {
-                        1 => { 'db_writer' => INPUT_PLUS() },
+                        1  => ['db_writer'],
+			-1 => ['failed_entries'],
                         },
+    },
+    { 
+      -logic_name => 'failed_entries',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.FailedEntries',
+      -language   => 'python3',
     },
     { 
       -logic_name => 'db_writer',
