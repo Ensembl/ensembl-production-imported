@@ -45,7 +45,6 @@ class EnsemblCoreReader(eHive.BaseRunnable):
 
     def fetch_input(self):
         self.warning("Fetch EnsemblCoreReader")
-        self.param('branch_to_flow_on_fail', -1)
         self.param('failed_job', '')
         phi_id = self.param_required('PHI_id')
         
@@ -129,9 +128,9 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             for entry in entries_list:
                 self.dataflow(entry, 1)
         else:
-            output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
-            self.dataflow(output_hash, self.param('branch_to_flow_on_fail'))
-
+            print(f"{phi_id} written to FailedJob")
+            self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
+    
     def check_param(self, param):
         try:
             self.param_required(param)

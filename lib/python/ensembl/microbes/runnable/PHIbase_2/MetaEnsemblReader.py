@@ -37,7 +37,6 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         return { }
 
     def fetch_input(self):
-        self.param('branch_to_flow_on_fail', -1)
         self.param('failed_job', '')
         meta_db_url = self.param_required('meta_ensembl_url')
         jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
@@ -173,9 +172,9 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             for entry in entries_list:
                 self.dataflow(entry, 1)
         else:
-            output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
-            self.dataflow(output_hash, self.param('branch_to_flow_on_fail'))
-
+            print(f"{phi_id} written to FailedJob")
+            self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
+            
     def check_param(self, param):
         try:
             self.param_required(param)

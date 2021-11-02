@@ -29,7 +29,6 @@ class SequenceFinder(eHive.BaseRunnable):
 
     def fetch_input(self):
         self.warning("Fetch Sequence Finder")
-        self.param('branch_to_flow_on_fail', -1)
         self.param('failed_job', '')
         phi_id = self.param('PHI_id')
         self.check_param("patho_ensembl_gene_stable_id")
@@ -103,13 +102,16 @@ class SequenceFinder(eHive.BaseRunnable):
         return lines_list
 
     def write_output(self):
+        phi_id = self.param('PHI_id')
         if self.param('failed_job') == '':
             entries_list = self.build_output_hash()
+            print(f"{phi_id} written to DBwriter")
             for entry in entries_list:
                 self.dataflow(entry, 1)
         else:
-            output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
-            self.dataflow(output_hash, self.param('branch_to_flow_on_fail'))
+            #output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
+            print(f"{phi_id} written to FailedJob")
+            self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
 
     def check_param(self, param):
         try:

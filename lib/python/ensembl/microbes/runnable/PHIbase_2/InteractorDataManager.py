@@ -28,7 +28,6 @@ class InteractorDataManager(eHive.BaseRunnable):
 
     def fetch_input(self):
         self.warning("Fetch InteractorDataManager")
-        self.param('branch_to_flow_on_fail', -1)
         self.param('failed_job', '')
         phi_id = self.param_required('PHI_id')
         self.check_param('patho_ensembl_gene_stable_id')
@@ -40,13 +39,13 @@ class InteractorDataManager(eHive.BaseRunnable):
         self.warning("InteractorDataManager run")
 
     def write_output(self):
-        phi_id = self.param("PHI_id")
-        if self.param('failed_job') == '': 
-            print(f"+++ write output for {phi_id} JOB OK")
+        phi_id = self.param('PHI_id')
+        if self.param('failed_job') == '':
+            print(f"{phi_id} written to DBwriter")
         else:
-            output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
-            self.dataflow(output_hash, self.param('branch_to_flow_on_fail'))
-            print(f"*** write output for {phi_id} JOB KO")
+            #output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
+            print(f"{phi_id} written to FailedJob")
+            self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
             return 
 
     def check_param(self, param):

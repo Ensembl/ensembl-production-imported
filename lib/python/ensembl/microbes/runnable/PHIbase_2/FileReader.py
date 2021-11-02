@@ -30,15 +30,14 @@ class FileReader(eHive.BaseRunnable):
         return {
             'inputfile' : '#inputfile#',
             'registry'  : '#registry#',
+            'branch_to_flow_on_fail' :  -3,
         }
 
     def fetch_input(self):
-        self.warning("Fetch input!")
         print("inputfile is", self.param_required('inputfile'))
         print("registry", self.param_required('registry'))
 
     def run(self):
-        self.warning("FileReader run")
         self.param('entries_list', self.read_lines())
 
     def write_output(self):
@@ -58,6 +57,7 @@ class FileReader(eHive.BaseRunnable):
             lines_list = []
             for row in reader:
                 entry_line_dict = {
+                    "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
                     "PHI_id": row[0],
                     "patho_uniprot_id": row[2],
                     "patho_sequence": row[5],

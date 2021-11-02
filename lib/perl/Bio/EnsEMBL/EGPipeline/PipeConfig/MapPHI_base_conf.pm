@@ -148,8 +148,8 @@ sub pipeline_analyses {
       -module     => 'ensembl.microbes.runnable.PHIbase_2.MetaEnsemblReader',
       -language   => 'python3',
       -flow_into    => {
-                        1 => { 'ensembl_core_reader' => INPUT_PLUS() },
-                        -1 => ['failed_entries'],
+                        1 => WHEN ("#failed_job# eq '' " => { 'ensembl_core_reader' => INPUT_PLUS() }),
+                        -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
 			},
     },
     {  
@@ -157,26 +157,26 @@ sub pipeline_analyses {
        -module     => 'ensembl.microbes.runnable.PHIbase_2.EnsemblCoreReader',
        -language   => 'python3',
        -flow_into    => {
-                        1 => { 'sequence_finder' => INPUT_PLUS() },
-                        -1 => ['failed_entries'],
-			},
+                        1 => WHEN ("#failed_job# eq '' " => { 'sequence_finder' => INPUT_PLUS() }),
+			-3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
+		        },
     },
     { 
        -logic_name => 'sequence_finder',
        -module     => 'ensembl.microbes.runnable.PHIbase_2.SequenceFinder',
        -language   => 'python3',
        -flow_into    => {
-                        1  => { 'interactor_data_manager' => INPUT_PLUS() },
-			-1 => ['failed_entries'],
-                        },
+                        1 => WHEN ("#failed_job# eq '' " => { 'interactor_data_manager' => INPUT_PLUS() }),
+                        -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
+		        },
     },
     {
       -logic_name => 'interactor_data_manager',
       -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractorDataManager',
       -language   => 'python3',
       -flow_into    => {
-                        1  => ['db_writer'],
-			-1 => ['failed_entries'],
+                        -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
+                         1 => WHEN ("#failed_job# eq '' " => { 'db_writer' => INPUT_PLUS() }),
                         },
     },
     { 
