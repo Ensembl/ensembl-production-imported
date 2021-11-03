@@ -86,19 +86,7 @@ sub get_adaptor {
 sub new {
     my ( $proto, @args ) = @_;
     my $self = bless {}, $proto;
-    ( $self->{taxonomy_adaptor}, $self->{ensembl_version} ) = rearrange( 'TAXONOMY_ADAPTOR', 'ENSEMBL_VERSION', @args );
-    if ( !defined $self->{taxonomy_adaptor} ) {
-        my $dbname = $self->{ensembl_version} ? 'ncbi_taxonomy_' . $self->{ensembl_version} : 'ncbi_taxonomy';
-        my $tax_dba =
-        Bio::EnsEMBL::Taxonomy::DBSQL::TaxonomyDBAdaptor->new(
-          -host   => PUBLIC_HOST,
-          -port   => PUBLIC_PORT,
-          -user   => PUBLIC_USER,
-          -pass   => PUBLIC_PASS,
-          -dbname => $dbname,
-        );
-        $self->{taxonomy_adaptor} = $tax_dba->get_TaxonomyNodeAdaptor();
-    }
+    ( $self->{taxonomy_adaptor} ) = rearrange( 'TAXONOMY_ADAPTOR', @args );
     $self->clear_cache();
     return $self;
 }
@@ -111,6 +99,18 @@ sub clear_cache {
 
 sub taxonomy_adaptor {
     my ($self) = @_;
+    if ( !defined $self->{taxonomy_adaptor} ) {
+        my $dbname = 'ncbi_taxonomy';
+        my $tax_dba =
+        Bio::EnsEMBL::Taxonomy::DBSQL::TaxonomyDBAdaptor->new(
+          -host   => PUBLIC_HOST,
+          -port   => PUBLIC_PORT,
+          -user   => PUBLIC_USER,
+          -pass   => PUBLIC_PASS,
+          -dbname => $dbname,
+        );
+        $self->{taxonomy_adaptor} = $tax_dba->get_TaxonomyNodeAdaptor();
+    }
     return $self->{taxonomy_adaptor};
 }
 
