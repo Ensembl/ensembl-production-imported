@@ -63,7 +63,7 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('patho_species_name')
         self.check_param('patho_division')
         self.check_param('patho_ensembl_gene_stable_id')
-        self.check_param('patho_molecular_structure')
+        self.check_param('patho_molecula_structure')
 
         self.check_param('host_species_taxon_id')
         self.check_param('host_species_name')
@@ -72,6 +72,7 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('host_molecular_structure')
 
     def run(self):
+        self.param('entries_to_delete',{})
         self.warning("DBWriter run")
         self.insert_new_value()
     
@@ -81,6 +82,7 @@ class DBwriter(eHive.BaseRunnable):
         engine = db.create_engine(p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
+        session2 = Session()
 
         phi_id = self.param('PHI_id')
         patho_species_taxon_id = int(self.param('patho_species_taxon_id'))
@@ -91,47 +93,72 @@ class DBwriter(eHive.BaseRunnable):
         host_division = self.param('host_division')
 
         source_db_label = self.param('source_db_label')
-
+        print(f" PHI_id = {phi_id} :: patho_species_name {patho_species_name} :: host_species_name {host_species_name} :: source_db_label {source_db_label}")
         patho_ensembl_gene_stable_id = self.param('patho_ensembl_gene_stable_id')
         host_ensembl_gene_stable_id = self.param('host_ensembl_gene_stable_id')
         patho_molecular_structure = self.param('patho_molecular_structure')
         host_molecular_structure = self.param('host_molecular_structure')
 
-        source_db_value = self.get_source_db_value(session, db_label)
+        source_db_value = self.get_source_db_value(session, source_db_label)
         pathogen_species_value = self.get_species_value(session, patho_species_taxon_id, patho_division, patho_species_name)
         host_species_value = self.get_species_value(session, host_species_taxon_id, host_division, host_species_name)
 
-        session.add(source_db_value)
-        session.add(pathogen_species_value)
-        session.add(host_species_value)
-        
-        patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_gene_stable_id, pathogen_species_value.species_id)
-        host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_gene_stable_id, host_species_value.species_id)
-
-        session.add(patho_ensembl_gene_value)
-        session.add(host_ensembl_gene_value)
         try:
-            session.commit()
+            session.add(source_db_value)
+            source_db_id = source_db_value.source_db_id
+            session.add(pathogen_species_value)
+            session.add(host_species_value)
+            session.flush()
+
+            pathogen_species_id = pathogen_species_value.species_id
+            print(f"pathogen_species_id post flush = {pathogen_species_id}")
+            host_species_id = host_species_value.species_id
+            print(f"host_species_id = {host_species_id}")
+            patho_ensembl_gene_value = self.get_ensembl_gene_value(session2, patho_ensembl_gene_stable_id, pathogen_species_value.species_id)
+            host_ensembl_gene_value = self.get_ensembl_gene_value(session2, host_ensembl_gene_stable_id, host_species_value.species_id)
+            print(f"patho_ensembl_gene_stable_id {patho_ensembl_gene_stable_id}")
+            print(f"host_ensembl_gene_stable_id {host_ensembl_gene_stable_id}")
+            if patho_ensembl_gene_stable_id == 'UMAG_05731':
+                patho_ensembl_gene_value.gene_id = 1
+                #raise ValueError('A very specific bad thing happened.')
+            session2.add(patho_ensembl_gene_value)
+            session2.add(host_ensembl_gene_value)
+            session2.commit()
         except pymysql.err.IntegrityError as e:
             print(e)
             session.rollback()
+            session2.rollback()
         except exc.IntegrityError as e:
             print(e)
             session.rollback()
+            session2.rollback()
         except Exception as e:
             print(e)
             session.rollback()
+            session2.rollback()
+        self.clean_entry(session)
 
+    def clean_entry(self, session):
+        print("CLEAN ENTRY:")
+        print(self.param('entries_to_delete'))
+
+    def add_stored_value(self, table,  id_value):
+        new_values = self.param('entries_to_delete')
+        new_values[table] = id_value
+        self.param('entries_to_delete',new_values)
 
     def get_source_db_value(self, session, db_label):
         source_db_value = None
         try:
             source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).one()
+            print(f" db_value already exists with {db_label}")  
         except MultipleResultsFound:
             source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).first()
+            print(f" multiple db_value exist with {db_label}") 
         except NoResultFound:
             source_db_value = interaction_db_models.SourceDb(label='PHI-base', external_db='Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity.')
-        
+            print(f" A new db_value has been created with {db_label}")
+            self.add_stored_value('SourceDb', [db_label])
         return source_db_value
 
 
@@ -142,6 +169,12 @@ class DBwriter(eHive.BaseRunnable):
             print(f"ERROR: Multiple results found for species: {species_id} - gene stable_id {stable_id}")
         except NoResultFound:
             ensembl_gene_value = interaction_db_models.EnsemblGene(ensembl_stable_id=stable_id, species_id=species_id,import_time_stamp=db.sql.functions.now())
+            if 'EnsemblGene' in self.param('entries_to_delete'):
+                added_values_list = self.param('entries_to_delete')['EnsemblGene']
+                added_values_list.append(stable_id)
+                self.add_stored_value('EnsemblGene',added_values_list)
+            else:
+                self.add_stored_value('EnsemblGene', [stable_id])           
         return ensembl_gene_value
 
     def get_species_value(self, session, species_tax_id, division, species_name):
@@ -152,6 +185,12 @@ class DBwriter(eHive.BaseRunnable):
             print(f"ERROR: Multiple results found for {species_name} - tx {species_tax_id}")
         except NoResultFound:
             species_value = interaction_db_models.Species(ensembl_division=division, species_production_name=species_name,species_taxon_id=species_tax_id)
+            if 'Species' in self.param('entries_to_delete'):
+                added_values_list = self.param('entries_to_delete')['Species']
+                added_values_list.append(species_tax_id)
+                self.add_stored_value('Species',added_values_list)
+            else:
+                self.add_stored_value('Species', [species_tax_id])   
         return species_value
 
     #def write_output(self):
