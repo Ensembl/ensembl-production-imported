@@ -75,14 +75,13 @@ class DBwriter(eHive.BaseRunnable):
         self.param('entries_to_delete',{})
         self.warning("DBWriter run")
         self.insert_new_value()
-    
+
     def insert_new_value(self):
         p2p_db_url = self.param_required('interactions_db_url')
         
         engine = db.create_engine(p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
-        session2 = Session()
 
         phi_id = self.param('PHI_id')
         patho_species_taxon_id = int(self.param('patho_species_taxon_id'))
@@ -102,7 +101,6 @@ class DBwriter(eHive.BaseRunnable):
         source_db_value = self.get_source_db_value(session, source_db_label)
         pathogen_species_value = self.get_species_value(session, patho_species_taxon_id, patho_division, patho_species_name)
         host_species_value = self.get_species_value(session, host_species_taxon_id, host_division, host_species_name)
-
         try:
             session.add(source_db_value)
             source_db_id = source_db_value.source_db_id
@@ -111,36 +109,61 @@ class DBwriter(eHive.BaseRunnable):
             session.flush()
 
             pathogen_species_id = pathogen_species_value.species_id
-            print(f"pathogen_species_id post flush = {pathogen_species_id}")
             host_species_id = host_species_value.species_id
-            print(f"host_species_id = {host_species_id}")
-            patho_ensembl_gene_value = self.get_ensembl_gene_value(session2, patho_ensembl_gene_stable_id, pathogen_species_value.species_id)
-            host_ensembl_gene_value = self.get_ensembl_gene_value(session2, host_ensembl_gene_stable_id, host_species_value.species_id)
+            patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_gene_stable_id, pathogen_species_value.species_id)
+            host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_gene_stable_id, host_species_value.species_id)
             print(f"patho_ensembl_gene_stable_id {patho_ensembl_gene_stable_id}")
             print(f"host_ensembl_gene_stable_id {host_ensembl_gene_stable_id}")
-            if patho_ensembl_gene_stable_id == 'UMAG_05731':
-                patho_ensembl_gene_value.gene_id = 1
-                #raise ValueError('A very specific bad thing happened.')
-            session2.add(patho_ensembl_gene_value)
-            session2.add(host_ensembl_gene_value)
-            session2.commit()
+            
+            #if patho_ensembl_gene_stable_id == 'UMAG_05731':
+             #   patho_ensembl_gene_value.gene_id = 1
+            
+            session.add(patho_ensembl_gene_value)
+            session.add(host_ensembl_gene_value)
+            session.commit()
         except pymysql.err.IntegrityError as e:
             print(e)
             session.rollback()
-            session2.rollback()
+            self.clean_entry(engine)
         except exc.IntegrityError as e:
             print(e)
             session.rollback()
-            session2.rollback()
+            self.clean_entry(engine)
         except Exception as e:
             print(e)
             session.rollback()
-            session2.rollback()
-        self.clean_entry(session)
+            self.clean_entry(engine)
 
-    def clean_entry(self, session):
+    def clean_entry(self, engine):
+        metadata = db.MetaData()
+        connection = engine.connect()
         print("CLEAN ENTRY:")
-        print(self.param('entries_to_delete'))
+        entries_to_delete = self.param('entries_to_delete')
+        print(entries_to_delete)
+
+        if "SourceDb" in entries_to_delete:
+            source_db = db.Table('source_db', metadata, autoload=True, autoload_with=engine)
+            db_label = entries_to_delete["SourceDb"]
+            stmt = db.delete(source_db).where(source_db.columns.label == db_label)
+            connection.execute(stmt)
+            print (f"DELETED Source_db with label {db_label}")
+        
+        if "EnsemblGene" in entries_to_delete:
+            genes_list = entries_to_delete["EnsemblGene"]
+            ensembl_gene = db.Table('ensembl_gene', metadata, autoload=True, autoload_with=engine)
+            for stable_id in genes_list:
+                stmt = db.delete(ensembl_gene).where(ensembl_gene.c.gene_id == stable_id)
+                connection.execute(stmt)
+                print(f"DELETED EnsemblGene with stableid {stable_id}")
+
+        if "Species" in entries_to_delete:
+            species_list = entries_to_delete["Species"]
+            species = db.Table('species', metadata, autoload=True, autoload_with=engine)
+            for species_tax_id in species_list:
+                stmt = db.delete(species).where(species.c.species_taxon_id == species_tax_id)
+                connection.execute(stmt)
+                print (f"DELETED Species with species_tax_id {species_tax_id}")
+
 
     def add_stored_value(self, table,  id_value):
         new_values = self.param('entries_to_delete')
@@ -157,7 +180,7 @@ class DBwriter(eHive.BaseRunnable):
             print(f" multiple db_value exist with {db_label}") 
         except NoResultFound:
             source_db_value = interaction_db_models.SourceDb(label='PHI-base', external_db='Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity.')
-            print(f" A new db_value has been created with {db_label}")
+            print(f" A new db_value has been created with {db_label} + added as stored value with sourceid {source_db_value.source_db_id}")
             self.add_stored_value('SourceDb', [db_label])
         return source_db_value
 
