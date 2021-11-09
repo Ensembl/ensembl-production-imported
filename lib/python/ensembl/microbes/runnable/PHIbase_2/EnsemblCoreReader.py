@@ -57,8 +57,8 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         self.check_param('host_species_taxon_id')
         self.check_param('patho_core_dbname')
         self.check_param('host_core_dbname')
-        self.check_param('patho_gene_name')
-        self.check_param('host_gene_name')
+        self.check_param('patho_other_names')
+        self.check_param('host_other_names')
 
         jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
         (c_user,c_pwd,c_host,c_port,c_db) = re.compile(jdbc_pattern).findall(core_db_url)[0]
@@ -77,30 +77,30 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         phi_id = self.param('PHI_id')
         patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
         patho_division = self.param_required("patho_division")
-        patho_gene_name = self.param_required('patho_gene_name')
+        patho_other_names = self.param_required('patho_other_names')
         host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
         host_division = self.param_required("host_division")
-        host_gene_name = self.param_required('host_gene_name')
+        host_other_names = self.param_required('host_other_names')
         
-        patho_ensembl_gene_stable_id = self.get_ensembl_id(patho_gene_name, patho_species_taxon_id, patho_division)
-        host_ensembl_gene_stable_id = self.get_ensembl_id(host_gene_name, host_species_taxon_id, host_division)
+        patho_ensembl_gene_stable_id = self.get_ensembl_id(patho_other_names, patho_species_taxon_id, patho_division)
+        host_ensembl_gene_stable_id = self.get_ensembl_id(host_other_names, host_species_taxon_id, host_division)
 
         self.param("patho_ensembl_gene_stable_id",patho_ensembl_gene_stable_id)
         self.param("host_ensembl_gene_stable_id",host_ensembl_gene_stable_id)
         
 
-    def get_ensembl_id(self,gene_name, tax_id ,division):
+    def get_ensembl_id(self,alt_names, tax_id ,division):
         result = None
         reported = False
-        gene_names = gene_name.split(';')
-        for gn in gene_names:
-            if "Ensembl:" in gn:
-                result = gn.strip().replace("Ensembl:",'').strip()                
+        alt_names = alt_names.split(';')
+        for an in alt_names:
+            if "Ensembl:" in an:
+                result = an.strip().replace("Ensembl:",'').strip()                
                 print ('Ensembl_id:' + result)
                 reported = True
                 
         if not reported:
-            print ("Mmmm..., we need to find out how we name this gene name in ensembl: " + gene_name)
+            print ("Mmmm..., we need to find out how we name this gene name in ensembl: " + alt_names)
         return result
 
     def get_ensembl_gene_value(self, session, stable_id, species_id):
