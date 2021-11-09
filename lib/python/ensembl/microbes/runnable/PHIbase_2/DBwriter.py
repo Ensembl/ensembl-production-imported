@@ -112,11 +112,6 @@ class DBwriter(eHive.BaseRunnable):
             host_species_id = host_species_value.species_id
             patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_gene_stable_id, pathogen_species_value.species_id)
             host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_gene_stable_id, host_species_value.species_id)
-            print(f"patho_ensembl_gene_stable_id {patho_ensembl_gene_stable_id}")
-            print(f"host_ensembl_gene_stable_id {host_ensembl_gene_stable_id}")
-            
-            #if patho_ensembl_gene_stable_id == 'UMAG_05731':
-             #   patho_ensembl_gene_value.gene_id = 1
             
             session.add(patho_ensembl_gene_value)
             session.add(host_ensembl_gene_value)
@@ -146,7 +141,6 @@ class DBwriter(eHive.BaseRunnable):
             db_label = entries_to_delete["SourceDb"]
             stmt = db.delete(source_db).where(source_db.columns.label == db_label)
             connection.execute(stmt)
-            print (f"DELETED Source_db with label {db_label}")
         
         if "EnsemblGene" in entries_to_delete:
             genes_list = entries_to_delete["EnsemblGene"]
@@ -154,7 +148,6 @@ class DBwriter(eHive.BaseRunnable):
             for stable_id in genes_list:
                 stmt = db.delete(ensembl_gene).where(ensembl_gene.c.gene_id == stable_id)
                 connection.execute(stmt)
-                print(f"DELETED EnsemblGene with stableid {stable_id}")
 
         if "Species" in entries_to_delete:
             species_list = entries_to_delete["Species"]
@@ -162,7 +155,6 @@ class DBwriter(eHive.BaseRunnable):
             for species_tax_id in species_list:
                 stmt = db.delete(species).where(species.c.species_taxon_id == species_tax_id)
                 connection.execute(stmt)
-                print (f"DELETED Species with species_tax_id {species_tax_id}")
 
 
     def add_stored_value(self, table,  id_value):
