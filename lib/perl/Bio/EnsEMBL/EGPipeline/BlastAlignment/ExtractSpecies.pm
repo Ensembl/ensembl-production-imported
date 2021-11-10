@@ -85,12 +85,30 @@ sub fetch_input {
   $binomial_name=~s/_/ /g;
   $binomial_name  = ucfirst($binomial_name);
   
+  # Get taxon id
+  my $taxon_id = $self->get_taxon_id($species);
+  $self->param('taxon_id', $taxon_id);
+  
   $self->param('trinomial_rex', $trinomial_rex);
   $self->param('binomial_rex', $binomial_rex);
   $self->param('trinomial_name', $trinomial_name);
   $self->param('binomial_name', $binomial_name);
 
   $self->param('output_file', $output_file);
+}
+
+sub get_taxon_id {
+  my ($self, $species) = @_;
+  
+  my $dba = $self->core_dba();
+  my $sql = 'SELECT meta_value FROM meta WHERE meta_key = ?';
+  my $dbh = $dba->dbc->db_handle;
+  my $sth = $dbh->prepare($sql);
+  $sth->execute("species.taxonomy_id");
+  
+  my ($taxon_id) = $sth->fetchrow_array;
+  
+  return $taxon_id;
 }
 
 sub run {
@@ -139,6 +157,7 @@ sub parse_uniprot {
   my $binomial_rex   = $self->param('binomial_rex');
   my $trinomial_name = $self->param('trinomial_name');
   my $binomial_name  = $self->param('binomial_name');
+  my $taxon_id       = $self->param('taxon_id');
   
   #warn "$trinomial_name:$binomial_name";
   my $full_desc = $inseq->desc;
@@ -171,6 +190,11 @@ sub parse_uniprot {
   	  	  $inseq->desc(join('|', map { $_ || '' } ($inseq->display_id(), $desc, $version)));
   	  	  $seq_out->write_seq($inseq);
 	  }
+  }elsif($taxon_id and $full_desc=~m/OX=$taxon_id\s/){
+    # Use the taxon id, more stable 
+    my ($desc, $version) = $full_desc =~ /^(.*)\s+OS=.*SV=(\d+)/;
+    $inseq->desc(join('|', map { $_ || '' } ($inseq->display_id(), $desc, $version)));
+    $seq_out->write_seq($inseq);
   }
 }
 
