@@ -101,47 +101,47 @@ class Interaction(Base):
     doi = Column(String(255), primary_key=True, nullable=False)
     source_db_id = Column(INTEGER(11), ForeignKey("source_db.source_db_id"), primary_key=True, nullable=False, index=True)
     import_timestamp = Column(TIMESTAMP, nullable=False)
-    interaction_meta_id = Column(INTEGER(11), ForeignKey("interaction_meta.interaction_meta_id"), nullable=False, index=True)
+    interaction_meta_id = Column(INTEGER(11), ForeignKey("meta_value.meta_value_id"), nullable=False, index=True)
 
     #curated_interactors_1 = relationship("CuratedInteractor", back_populates="interactors_1")
     #curated_interactors_2 = relationship("CuratedInteractor", back_populates="interactors_2")
     source_dbs = relationship("SourceDb", back_populates="interactions")
-    interaction_metas = relationship("InteractionMeta", back_populates="interactions")
+    meta_values = relationship("MetaValue", back_populates="interactions")
 
     def __repr__(self):
         return "<Interaction(interaction_id='%d', interactor_1='%s', interactor_2='%s', doi='%s', source_db_id='%d', import_timestamp='%s', interaction_meta_id='%d')>" % (
                 self.interaction_id, self.interactor_1, self. interactor_2, self.doi, self.source_db_id, str(self.import_timestamp), self.interaction_meta_id)
 
-class InteractionMeta(Base):
-    __tablename__ = 'interaction_meta'
+class MetaValue(Base):
+    __tablename__ = 'meta_value'
 
-    interaction_meta_id = Column(INTEGER(11), primary_key=True, nullable=False)
-    interaction_meta_type_id = Column(String(255), ForeignKey("interaction_meta_type.interaction_meta_type_id"), primary_key=True, nullable=False, index=True)
-    reference_ontology_id = Column(INTEGER(11), ForeignKey("reference_ontology.reference_ontology_id"), nullable=False, index=True)
-    ontology_accession = Column(String(255), nullable=False)
-    value = Column(Float)
-    ontology_decription = Column(String(255), nullable=False)
+    meta_value_id = Column(INTEGER(11), primary_key=True, nullable=False)
+    meta_key_id = Column(String(255), ForeignKey("meta_key.meta_key_id"),  primary_key=True, nullable=False, index=True)
+    value = Column(String(255), nullable=False)
+    ontology_accession = Column(String(255))
+    reference_ontology_id = Column(INTEGER(11), ForeignKey("meta_ontology.meta_ontology_id"), index=True)
+    float_value = Column(Float)
 
-    interactions = relationship("Interaction", back_populates="interaction_metas")
-    interaction_meta_types = relationship("InteractionMetaType", back_populates="interaction_metas")
-    reference_ontologies = relationship("ReferenceOntology", back_populates="interaction_metas")
-
-    def __repr__(self):
-                return "<InteractionMeta(interaction_meta_id='%d', interaction_meta_type_id='%s', reference_ontology_id='%d', ontology_accession='%s', value='%d', ontology_decription='%s')>" % (
-                        self.interaction_meta_id, self.interaction_meta_type_id, self.reference_ontology_id, self.ontology_accession, self.value, self.ontology_decription)
-
-class InteractionMetaType(Base):
-    __tablename__ = 'interaction_meta_type'
-
-    interaction_meta_type_id = Column(String(255), primary_key=True)
-    interaction_type = Column(String(255), nullable=False, unique=True)
-    interaction_type_description = Column(String(255))
-
-    interaction_metas = relationship("InteractionMeta", back_populates="interaction_meta_types")
+    interactions = relationship("Interaction", back_populates="meta_values")
+    meta_keys = relationship("MetaKey", back_populates="meta_values")
+    meta_ontologies = relationship("MetaOntology", back_populates="meta_values")
 
     def __repr__(self):
-        return "<InteractionMetaType(interaction_meta_type_id='%s', interaction_type='%s', interaction_type_description='%s')>" % (
-                self.interaction_meta_type_id, self.interaction_type, self.interaction_type_description)
+                return "<MetaValue(meta_value_id='%d', meta_key_id='%s', value='%s', reference_ontology_id='%d', ontology_accession='%s', float_value='%d')>" % (
+                        self.meta_value_id, self.meta_key_id, self.value, self.reference_ontology_id, self.ontology_accession, self.float_value)
+
+class MetaKey(Base):
+    __tablename__ = 'meta_key'
+
+    meta_key_id = Column(String(255), primary_key=True)
+    key_name = Column(String(255), nullable=False, unique=True)
+    key_description = Column(String(255))
+
+    meta_values = relationship("MetaValue", back_populates="meta_keys")
+
+    def __repr__(self):
+        return "<MetaKey(meta_key_id='%s', key_name='%s', key_description='%s')>" % (
+                self.meta_key_id, self.key_name, self.key_description)
 
 class PredictionMethod(Base):
     __tablename__ = 'prediction_method'
@@ -156,17 +156,17 @@ class PredictionMethod(Base):
         return "<PredictionMethod(prediction_method_id='%d', prediction_method_name='%s', prediction_method_values='%s')>" % (
                 self.prediction_method_id, self.prediction_method_name, self.prediction_method_values)
 
-class ReferenceOntology(Base):
-    __tablename__ = 'reference_ontology'
+class MetaOntology(Base):
+    __tablename__ = 'meta_ontology'
 
-    reference_ontology_id = Column(INTEGER(11), primary_key=True)
+    meta_ontology_id = Column(INTEGER(11), primary_key=True)
     ontology_name = Column(String(255), nullable=False, unique=True)
     ontology_description = Column(String(255), nullable=False)
 
-    interaction_metas = relationship("InteractionMeta", back_populates="reference_ontologies")
+    meta_values = relationship("MetaValue", back_populates="meta_ontologies")
 
     def __repr__(self): 
-        return "<ReferenceOntology(reference_ontology_id='%d', ontology_name='%s', ontology_description='%s')>" % (
+        return "<MetaOntology(meta_ontology_id='%d', ontology_name='%s', ontology_description='%s')>" % (
             self.reference_ontology_id, self.ontology_name, self.ontology_description)
 
 class SourceDb(Base):
