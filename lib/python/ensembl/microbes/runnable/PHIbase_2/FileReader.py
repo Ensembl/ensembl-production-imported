@@ -48,9 +48,6 @@ class FileReader(eHive.BaseRunnable):
     def read_lines(self):
         self.warning("read_lines running")
         int_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
-        print("int_db_url:", int_db_url)
-        print("ncbi_tax_url:", ncbi_tax_url)
-        print("meta_db_url:", meta_db_url)
         with open(self.param('inputfile'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
@@ -61,10 +58,12 @@ class FileReader(eHive.BaseRunnable):
                     "PHI_id": row[0],
                     "patho_uniprot_id": row[2],
                     "patho_sequence": row[5],
+                    "patho_interactor_name": row[8],
                     "patho_other_names": row[4],
                     "patho_species_taxon_id": row[15],
                     "patho_species_strain": row[17],
                     "host_uniprot_id": self.get_uniprot_id(row[47]),
+                    "host_interactor_name": row[46],
                     "host_other_names": row[47],
                     "host_species_taxon_id": row[21],
                     "litterature_id": row[56],
