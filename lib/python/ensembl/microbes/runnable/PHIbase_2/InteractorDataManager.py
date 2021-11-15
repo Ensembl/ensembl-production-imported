@@ -37,10 +37,44 @@ class InteractorDataManager(eHive.BaseRunnable):
 
     def run(self):
         self.warning("InteractorDataManager run")
+        self.get_interactor_fields()
+        
+    def get_interactor_fields(self):
+        patho_interactor_type = self.get_interactor_type()
+        host_interactor_type = self.get_interactor_type()
+        patho_curie = 'prot:' + self.param('patho_uniprot_id')
+        host_curie = 'prot:' + self.param('host_uniprot_id')
+        self.param('patho_interactor_type', patho_interactor_type)
+        self.param('host_interactor_type', host_interactor_type)
+        self.param('patho_curie', patho_curie)
+        self.param('host_curie', host_curie)
+
+
+    def get_interactor_type(self):
+        #TODO Properly implement this for non PHI-base interactors
+        source_db = self.param('source_db_label')
+        if  source_db == 'PHI-base':
+            return 'protein'
+        else:
+            raise ValueError ("Unkonwn interactor type")
+
+    def build_output_hash(self):
+        lines_list = []
+        entry_line_dict = {
+                "patho_interactor_type": self.param("patho_interactor_type"),
+                "host_interactor_type": self.param("host_interactor_type"),
+                "patho_curie": self.param("patho_curie"),
+                "host_curie": self.param("host_curie"),
+                }
+        lines_list.append(entry_line_dict)
+        return lines_list
 
     def write_output(self):
         phi_id = self.param('PHI_id')
         if self.param('failed_job') == '':
+            entries_list = self.build_output_hash()
+            for entry in entries_list:
+                self.dataflow(entry, 1)
             print(f"{phi_id} written to DBwriter")
         else:
             #output_hash = [{"uncomplete_entry": self.param('failed_job')} ]

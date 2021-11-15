@@ -95,8 +95,14 @@ class DBwriter(eHive.BaseRunnable):
         print(f" PHI_id = {phi_id} :: patho_species_name {patho_species_name} :: host_species_name {host_species_name} :: source_db_label {source_db_label}")
         patho_ensembl_gene_stable_id = self.param('patho_ensembl_gene_stable_id')
         host_ensembl_gene_stable_id = self.param('host_ensembl_gene_stable_id')
-        patho_molecular_structure = self.param('patho_molecular_structure')
-        host_molecular_structure = self.param('host_molecular_structure')
+        patho_structure = self.param('patho_molecular_structure')
+        host_structure = self.param('host_molecular_structure')
+        patho_type = self.param("patho_interactor_type")
+        patho_curie = self.param("patho_curie")
+        patho_names = self.param("patho_other_names")
+        host_type = self.param("host_interactor_type")
+        host_curie = self.param("host_curie")
+        host_names = self.param("host_other_names")
 
         source_db_value = self.get_source_db_value(session, source_db_label)
         pathogen_species_value = self.get_species_value(session, patho_species_taxon_id, patho_division, patho_species_name)
@@ -115,6 +121,13 @@ class DBwriter(eHive.BaseRunnable):
             
             session.add(patho_ensembl_gene_value)
             session.add(host_ensembl_gene_value)
+            session.flush()
+
+            pathogen_curated_interactor = self.get_interactor_value(session, patho_type, patho_curie, patho_names, patho_structure, source_db_value.source_db_id, patho_ensembl_gene_value.gene_id)
+            host_curated_interactor = self.get_interactor_value(session, host_type, host_curie, host_names, host_structure, source_db_value.source_db_id, host_ensembl_gene_value.gene_id)
+            
+            session.add(pathogen_curated_interactor)
+            session.add(host_curated_interactor)
             session.commit()
         except pymysql.err.IntegrityError as e:
             print(e)
@@ -129,6 +142,22 @@ class DBwriter(eHive.BaseRunnable):
             session.rollback()
             self.clean_entry(engine)
 
+    def get_interactor_value(self, session, i_type, curie, i_name, struct, db_id, gene_id):
+    
+        interactor_value = None
+        try:
+            interactor_value = session.query(interaction_db_models.CuratedInteractor).filter_by(curies=curie).one()
+            print(f" interactor_value already exists with {curie}")
+        except MultipleResultsFound:
+            interactor_value = session.query(interaction_db_models.CuratedInteractor).filter_by(curies=curie).first()
+            print(f" multiple interactor_value exist with {curie}")
+        except NoResultFound:
+            interactor_value = interaction_db_models.CuratedInteractor(interactor_type=i_type, curies=curie, name=i_name, molecular_structure=struct, import_timestamp=db.sql.functions.now(),source_db_id=db_id, ensembl_gene_id=gene_id)
+            print(f" A new interactor_value has been created with {curie} + added as stored value with id {interactor_value.curated_interactor_id}")
+            self.add_stored_value('CuratedInteractor', [curie])
+        return interactor_value
+        
+        
     def clean_entry(self, engine):
         metadata = db.MetaData()
         connection = engine.connect()
@@ -141,13 +170,15 @@ class DBwriter(eHive.BaseRunnable):
             db_label = entries_to_delete["SourceDb"]
             stmt = db.delete(source_db).where(source_db.columns.label == db_label)
             connection.execute(stmt)
-        
+            #print(f"SourceDb DELETED: {db_label}")
+
         if "EnsemblGene" in entries_to_delete:
             genes_list = entries_to_delete["EnsemblGene"]
             ensembl_gene = db.Table('ensembl_gene', metadata, autoload=True, autoload_with=engine)
             for stable_id in genes_list:
                 stmt = db.delete(ensembl_gene).where(ensembl_gene.c.gene_id == stable_id)
                 connection.execute(stmt)
+                #print(f"EnsemblGene DELETED: {ensembl_gene}")
 
         if "Species" in entries_to_delete:
             species_list = entries_to_delete["Species"]
@@ -155,7 +186,15 @@ class DBwriter(eHive.BaseRunnable):
             for species_tax_id in species_list:
                 stmt = db.delete(species).where(species.c.species_taxon_id == species_tax_id)
                 connection.execute(stmt)
+                #print(f"Species DELETED: {species_tax_id}")
 
+        if "CuratedInteractor" in entries_to_delete:
+            interactor_list = entries_to_delete["CuratedInteractor"]
+            interactors = db.Table('curated_interactor', metadata, autoload=True, autoload_with=engine)
+            for curie in interactor_list:
+                stmt = db.delete(interactors).where(interactors.c.curies == curie)
+                connection.execute(stmt)
+                #print(f"CuratedInteractor DELETED: {curie}")
 
     def add_stored_value(self, table,  id_value):
         new_values = self.param('entries_to_delete')
