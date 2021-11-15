@@ -59,7 +59,7 @@ class CuratedInteractor(Base):
 
     curated_interactor_id = Column(INTEGER(11), primary_key=True)
     interactor_type = Column(String(255), nullable=False)
-    curies = Column(String(255))
+    curies = Column(String(255), unique=True)
     name = Column(String(255), nullable=False)
     molecular_structure = Column(String(10000), nullable=False)
     import_timestamp = Column(TIMESTAMP, nullable=False)
