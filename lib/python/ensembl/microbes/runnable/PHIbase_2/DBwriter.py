@@ -70,7 +70,8 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('host_division')
         self.check_param('host_ensembl_gene_stable_id')
         self.check_param('host_molecular_structure')
-
+        self.check_param('doi')
+    
     def run(self):
         self.param('entries_to_delete',{})
         self.warning("DBWriter run")
@@ -90,9 +91,7 @@ class DBwriter(eHive.BaseRunnable):
         host_species_taxon_id = int(self.param('host_species_taxon_id'))
         host_species_name = self.param('host_species_name')
         host_division = self.param('host_division')
-
         source_db_label = self.param('source_db_label')
-        print(f" PHI_id = {phi_id} :: patho_species_name {patho_species_name} :: host_species_name {host_species_name} :: source_db_label {source_db_label}")
         patho_ensembl_gene_stable_id = self.param('patho_ensembl_gene_stable_id')
         host_ensembl_gene_stable_id = self.param('host_ensembl_gene_stable_id')
         patho_structure = self.param('patho_molecular_structure')
@@ -103,10 +102,13 @@ class DBwriter(eHive.BaseRunnable):
         host_type = self.param("host_interactor_type")
         host_curie = self.param("host_curie")
         host_names = self.param("host_other_names")
-
+        doi = self.param("doi")
+        print(f" PHI_id = {phi_id} :: patho_species_name {patho_species_name} :: host_species_name {host_species_name} :: source_db_label {source_db_label}")
+        
         source_db_value = self.get_source_db_value(session, source_db_label)
         pathogen_species_value = self.get_species_value(session, patho_species_taxon_id, patho_division, patho_species_name)
         host_species_value = self.get_species_value(session, host_species_taxon_id, host_division, host_species_name)
+        
         try:
             session.add(source_db_value)
             source_db_id = source_db_value.source_db_id
@@ -114,20 +116,23 @@ class DBwriter(eHive.BaseRunnable):
             session.add(host_species_value)
             session.flush()
 
-            pathogen_species_id = pathogen_species_value.species_id
-            host_species_id = host_species_value.species_id
             patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_gene_stable_id, pathogen_species_value.species_id)
             host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_gene_stable_id, host_species_value.species_id)
-            
             session.add(patho_ensembl_gene_value)
             session.add(host_ensembl_gene_value)
             session.flush()
-
-            pathogen_curated_interactor = self.get_interactor_value(session, patho_type, patho_curie, patho_names, patho_structure, source_db_value.source_db_id, patho_ensembl_gene_value.gene_id)
-            host_curated_interactor = self.get_interactor_value(session, host_type, host_curie, host_names, host_structure, source_db_value.source_db_id, host_ensembl_gene_value.gene_id)
-            
+                
+            pathogen_curated_interactor = self.get_interactor_value(session, patho_type, patho_curie, patho_names, patho_structure, patho_ensembl_gene_value.gene_id)
+            host_curated_interactor = self.get_interactor_value(session, host_type, host_curie, host_names, host_structure, host_ensembl_gene_value.gene_id)
             session.add(pathogen_curated_interactor)
             session.add(host_curated_interactor)
+            session.flush()
+            
+            patho_intctr_id = pathogen_curated_interactor.curated_interactor_id
+            host_intctr_id = host_curated_interactor.curated_interactor_id
+            interaction_value = self.get_interaction_value(session, patho_intctr_id, host_intctr_id, doi, source_db_value.source_db_id)    
+            session.add(interaction_value)
+
             session.commit()
         except pymysql.err.IntegrityError as e:
             print(e)
@@ -142,18 +147,32 @@ class DBwriter(eHive.BaseRunnable):
             session.rollback()
             self.clean_entry(engine)
 
-    def get_interactor_value(self, session, i_type, curie, i_name, struct, db_id, gene_id):
-    
+
+    def get_interaction_value(self, session, patho_intctr_id, host_intctr_id, i_doi, i_source_db_id):
+        interaction_value = None
+        try:
+            interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id).one()
+            print(f" interaction_value already exists with {curie}")
+        except MultipleResultsFound:
+            interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id).first()
+            print(f" multiple interaction_value exist with {curie}")
+        except NoResultFound:
+            interaction_value = interaction_db_models.Interaction(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id, import_timestamp=db.sql.functions.now(), meta_value_id=1)
+            print(f" A new interaction_value has been created with interractors {patho_intctr_id} and {host_intctr_id} + added as stored value with {i_doi}")
+            self.add_stored_value('Interaction', [{"interactor_1": patho_intctr_id, "interactor_2": host_intctr_id, "doi": i_doi, "source_db_id": i_source_db_id}])
+        return interaction_value
+
+        
+    def get_interactor_value(self, session, i_type, curie, i_name, struct, gene_id):
         interactor_value = None
         try:
             interactor_value = session.query(interaction_db_models.CuratedInteractor).filter_by(curies=curie).one()
             print(f" interactor_value already exists with {curie}")
         except MultipleResultsFound:
             interactor_value = session.query(interaction_db_models.CuratedInteractor).filter_by(curies=curie).first()
-            print(f" multiple interactor_value exist with {curie}")
         except NoResultFound:
-            interactor_value = interaction_db_models.CuratedInteractor(interactor_type=i_type, curies=curie, name=i_name, molecular_structure=struct, import_timestamp=db.sql.functions.now(),source_db_id=db_id, ensembl_gene_id=gene_id)
-            print(f" A new interactor_value has been created with {curie} + added as stored value with id {interactor_value.curated_interactor_id}")
+            interactor_value = interaction_db_models.CuratedInteractor(interactor_type=i_type, curies=curie, name=i_name, molecular_structure=struct, import_timestamp=db.sql.functions.now(), ensembl_gene_id=gene_id)
+            print(f" A new interactor_value has been created with {curie} + added as stored value")
             self.add_stored_value('CuratedInteractor', [curie])
         return interactor_value
         
@@ -170,15 +189,15 @@ class DBwriter(eHive.BaseRunnable):
             db_label = entries_to_delete["SourceDb"]
             stmt = db.delete(source_db).where(source_db.columns.label == db_label)
             connection.execute(stmt)
-            #print(f"SourceDb DELETED: {db_label}")
+            print(f"SourceDb CLEANED: {db_label}")
 
         if "EnsemblGene" in entries_to_delete:
             genes_list = entries_to_delete["EnsemblGene"]
             ensembl_gene = db.Table('ensembl_gene', metadata, autoload=True, autoload_with=engine)
             for stable_id in genes_list:
-                stmt = db.delete(ensembl_gene).where(ensembl_gene.c.gene_id == stable_id)
+                stmt = db.delete(ensembl_gene).where(ensembl_gene.c.ensembl_stable_id == stable_id)
                 connection.execute(stmt)
-                #print(f"EnsemblGene DELETED: {ensembl_gene}")
+                print(f"EnsemblGene CLEANED: {stable_id}")
 
         if "Species" in entries_to_delete:
             species_list = entries_to_delete["Species"]
@@ -186,7 +205,7 @@ class DBwriter(eHive.BaseRunnable):
             for species_tax_id in species_list:
                 stmt = db.delete(species).where(species.c.species_taxon_id == species_tax_id)
                 connection.execute(stmt)
-                #print(f"Species DELETED: {species_tax_id}")
+                print(f"Species CLEANED: {species_tax_id}")
 
         if "CuratedInteractor" in entries_to_delete:
             interactor_list = entries_to_delete["CuratedInteractor"]
@@ -194,7 +213,18 @@ class DBwriter(eHive.BaseRunnable):
             for curie in interactor_list:
                 stmt = db.delete(interactors).where(interactors.c.curies == curie)
                 connection.execute(stmt)
-                #print(f"CuratedInteractor DELETED: {curie}")
+                print(f"CuratedInteractor CLEANED: {curie}")
+        
+        if "Interaction" in entries_to_delete:
+            interaction_dict = entries_to_delete["Interaction"][0]
+            int_1 = interaction_dict["interactor_1"]
+            int_2 = interaction_dict["interactor_2"]
+            doi = interaction_dict["doi"]
+            db_id = interaction_dict["source_db_id"]
+            interactions = db.Table('interaction', metadata, autoload=True, autoload_with=engine)
+            stmt = db.delete(interaction).where(interaction.c.interactor_1 == int_1).where(interaction.c.interactor_2 == int_2).where(interaction.c.doi == doi).where(interaction.c.source_db_id == db_id)
+            connection.execute(stmt)
+            print(f"Interaction CLEANED: {int_1} {int_2} {doi} {db_id}")
 
     def add_stored_value(self, table,  id_value):
         new_values = self.param('entries_to_delete')
@@ -205,10 +235,10 @@ class DBwriter(eHive.BaseRunnable):
         source_db_value = None
         try:
             source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).one()
-            print(f" db_value already exists with {db_label}")  
+            print(f"db_value already exists with {db_label}")  
         except MultipleResultsFound:
             source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).first()
-            print(f" multiple db_value exist with {db_label}") 
+            print(f" ERROR: Multiple db_value exist with {db_label}") 
         except NoResultFound:
             source_db_value = interaction_db_models.SourceDb(label='PHI-base', external_db='Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity.')
             print(f" A new db_value has been created with {db_label} + added as stored value with sourceid {source_db_value.source_db_id}")

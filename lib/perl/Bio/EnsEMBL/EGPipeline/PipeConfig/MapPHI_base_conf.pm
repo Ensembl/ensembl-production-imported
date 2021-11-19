@@ -176,6 +176,15 @@ sub pipeline_analyses {
       -language   => 'python3',
       -flow_into    => {
                         -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
+                         1 => WHEN ("#failed_job# eq '' " => { 'interaction_table' => INPUT_PLUS() }),
+                        },
+    },
+    {
+      -logic_name => 'interaction_table',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractionTable',
+      -language   => 'python3',
+      -flow_into    => {
+                        -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
                          1 => WHEN ("#failed_job# eq '' " => { 'db_writer' => INPUT_PLUS() }),
                         },
     },
