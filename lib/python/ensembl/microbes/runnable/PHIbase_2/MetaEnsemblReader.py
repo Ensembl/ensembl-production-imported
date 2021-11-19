@@ -48,6 +48,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         phi_id = self.param_required('PHI_id')
         self.check_param('patho_species_taxon_id')
         self.check_param('host_species_taxon_id')
+        self.check_param('doi')
 
     def run(self):
         self.warning("EntryLine run")

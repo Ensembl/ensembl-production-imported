@@ -75,7 +75,6 @@ class InteractorDataManager(eHive.BaseRunnable):
             entries_list = self.build_output_hash()
             for entry in entries_list:
                 self.dataflow(entry, 1)
-            print(f"{phi_id} written to DBwriter")
         else:
             #output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
             print(f"{phi_id} written to FailedJob")
