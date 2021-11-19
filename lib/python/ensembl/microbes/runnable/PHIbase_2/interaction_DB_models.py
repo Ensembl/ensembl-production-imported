@@ -60,21 +60,19 @@ class CuratedInteractor(Base):
     curated_interactor_id = Column(INTEGER(11), primary_key=True)
     interactor_type = Column(String(255), nullable=False)
     curies = Column(String(255), unique=True)
-    name = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=True)
     molecular_structure = Column(String(10000), nullable=False)
     import_timestamp = Column(TIMESTAMP, nullable=False)
-    source_db_id = Column(INTEGER(11), ForeignKey("source_db.source_db_id"), nullable=False, index=True)
     ensembl_gene_id = Column(INTEGER(11), ForeignKey("ensembl_gene.gene_id"), nullable=False, index=True)
 
     candidate_interactors = relationship("CandidateInteractor", back_populates="curated_interactors")
     interactors_1 = relationship("Interaction", primaryjoin="CuratedInteractor.curated_interactor_id == Interaction.interactor_1")
     interactors_2 = relationship("Interaction", primaryjoin="CuratedInteractor.curated_interactor_id == Interaction.interactor_2")
     ensembl_genes = relationship("EnsemblGene", back_populates="curated_interactors")
-    source_dbs = relationship("SourceDb", back_populates="curated_interactors")
 
     def __repr__(self):
-        return "<CuratedInteractor(curated_interactor_id='%d', interactor_type='%s', curies='%s', name='%s', molecular_structure='%s', import_timestamp='%s', source_db_id='%d', ensembl_gene_id='%d')>" % (
-                self.curated_interactor_id, self.interactor_type, self.curies, self.name, self.molecular_structure, str(self.import_timestamp),self.source_db_id, self.ensembl_gene_id)
+        return "<CuratedInteractor(curated_interactor_id='%d', interactor_type='%s', curies='%s', name='%s', molecular_structure='%s', import_timestamp='%s', ensembl_gene_id='%d')>" % (
+                self.curated_interactor_id, self.interactor_type, self.curies, self.name, self.molecular_structure, str(self.import_timestamp), self.ensembl_gene_id)
 
 class EnsemblGene(Base):
     __tablename__ = 'ensembl_gene'
@@ -95,22 +93,20 @@ class EnsemblGene(Base):
 class Interaction(Base):
     __tablename__ = 'interaction'
 
-    interaction_id = Column(INTEGER(11), nullable=False)
+    interaction_id = Column(INTEGER(11), primary_key=True, nullable=False)
     interactor_1 = Column(INTEGER(11), ForeignKey("curated_interactor.curated_interactor_id"), primary_key=True, nullable=False, index=True)
     interactor_2 = Column(INTEGER(11), ForeignKey("curated_interactor.curated_interactor_id"), primary_key=True, nullable=False, index=True)
     doi = Column(String(255), primary_key=True, nullable=False)
     source_db_id = Column(INTEGER(11), ForeignKey("source_db.source_db_id"), primary_key=True, nullable=False, index=True)
     import_timestamp = Column(TIMESTAMP, nullable=False)
-    interaction_meta_id = Column(INTEGER(11), ForeignKey("meta_value.meta_value_id"), nullable=False, index=True)
+    meta_value_id = Column(INTEGER(11), ForeignKey("meta_value.meta_value_id"), nullable=False, index=True)
 
-    #curated_interactors_1 = relationship("CuratedInteractor", back_populates="interactors_1")
-    #curated_interactors_2 = relationship("CuratedInteractor", back_populates="interactors_2")
     source_dbs = relationship("SourceDb", back_populates="interactions")
     meta_values = relationship("MetaValue", back_populates="interactions")
 
     def __repr__(self):
-        return "<Interaction(interaction_id='%d', interactor_1='%s', interactor_2='%s', doi='%s', source_db_id='%d', import_timestamp='%s', interaction_meta_id='%d')>" % (
-                self.interaction_id, self.interactor_1, self. interactor_2, self.doi, self.source_db_id, str(self.import_timestamp), self.interaction_meta_id)
+        return "<Interaction(interaction_id='%d', interactor_1='%s', interactor_2='%s', doi='%s', source_db_id='%d', import_timestamp='%s', meta_id='%d')>" % (
+                self.interaction_id, self.interactor_1, self. interactor_2, self.doi, self.source_db_id, str(self.import_timestamp), self.meta_id)
 
 class MetaValue(Base):
     __tablename__ = 'meta_value'
@@ -176,7 +172,6 @@ class SourceDb(Base):
     label = Column(String(255), nullable=False)
     external_db = Column(String(255), nullable=False)
 
-    curated_interactors = relationship("CuratedInteractor", back_populates="source_dbs")
     interactions= relationship("Interaction", back_populates="source_dbs")
 
     def __repr__(self): 
