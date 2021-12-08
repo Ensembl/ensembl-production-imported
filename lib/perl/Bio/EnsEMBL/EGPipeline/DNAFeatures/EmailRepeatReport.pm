@@ -124,8 +124,7 @@ sub text_summary {
         $library_text = "the REdat";
       } elsif($logic_name eq 'repeatmask_nrplants') {
         $library_text = "the nrTEplants";
-      }
-	  else {
+      } else {
         $library_text = "the RepBase";
       }
       push @results_text,
