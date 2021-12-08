@@ -412,7 +412,7 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -flow_into         => [
                               WHEN('#dust# || #trf#' => ['SplitDumpFiles_1']),
-                              WHEN('#repeatmasker# || #redatrepeatmasker#'  => ['SplitDumpFiles_2']),
+                              WHEN('#repeatmasker# || #redatrepeatmasker#'  => ['RepeatMaskerWD']),
                             ],
     },
 
@@ -436,6 +436,32 @@ sub pipeline_analyses {
                                 WHEN('#trf#'  => ['TRF']),
                               ],
                             },
+    },
+
+    {
+      -logic_name        => 'RepeatMaskerWD',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
+      -parameters         => {
+                               repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
+                               cmd => 'mkdir -p #repeat_masker_wd#',
+      },
+      -rc_name           => 'normal',
+      -max_retry_count => 0,
+      -flow_into         => {
+                              '1->A' => ['SplitDumpFiles_2'],
+                              'A->1' => ['RepeatMaskerWDClean'],
+                            },
+    },
+
+    {
+      -logic_name        => 'RepeatMaskerWDClean',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
+      -parameters         => {
+                               repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
+                               cmd => 'mkdir -p #repeat_masker_wd#',
+      },
+      -rc_name           => 'normal',
+      -max_retry_count => 0,
     },
 
     {
@@ -510,6 +536,7 @@ sub pipeline_analyses {
       -parameters        => {
                               repeatmasker_cache => $self->o('repeatmasker_cache'),
                               timer              => $self->o('repeatmasker_timer'),
+                              workdir            => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
                             },
       -rc_name           => $self->o('repeatmasker_resource_class'),
     },
@@ -537,6 +564,7 @@ sub pipeline_analyses {
       -parameters        => {
                               repeatmasker_cache => $self->o('repeatmasker_cache'),
                               timer              => $self->o('repeatmasker_timer'),
+                              workdir            => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
                             },
       -rc_name           => 'normal',
     },
