@@ -449,16 +449,16 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -flow_into         => {
                               '1->A' => ['SplitDumpFiles_2'],
-                              'A->1' => ['RepeatMaskerWDClean'],
+                              'A->1' => ['RepeatMaskerWDCleanUp'],
                             },
     },
 
     {
-      -logic_name        => 'RepeatMaskerWDClean',
+      -logic_name        => 'RepeatMaskerWDCleanUp',
       -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
       -parameters         => {
                                repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
-                               cmd => 'mkdir -p #repeat_masker_wd#',
+                               cmd => 'find #repeat_masker_wd# -type f -print0 | xargs -r -0 rm',
       },
       -rc_name           => 'normal',
       -max_retry_count => 0,
