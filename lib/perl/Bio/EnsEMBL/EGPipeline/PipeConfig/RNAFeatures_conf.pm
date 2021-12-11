@@ -94,6 +94,7 @@ sub default_options {
       clanin_file    => $self->o('clanin_file'),
     },
     cmscan_parameters => '',
+    cmsscan_resource_class => 'cmscan_4Gb_mem',
 
     # The blacklist is a foolproof method of excluding Rfam models that
     # you do not want to annotate, perhaps because they generate an excess of
@@ -270,6 +271,7 @@ sub pipeline_wide_parameters {
    'run_cmscan'   => $self->o('run_cmscan'),
    'run_trnascan' => $self->o('run_trnascan'),
    'load_mirbase' => $self->o('load_mirbase'),
+   'cmsscan_resource_class' => $self->o('cmsscan_resource_class'),
  };
 }
 
@@ -544,7 +546,7 @@ sub pipeline_analyses {
                               escape_branch => -1,
                               db_name       => $self->o('rfam_db_name'),
                             },
-      -rc_name           => 'cmscan_4Gb_mem',
+      -rc_name           => $self->o('cmsscan_resource_class'),
       -flow_into         => {
                               '-1' => ['CMScan_HighMem'],
                             },
@@ -684,6 +686,7 @@ sub resource_classes {
     'cmscan_4Gb_mem' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n '.$self->o('cmscan_cpu').' -M 4000 -R "rusage[mem=4000]"'},
     'cmscan_8Gb_mem' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n '.$self->o('cmscan_cpu').' -M 8000 -R "rusage[mem=8000]"'},
     'cmscan_16Gb_mem' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n '.$self->o('cmscan_cpu').' -M 16000 -R "rusage[mem=16000]"'},
+    'cmscan_32b_mem' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n '.$self->o('cmscan_cpu').' -M 32000 -R "rusage[mem=32000]"'},
   }
 }
 
