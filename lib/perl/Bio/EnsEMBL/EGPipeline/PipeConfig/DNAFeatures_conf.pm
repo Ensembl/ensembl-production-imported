@@ -398,8 +398,38 @@ sub pipeline_analyses {
       -parameters        => {},
       -rc_name           => 'normal',
       -flow_into         => {
-                              '2' => ['DumpGenome'],
+                              '2' => ['CreateWD'],
                             },
+    },
+
+    {
+      -logic_name        => 'CreateWD',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
+      -parameters         => {
+                               repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
+                               dust_wd => catdir('#work_dir#', '#species#', 'dust_wd'),
+                               trf_wd => catdir('#work_dir#', '#species#', 'trf_wd'),
+                               cmd => 'mkdir -p #repeat_masker_wd# #dust_wd# #trf_wd#',
+      },
+      -rc_name           => 'normal',
+      -max_retry_count => 0,
+      -flow_into         => {
+                              '1->A' => ['DumpGenome'],
+                              'A->1' => ['WDCleanUp'],
+                            },
+    },
+
+    {
+      -logic_name        => 'WDCleanUp',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
+      -parameters         => {
+                               repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
+                               dust_wd => catdir('#work_dir#', '#species#', 'dust_wd'),
+                               trf_wd => catdir('#work_dir#', '#species#', 'trf_wd'),
+                               cmd => 'find #repeat_masker_wd# #dust_wd# #trf_wd# -type f -print0 | xargs -r -0 rm',
+      },
+      -rc_name           => 'normal',
+      -max_retry_count => 0,
     },
 
     {
@@ -412,7 +442,7 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -flow_into         => [
                               WHEN('#dust# || #trf#' => ['SplitDumpFiles_1']),
-                              WHEN('#repeatmasker# || #redatrepeatmasker#'  => ['RepeatMaskerWD']),
+                              WHEN('#repeatmasker# || #redatrepeatmasker#'  => ['SplitDumpFiles_2']),
                             ],
     },
 
@@ -436,32 +466,6 @@ sub pipeline_analyses {
                                 WHEN('#trf#'  => ['TRF']),
                               ],
                             },
-    },
-
-    {
-      -logic_name        => 'RepeatMaskerWD',
-      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
-      -parameters         => {
-                               repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
-                               cmd => 'mkdir -p #repeat_masker_wd#',
-      },
-      -rc_name           => 'normal',
-      -max_retry_count => 0,
-      -flow_into         => {
-                              '1->A' => ['SplitDumpFiles_2'],
-                              'A->1' => ['RepeatMaskerWDCleanUp'],
-                            },
-    },
-
-    {
-      -logic_name        => 'RepeatMaskerWDCleanUp',
-      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
-      -parameters         => {
-                               repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
-                               cmd => 'find #repeat_masker_wd# -type f -print0 | xargs -r -0 rm',
-      },
-      -rc_name           => 'normal',
-      -max_retry_count => 0,
     },
 
     {
@@ -492,9 +496,11 @@ sub pipeline_analyses {
       -hive_capacity     => $self->o('max_hive_capacity'),
       -max_retry_count   => 1,
       -batch_size        => 100,
+      -hive_capacity	 => 10,
       -parameters        => {
                               logic_name      => 'dust',
                               parameters_hash => $self->o('dust_parameters_hash'),
+                              workdir        => catdir('#work_dir#', '#species#', 'dust_wd'),
                             },
       -rc_name           => '16Gb_mem',
     },
@@ -505,9 +511,11 @@ sub pipeline_analyses {
       -hive_capacity     => $self->o('max_hive_capacity'),
       -max_retry_count   => 1,
       -batch_size        => 10,
+      -hive_capacity	 => 10,
       -parameters        => {
                               logic_name      => 'trf',
                               parameters_hash => $self->o('trf_parameters_hash'),
+                              workdir         => catdir('#work_dir#', '#species#', 'trf_wd'),
                             },
       -rc_name           => 'normal',
     },
@@ -533,6 +541,7 @@ sub pipeline_analyses {
       -module            => 'Bio::EnsEMBL::EGPipeline::DNAFeatures::RepeatMasker',
       -hive_capacity     => $self->o('max_hive_capacity'),
       -max_retry_count   => 1,
+      -hive_capacity	 => 200,
       -parameters        => {
                               repeatmasker_cache => $self->o('repeatmasker_cache'),
                               timer              => $self->o('repeatmasker_timer'),
