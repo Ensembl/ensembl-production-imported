@@ -96,6 +96,9 @@ sub resource_classes {
   my ($self) = @_;
   return {
     'datamove'          => {'LSF' => '-q ' . $self->o('datamove_queue_name')},
+    'datamove_4Gb_mem'  => {'LSF' => '-q ' . $self->o('datamove_queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
+    'datamove_32Gb_mem' => {'LSF' => '-q ' . $self->o('datamove_queue_name') . ' -M 32000 -R "rusage[mem=32000]"'},
+
     'default'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
     'normal'            => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
     '2Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  2000 -R "rusage[mem=2000]"'},

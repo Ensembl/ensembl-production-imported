@@ -417,7 +417,7 @@ sub pipeline_analyses {
                             out_dir      => $self->o('uniprot_dir'),
                             file_varname => 'fasta_file',
                           },
-      -rc_name         => 'normal',
+      -rc_name         => 'datamove',
       -flow_into       => ['SpeciesFactoryForLoading'],
     },
     
@@ -445,7 +445,7 @@ sub pipeline_analyses {
                             out_dir      => $self->o('uniprot_dir'),
                             file_varname => 'fasta_file',
                           },
-      -rc_name         => '32Gb_mem_4Gb_tmp',
+      -rc_name         => 'datamove_32Gb_mem',
       -flow_into       => ['SpeciesFactoryForLoading'],
     },
     

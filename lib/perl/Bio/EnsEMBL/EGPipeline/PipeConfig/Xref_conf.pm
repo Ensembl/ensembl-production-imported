@@ -198,7 +198,7 @@ sub pipeline_analyses {
       -parameters      => {
                             uniparc_db => $self->o('local_uniparc_db'),
                           },
-      -rc_name         => '4Gb_mem_4Gb_tmp',
+      -rc_name         => 'datamove_4Gb_mem',
     },
 
     {
