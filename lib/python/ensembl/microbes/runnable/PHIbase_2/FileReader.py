@@ -48,6 +48,7 @@ class FileReader(eHive.BaseRunnable):
     def read_lines(self):
         self.warning("read_lines running")
         int_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
+        self.param("interactions_db_url",int_db_url)
         with open(self.param('inputfile'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
@@ -59,6 +60,7 @@ class FileReader(eHive.BaseRunnable):
                     "patho_uniprot_id": row[2],
                     "patho_sequence": row[5],
                     "patho_interactor_name": row[8],
+                    "patho_protein_modification": self.limit_string_length(row[10]),
                     "patho_other_names": row[4],
                     "patho_species_taxon_id": row[15],
                     "patho_species_strain": row[17],
@@ -66,13 +68,16 @@ class FileReader(eHive.BaseRunnable):
                     "host_interactor_name": row[46],
                     "host_other_names": row[47],
                     "host_species_taxon_id": row[21],
+                    "host_protein_modification": self.limit_string_length(row[48]),
+                    "disease_name": row[19],
+                    "interaction_phenotype": self.limit_string_length(row[50]),
                     "litterature_id": row[56],
                     "litterature_source": row[57],
                     "doi": row [58],
-                    "interaction_phenotype": row[50],
-                    "pathogen_mutant_phenotype": row[32],
-                    "experimental_evidence": row[52],
-                    "transient_assay_exp_ev": row[53],
+                    "pathogen_mutant_phenotype": self.limit_string_length(row[32]),
+                    "experimental_evidence": self.limit_string_length(row[52]),
+                    "transient_assay_exp_ev": self.limit_string_length(row[53]),
+                    "host_response_to_pathogen": self.limit_string_length(row[51]),
                     "interactions_db_url": int_db_url,
                     "ncbi_taxonomy_url": ncbi_tax_url,
                     "meta_ensembl_url": meta_db_url,
@@ -99,6 +104,11 @@ class FileReader(eHive.BaseRunnable):
     def get_db_label(self):
 	#TODO: implement a discriminating method to determine provenance of file(PHI-base, IntAct, HPIDD...)
         return 'PHI-base'
+    
+    def limit_string_length(self, string):
+        value = "%.255s" % string
+        print (f"limited value={value}")
+        return value
 
     def read_registry(self):
         with open(self.param('registry'), newline='') as reg_file:
