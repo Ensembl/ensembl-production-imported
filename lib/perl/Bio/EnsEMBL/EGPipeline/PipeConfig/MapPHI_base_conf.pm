@@ -107,7 +107,7 @@ sub pipeline_wide_parameters {
      %{$self->SUPER::pipeline_wide_parameters},
 
     'inputfile'             => $self->o('inputfile'),
-    'interactions_db_url'   => $self->o('interactions_db_url'),
+    #'interactions_db_url'   => $self->o('interactions_db_url'),
     'core_db_url'	    => $self->o('core_db_url'), 
     'registry'		    => $self->o('reg_file')
   };
@@ -123,24 +123,35 @@ sub pipeline_analyses {
   my ($self) = @_;
   
   return [
-    {
-      -logic_name => 'input_file',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.FileReader',
+    { 
+      -logic_name => 'interaction_keys',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractionKeys',
       -language   => 'python3',
       -input_ids  => [{
-                       #seeding the pipeline from user provided value
                        'inputfile' => $self->o('inputfile'),
 		       'registry' => $self->o('reg_file'),
                      }],
       -parameters => {
-		       delimiter => ',',
-		       column_names => 1,
-		       output_ids => '#output_ids#',
+                       registry   => '#registry#',
 		       inputfile => '#inputfile#',
-		       registry   => '#registry#',
                       },
       -flow_into    => {
-	                2 => { 'meta_ensembl_reader' => INPUT_PLUS() },
+                        1 => {'input_file' => INPUT_PLUS()},
+                       },
+    },
+    {
+      -logic_name => 'input_file',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.FileReader',
+      -language   => 'python3',
+      -parameters => {
+		       delimiter => ',',
+		       column_names => 1,
+		       #output_ids => '#output_ids#',
+		       #inputfile => '#inputfile#',
+		       #registry   => '#registry#',
+                      },
+      -flow_into    => {
+			2 => {'meta_ensembl_reader' => INPUT_PLUS() },
 		       },
     },
     { 
@@ -182,6 +193,15 @@ sub pipeline_analyses {
     {
       -logic_name => 'interaction_table',
       -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractionTable',
+      -language   => 'python3',
+      -flow_into    => {
+                        -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
+                         1 => WHEN ("#failed_job# eq '' " => { 'load_ontologies' => INPUT_PLUS() }),
+                        },
+    },
+    {
+      -logic_name => 'load_ontologies',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.OntologiesLoader',
       -language   => 'python3',
       -flow_into    => {
                         -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
