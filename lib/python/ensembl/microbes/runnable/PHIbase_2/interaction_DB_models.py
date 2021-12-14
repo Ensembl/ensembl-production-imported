@@ -1,6 +1,4 @@
-
 # coding: utf-8
-
 from sqlalchemy import (
         Column,
         DECIMAL,
@@ -133,41 +131,44 @@ class Interaction(Base):
 
 class KeyValuePair(Base):
     __tablename__ = 'key_value_pair'
+    __table_args__ = (
+        Index('key_value_pair_metakey_val', 'meta_key_id', 'value', unique=True),
+    )
 
     key_value_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
-    key_id = Column(INTEGER(11), nullable=False, ForeignKey("key.key_id"), index=True)
+    meta_key_id = Column(INTEGER(11), ForeignKey("meta_key.meta_key_id"), nullable=False,  index=True)
     value = Column(String(255), nullable=False)
     ontology_term_id = Column(INTEGER(11), ForeignKey("ontology_term.ontology_term_id"), index=True)
 
     interactions = relationship("Interaction", back_populates="key_value_pairs")
-    keys = relationship("Key", back_populates="key_value_pairs")
+    meta_keys = relationship("MetaKey", back_populates="key_value_pairs")
     ontology_terms = relationship("OntologyTerm", back_populates="key_value_pairs")
 
     def __repr__(self):
         try:    
             kv_id = self.key_value_id
-            return "<KeyValuePair(key_value_id='%d', key_id='%d', value='%s', ontology_term_id='%d')>" % (
-                kv_id, self.key_id, self.value, self.ontology_term_id)
-        except NameError:
-            return "<KeyValuePair(key_value_id=Null-until-stored, key_id='%d', value='%s', ontology_term_id='%d')>" % (
-                self.key_id, self.value, self.ontology_term_id)
+            return "<KeyValuePair(key_value_id='%d', meta_key_id='%d', value='%s', ontology_term_id='%d')>" % (
+                kv_id, self.meta_key_id, self.value, self.ontology_term_id)
+        except TypeError:
+            return "<KeyValuePair(key_value_id=Null-until-stored, meta_key_id='%d', value='%s', ontology_term_id='%d')>" % (
+                self.meta_key_id, self.value, self.ontology_term_id)
 
-class Key(Base):
-    __tablename__ = 'key'
+class MetaKey(Base):
+    __tablename__ = 'meta_key'
 
-    key_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
+    meta_key_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False, unique=True)
     description = Column(String(255), nullable=False, unique=True)
 
-    key_value_pairs = relationship("KeyValuePair", back_populates="keys")
+    key_value_pairs = relationship("KeyValuePair", back_populates="meta_keys")
 
     def __repr__(self):
         try:    
-            k_id = self.key_id
-            return "<Key(key_id='%d', name='%s', description='%s')>" % (
+            k_id = self.meta_key_id
+            return "<MetaKey(meta_key_id='%d', name='%s', description='%s')>" % (
                 k_id, self.key_name, self.key_description)
         except NameError:
-            return "<Key(key_id=Null-until-stored, name='%s', description='%s')>" % (
+            return "<MetaKey(meta_key_id=Null-until-stored, name='%s', description='%s')>" % (
                 self.key_name, self.key_description)
 
 
