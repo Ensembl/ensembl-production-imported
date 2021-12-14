@@ -26,13 +26,12 @@ class InteractionTable(eHive.BaseRunnable):
         return { }
 
     def fetch_input(self):
-        self.warning("Fetch InteractionTable")
         self.param('failed_job', '')
         phi_id = self.param_required('PHI_id')
         #self.check_param('patho_ensembl_gene_stable_id')
 
     def run(self):
-        self.warning("InteractorDataManager run")
+        self.warning("InteractionTable run")
         self.get_interactor_fields()
         
     def get_interactor_fields(self):
