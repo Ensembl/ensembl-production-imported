@@ -102,6 +102,7 @@ class DBwriter(eHive.BaseRunnable):
         host_type = self.param("host_interactor_type")
         host_curie = self.param("host_curie")
         host_names = self.param("host_other_names")
+        doi = self.param("doi")
         print(f" PHI_id = {phi_id} :: patho_species_name {patho_species_name} :: host_species_name {host_species_name} :: source_db_label {source_db_label}")
         
         source_db_value = self.get_source_db_value(session, source_db_label)
@@ -121,8 +122,8 @@ class DBwriter(eHive.BaseRunnable):
             session.add(host_ensembl_gene_value)
             session.flush()
                 
-            pathogen_curated_interactor = self.get_interactor_value(session, patho_type, patho_curie, patho_names, patho_structure, patho_ensembl_gene_value.gene_id)
-            host_curated_interactor = self.get_interactor_value(session, host_type, host_curie, host_names, host_structure, host_ensembl_gene_value.gene_id)
+            pathogen_curated_interactor = self.get_interactor_value(session, patho_type, patho_curie, patho_names, patho_structure, patho_ensembl_gene_value.ensembl_gene_id)
+            host_curated_interactor = self.get_interactor_value(session, host_type, host_curie, host_names, host_structure, host_ensembl_gene_value.ensembl_gene_id)
             session.add(pathogen_curated_interactor)
             session.add(host_curated_interactor)
             session.flush()
@@ -131,7 +132,14 @@ class DBwriter(eHive.BaseRunnable):
             host_intctr_id = host_curated_interactor.curated_interactor_id
             interaction_value = self.get_interaction_value(session, patho_intctr_id, host_intctr_id, doi, source_db_value.source_db_id)    
             session.add(interaction_value)
-
+            
+            key_value_pairs_dict = self.get_key_value_pairs(session)
+            print(f"key_valuepair dict {key_value_pairs_dict}")
+            for key_v in key_value_pairs_dict:
+                meta_key_id = self.get_meta_key_id(session, key_v)
+                kvp_value = self.get_kv_pair_value(session,meta_key_id,key_value_pairs_dict[key_v])
+                session.add(kvp_value)
+            
             session.commit()
         except pymysql.err.IntegrityError as e:
             print(e)
@@ -146,6 +154,49 @@ class DBwriter(eHive.BaseRunnable):
             session.rollback()
             self.clean_entry(engine)
 
+    def get_meta_key_id(self, session, key_v):
+        meta_key_value = None
+        try:
+            meta_key_value = session.query(interaction_db_models.MetaKey).filter_by(name=key_v).one()
+        except NoResultFound:
+            print(f"NO metakey value exists for {key_v}")
+        return meta_key_value.meta_key_id	
+
+    def get_key_value_pairs(self, session):
+        key_list = self.param('key_list')
+        phi_id = self.param('PHI_id') 
+        key_value_pairs_dict = {}
+        for key in key_list:
+            try:
+                #value = self.param_required(key)
+                #value = '%.255s' % value #limit to 255 chars
+                key_value_pairs_dict[key] = self.param_required(key)
+            except Exception as e:
+                print(f"NO key_value param for key {key} in {phi_id}")
+                print(e)
+        return key_value_pairs_dict
+
+    def get_kv_pair_value(self, session, key_id, mkp_value):
+        kv_pair_value = None
+        try:
+            kv_pair_value = session.query(interaction_db_models.KeyValuePair).filter_by(meta_key_id=key_id, value=mkp_value).one()
+            print(f" mkp_value already exists with mk_id {key_id} and value {mkp_value}")
+        except MultipleResultsFound:
+            kv_pair_value = session.query(interaction_db_models.KeyValuePair).filter_by(meta_key_id=key_id, value=mkp_value).first()
+            print(f" multiple mkp_value  exists with mk_id {key_id} and value {mkp_value}")
+        except NoResultFound:
+            kv_pair_value = interaction_db_models.KeyValuePair(meta_key_id=key_id, value=mkp_value, ontology_term_id=1)
+
+            if 'KeyValuePair' in self.param('entries_to_delete'):
+                added_values_list = self.param('entries_to_delete')['KeyValuePair']
+                added_values_list.append({"meta_key_id":kv_pair_value.meta_key_id, "value":kv_pair_value.value, "ontology_term_id":kv_pair_value.ontology_term_id})
+                self.add_stored_value('KeyValuePair',added_values_list)
+            else:
+                self.add_stored_value('KeyValuePair', [{"meta_key_id":kv_pair_value.meta_key_id, "value":kv_pair_value.value, "ontology_term_id":kv_pair_value.ontology_term_id}])
+            
+            print(f" A new mkp_value has been created with mk_id {key_id} and value {mkp_value} + added as stored value ")
+
+        return kv_pair_value
 
     def get_interaction_value(self, session, patho_intctr_id, host_intctr_id, i_doi, i_source_db_id):
         interaction_value = None
@@ -156,8 +207,8 @@ class DBwriter(eHive.BaseRunnable):
             interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id).first()
             print(f" multiple interaction_value exist with {curie}")
         except NoResultFound:
-            interaction_value = interaction_db_models.Interaction(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id, import_timestamp=db.sql.functions.now(), meta_value_id=1)
-            print(f" A new interaction_value has been created with interractors {patho_intctr_id} and {host_intctr_id} + added as stored value with {i_doi}")
+            interaction_value = interaction_db_models.Interaction(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id, import_timestamp=db.sql.functions.now(), key_value_id=1)
+            print(f" A new interaction_value has been created with interactors {patho_intctr_id} and {host_intctr_id} + added as stored value with {i_doi}")
             self.add_stored_value('Interaction', [{"interactor_1": patho_intctr_id, "interactor_2": host_intctr_id, "doi": i_doi, "source_db_id": i_source_db_id}])
         return interaction_value
 
@@ -202,7 +253,7 @@ class DBwriter(eHive.BaseRunnable):
             species_list = entries_to_delete["Species"]
             species = db.Table('species', metadata, autoload=True, autoload_with=engine)
             for species_tax_id in species_list:
-                stmt = db.delete(species).where(species.c.species_taxon_id == species_tax_id)
+                stmt = db.delete(species).where(species.c.taxon_id == species_tax_id)
                 connection.execute(stmt)
                 print(f"Species CLEANED: {species_tax_id}")
 
@@ -220,10 +271,29 @@ class DBwriter(eHive.BaseRunnable):
             int_2 = interaction_dict["interactor_2"]
             doi = interaction_dict["doi"]
             db_id = interaction_dict["source_db_id"]
-            interactions = db.Table('interaction', metadata, autoload=True, autoload_with=engine)
+            interaction = db.Table('interaction', metadata, autoload=True, autoload_with=engine)
             stmt = db.delete(interaction).where(interaction.c.interactor_1 == int_1).where(interaction.c.interactor_2 == int_2).where(interaction.c.doi == doi).where(interaction.c.source_db_id == db_id)
             connection.execute(stmt)
             print(f"Interaction CLEANED: {int_1} {int_2} {doi} {db_id}")
+
+        if "MetaKey" in entries_to_delete:
+            key_list = entries_to_delete["MetaKey"]
+            meta_key = db.Table('meta_key', metadata, autoload=True, autoload_with=engine)
+            for mk_name in key_list:
+                stmt = db.delete(meta_key).where(meta_key.c.name == mk_name)
+                connection.execute(stmt)
+                print(f"Keys CLEANED: {mk_name}")
+
+        if "KeyValuePair" in entries_to_delete:
+            kvp_list = entries_to_delete["KeyValuePair"]
+            key_value_pair = db.Table('key_value_pair', metadata, autoload=True, autoload_with=engine)
+            for kvp_dict in kvp_list:
+                stmt = (db.delete(key_value_pair)
+                         .where(key_value_pair.c.meta_key_id == kvp_dict["meta_key_id"])
+                         .where(key_value_pair.c.value == kvp_dict["value"])
+                         .where(key_value_pair.c.ontology_term_id == kvp_dict["ontology_term_id"]))
+                connection.execute(stmt)
+                print(f"KeyValuePair CLEANED: {kvp_dict}")
 
     def add_stored_value(self, table,  id_value):
         new_values = self.param('entries_to_delete')
@@ -261,13 +331,12 @@ class DBwriter(eHive.BaseRunnable):
         return ensembl_gene_value
 
     def get_species_value(self, session, species_tax_id, division, species_name):
-        
         try:
-            species_value = session.query(interaction_db_models.Species).filter_by(species_taxon_id=species_tax_id).one()
+            species_value = session.query(interaction_db_models.Species).filter_by(taxon_id=species_tax_id).one()
         except MultipleResultsFound:
             print(f"ERROR: Multiple results found for {species_name} - tx {species_tax_id}")
         except NoResultFound:
-            species_value = interaction_db_models.Species(ensembl_division=division, species_production_name=species_name,species_taxon_id=species_tax_id)
+            species_value = interaction_db_models.Species(ensembl_division=division, production_name=species_name, taxon_id=species_tax_id)
             if 'Species' in self.param('entries_to_delete'):
                 added_values_list = self.param('entries_to_delete')['Species']
                 added_values_list.append(species_tax_id)
