@@ -1,0 +1,178 @@
+format-version: 5
+date: 14-12-2021 
+saved-by: mcarbajo 
+default-namespace: phenotype
+ontology: PHI-DUMMY
+
+[Term]
+id: PHI-DUMMY:1000000
+name: interaction_phenotype
+namespace: phenotype
+
+[Term]
+id: PHI-DUMMY:1000001
+name: disease_name
+namespace: disease
+
+[Term]
+id: PHI-DUMMY:1000002
+name: patho_protein_modification
+namespace: protein_modification
+
+[Term]
+id: PHI-DUMMY:1000003
+name: host_protein_modification
+namespace: protein_modification
+
+[Term]
+id: PHI-DUMMY:1000004
+name: experimental_evidence
+namespace: evidence
+
+[Term]
+id: PHI-DUMMY:1000005
+name: transient_assay_exp_ev
+namespace: transient_assay_exp_ev
+
+[Term]
+id: PHI-DUMMY:1000006
+name: host_response_to_pathogen
+namespace: host_response
+
+[Term]
+id: PHI-DUMMY:2000001
+name: interaction (positive co-IP)
+namespace: interaction_phenotype
+is_a: PHI-DUMMY:1000000                                                                                                                                                                                                      
+[Term]
+id: PHI-DUMMY:2000002
+name: Smut Disease
+namespace: disease_name
+is_a: PHI-DUMMY:1000001
+
+[Term]
+id: PHI-DUMMY:2000003
+name: E. coli expressed GST-Pit2
+namespace: patho_protein_modification
+is_a: PHI-DUMMY:1000002
+
+[Term]
+id: PHI-DUMMY:2000004
+name: functional test in host: transient expression
+namespace: experimental_evidence
+is_a: PHI-DUMMY:1000004
+
+[Term]
+id: PHI-DUMMY:2000005
+name: Agrobacterium-mediated co-expression by infiltration, followed by co-IP
+namespace: transient_assay_exp_ev
+is_a: PHI-DUMMY:1000005
+
+[Term]
+id: PHI-DUMMY:2000006
+name: positive co-IP
+namespace: interaction_phenotype
+is_a: PHI-DUMMY:1000000
+
+[Term]
+id: PHI-DUMMY:2000007
+name: Late Blight
+namespace: disease_name
+is_a: PHI-DUMMY:1000001
+
+[Term]
+id: PHI-DUMMY:2000008
+name: rEPI1 (expressed in E. coli, affinity purified rEPI1 as a fusion protein with the FLAG tag at the N terminus)
+namespace: patho_protein_modification
+is_a: PHI-DUMMY:1000002
+
+[Term]
+id: PHI-DUMMY:2000009
+name: Co-IP experiment. rEPI1 incubated with isolated intercellular tomato fluids. Anti-FLAG resin to bind rEPI1 and ppt protein complex. Western blot bands identified with anti-P69 and anti-FLAG.
+namespace: transient_assay_exp_ev
+is_a: PHI-DUMMY:1000005
+
+[Term]
+id: PHI-DUMMY:2000010
+name: Co-IP experiment. rEPI10 incubated with isolated intercellular tomato fluids. Anti-FLAG resin to bind rEPI10 and ppt protein complex. Western blot bands identified with anti-P69 and anti-FLAG. 
+namespace: transient_assay_exp_ev
+is_a: PHI-DUMMY:1000005
+
+[Term]
+id: PHI-DUMMY:2000011
+name: Downy Mildew Of Arabidopsis
+namespace: disease_name
+is_a: PHI-DUMMY:1000001
+
+[Term]
+id: PHI-DUMMY:2000012
+name: HS-HaRxL106
+namespace: patho_protein_modification
+is_a: PHI-DUMMY:1000002
+
+[Term]
+id: PHI-DUMMY:2000013
+name: coinfiltration in Nb, 48h MOS-GFP IP-ed and co-purifying HS-tagged proteins detected by anti-HA Western blot
+namespace: transient_assay_exp_ev
+is_a: PHI-DUMMY:1000005
+
+[Term]
+id: PHI-DUMMY:2000014
+name: positive co-IP with proteasome inhibitor to prevent GFP-MED19a degradation when HA-HaRxL44 present
+namespace: interaction_phenotype
+is_a: PHI-DUMMY:1000000
+
+[Term]
+id: PHI-DUMMY:2000015
+name: HA-HaRxL44
+namespace: patho_protein_modification
+is_a: PHI-DUMMY:1000002
+
+[Term]
+id: PHI-DUMMY:2000016
+name: co-expression of transgenes in Nb leaves delivered by Agrobacterium tumefaciens
+namespace: transient_assay_exp_ev
+is_a: PHI-DUMMY:1000005
+
+[Term]
+id: PHI-DUMMY:2000017
+name: ATR1delta51-Emoy2-Citrine (lacking signal peptide and RXLR motif)
+namespace: patho_protein_modification
+is_a: PHI-DUMMY:1000002
+
+[Term]
+id: PHI-DUMMY:2000018
+name: Agrobacterium-mediated co-expression by infiltration, tissue collected ~20-24 h post infiltration, co-IP with anti-GFP to ppt ATR1delta51Citrine, Immunoblot detection of RPP1-WsB with Anti-HA. Parallel IP with anti-HA and immuno blot detection with anti-G
+namespace: transient_assay_exp_ev
+is_a: PHI-DUMMY:1000005
+
+[Term]
+id: PHI-DUMMY:2000019
+name: hypersensitive response (~20-24 h post infiltration)
+namespace: host_response_to_pathogen
+is_a: PHI-DUMMY:1000006
+
+[Term]
+id: PHI-DUMMY:2000020
+name: Co-IP experiment in Nb. 
+namespace: transient_assay_exp_ev
+is_a: PHI-DUMMY:1000005
+
+[Term]
+id: PHI-DUMMY:2000021
+name: positive Y2H
+namespace: interaction_phenotype
+is_a: PHI-DUMMY:1000000
+
+[Term]
+id: PHI-DUMMY:2000022
+name: other 
+namespace: experimental_evidence
+is_a: PHI-DUMMY:1000004
+
+[Term]
+id: PHI-DUMMY:2000023
+name: Y2H
+namespace: transient_assay_exp_ev
+is_a: PHI-DUMMY:1000005
+

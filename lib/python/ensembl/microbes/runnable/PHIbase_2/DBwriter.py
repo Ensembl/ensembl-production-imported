@@ -168,8 +168,6 @@ class DBwriter(eHive.BaseRunnable):
         key_value_pairs_dict = {}
         for key in key_list:
             try:
-                #value = self.param_required(key)
-                #value = '%.255s' % value #limit to 255 chars
                 key_value_pairs_dict[key] = self.param_required(key)
             except Exception as e:
                 print(f"NO key_value param for key {key} in {phi_id}")
@@ -178,6 +176,9 @@ class DBwriter(eHive.BaseRunnable):
 
     def get_kv_pair_value(self, session, key_id, mkp_value):
         kv_pair_value = None
+        ontology_id = self.get_ontology_id(session)
+        ontology_term_id = self.get_ontology_term_id(session, mkp_value, ontology_id)
+
         try:
             kv_pair_value = session.query(interaction_db_models.KeyValuePair).filter_by(meta_key_id=key_id, value=mkp_value).one()
             print(f" mkp_value already exists with mk_id {key_id} and value {mkp_value}")
@@ -185,7 +186,7 @@ class DBwriter(eHive.BaseRunnable):
             kv_pair_value = session.query(interaction_db_models.KeyValuePair).filter_by(meta_key_id=key_id, value=mkp_value).first()
             print(f" multiple mkp_value  exists with mk_id {key_id} and value {mkp_value}")
         except NoResultFound:
-            kv_pair_value = interaction_db_models.KeyValuePair(meta_key_id=key_id, value=mkp_value, ontology_term_id=1)
+            kv_pair_value = interaction_db_models.KeyValuePair(meta_key_id=key_id, value=mkp_value, ontology_term_id=ontology_term_id)
 
             if 'KeyValuePair' in self.param('entries_to_delete'):
                 added_values_list = self.param('entries_to_delete')['KeyValuePair']
@@ -197,6 +198,31 @@ class DBwriter(eHive.BaseRunnable):
             print(f" A new mkp_value has been created with mk_id {key_id} and value {mkp_value} + added as stored value ")
 
         return kv_pair_value
+    
+
+    def get_ontology_id(self, session):
+    #TODO: Implement this for all possible ontologies
+        o_name = 'PHI-DUMMY'
+        ontology_value = None
+        try:
+            ontology_value = session.query(interaction_db_models.Ontology).filter_by(name=o_name).one()
+        except NoResultFound:
+            return None
+        return ontology_value.ontology_id
+   
+    def get_ontology_term_id(self, session, o_description, o_id):
+        ontology_term = None
+        try:
+            ontology_term = session.query(interaction_db_models.OntologyTerm).filter_by(description=o_description, ontology_id=o_id).one()
+            print(f" ontology_term already exists with description {o_description} and onto_id {o_id}")
+        except MultipleResultsFound:
+            ontology_term = session.query(interaction_db_models.OntologyTerm).filter_by(description=o_description, ontology_id=o_id).first()
+            print(f" multiple ontology terms exists with description {o_description} and onto_id {o_id}")
+        except NoResultFound:
+            print(f" No controlled term for {o_description} in the ontology defined by {o_id}")
+            return None
+        
+        return ontology_term.ontology_term_id
 
     def get_interaction_value(self, session, patho_intctr_id, host_intctr_id, i_doi, i_source_db_id):
         interaction_value = None

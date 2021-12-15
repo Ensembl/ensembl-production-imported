@@ -44,13 +44,17 @@ class OntologiesLoader(eHive.BaseRunnable):
 
     def fetch_input(self):
         self.warning("Fetch OntologiesLoader")
+        self.param_required('registry')
         obo_file = self.param_required('obo_file')
         print(f"obo file {obo_file}")
 
     def run(self):
         self.warning("OntologiesLoader run")
+        self.param('entries_to_delete',{})
+        obo_dict = self.read_obo_entries()
+        self.insert_obo_values(obo_dict)
 
-    def insert_key_values(self):
+    def insert_obo_values(self, obo_dict):
         
         p2p_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
         
@@ -58,26 +62,13 @@ class OntologiesLoader(eHive.BaseRunnable):
         Session = sessionmaker(bind=engine)
         session = Session()
 
-        key_dict = {
-                "interaction_phenotype": "interaction phenotypoe",
-                "disease_name": "name of disease",
-                "patho_protein_modification": "protein modification in the pathogen interactor",
-                "host_protein_modification": "protein modification in the host interactor",
-                "experimental_evidence": "experimental evidence",
-                "transient_assay_exp_ev": "experimental evidence",
-                "host_response_to_pathogen": "host response to the pathogen",
-                "environment": "main bio-environment in which the interaction is observed"
-                }
-        
-        key_list = []
-        for k_name in key_dict:
-            print(f"keyname {k_name}")
-            key_value = self.get_key_value(session, k_name, k_name)
-            session.add(key_value)
-            key_list.append(k_name)
+        ontology_value = self.get_ontology_value(session)
+        onto_id = ontology_value["ontology_id"]
 
-        self.param('key_list', key_list)
-
+        for t_id in obo_dict:
+            onto_term_value = self.get_ontology_term_value(session, onto_id, t_id, obo_dict[t_id])
+            session.add(onto_term_value)
+    
         try:
             session.commit()
         except pymysql.err.IntegrityError as e:
@@ -93,23 +84,47 @@ class OntologiesLoader(eHive.BaseRunnable):
             session.rollback()
             self.clean_entry(engine)
 
+    def get_ontology_value(self, session):
+        return {"ontology_id" :1, "name": "PHI-DUMMY", "description": "for debug and coding purpouses only. Can be deleted"}
 
-    def get_key_value(self, session, k_name, k_desc):
+    def get_ontology_term_value(self, session, onto_id, t_id, t_name):
         try:
-            key_value = session.query(interaction_db_models.MetaKey).filter_by(name=k_name).one()
+            onto_term_value = session.query(interaction_db_models.OntologyTerm).filter_by(accession=t_id).one()
         except MultipleResultsFound:
-            print(f"ERROR: Multiple results found for {k_name}")
+            print(f"ERROR: Multiple results found for {t_id}")
         except NoResultFound:
-            key_value = interaction_db_models.MetaKey(name=k_name, description=k_desc)
-            if 'MetaKey' in self.param('entries_to_delete'):
-                added_values_list = self.param('entries_to_delete')['MetaKey']
-                added_values_list.append(k_name)   
-                self.add_stored_value('MetaKey',added_values_list)
+            onto_term_value = interaction_db_models.OntologyTerm(ontology_id=onto_id, accession=t_id, description=t_name)
+            
+            if 'OntologyTerm' in self.param('entries_to_delete'):
+                added_values_list = self.param('entries_to_delete')['OntologyTerm']
+                added_values_list.append({"ontology_id":onto_id, "accession":t_id})   
+                self.add_stored_value('OntologyTerm',added_values_list)
             else:
-                self.add_stored_value('MetaKey', [k_name])
-        return key_value
-        
-        
+                self.add_stored_value('OntologyTerm', [{"ontology_id":onto_id, "accession":t_id}])
+        return onto_term_value
+
+    def read_obo_entries(self):
+        obo_file = self.param_required('obo_file')
+        of = open(obo_file, 'r')
+        Lines = of.readlines()
+        obo_dict = {}
+        term_id = None
+        term_name = None
+        for line in Lines:
+            if (line.startswith("[Term]")):
+                term_id = None
+                term_name = None
+            elif (line.startswith("id:")):
+                term_id = line[4:].rstrip()
+            elif (line.startswith("name:")):
+                term_name = line[6:].rstrip()
+            elif (not line.strip()):
+                if term_id is not None:
+                    obo_dict[term_id] = term_name
+        of.close()
+        print(f"obo dict: {obo_dict}")
+        return obo_dict
+
     def clean_entry(self, engine):
         metadata = db.MetaData()
         connection = engine.connect()
@@ -117,19 +132,20 @@ class OntologiesLoader(eHive.BaseRunnable):
         entries_to_delete = self.param('entries_to_delete')
         print(entries_to_delete)
 
-        if "MetaKey" in entries_to_delete:
-            key_list = entries_to_delete["MetaKey"]
-            meta_key = db.Table('meta_key', metadata, autoload=True, autoload_with=engine)
-            for mk_name in key_list:
-                stmt = db.delete(meta_key).where(meta_key.c.name == mk_name)
+        if "OntologyTerm" in entries_to_delete:
+            term_list = entries_to_delete["OntologyTerm"]
+            ontology_term = db.Table('ontology_term', metadata, autoload=True, autoload_with=engine)
+            for obo_entry in term_list:
+                stmt = db.delete(ontology_term).where(ontology_term.c.ontology_id == obo_entry['ontology_id']).where(ontology_term.c.accession == obo_entry['accession'])
                 connection.execute(stmt)
-                print(f"Keys CLEANED: {mk_name}")
+                print(f"term CLEANED: {obo_entry}")
 
-    def add_stored_value(self, table,  id_value):
+
+    def add_stored_value(self, table,  value_dict):
         new_values = self.param('entries_to_delete')
-        new_values[table] = id_value
+        new_values[table] = value_dict
         self.param('entries_to_delete',new_values)
-
+       
     def read_registry(self):
         with open(self.param('registry'), newline='') as reg_file:
             url_reader = csv.reader(reg_file, delimiter='\t')
@@ -140,12 +156,6 @@ class OntologiesLoader(eHive.BaseRunnable):
                     ncbi_tax_url=url[1]
                 elif url[0] == 'meta_db_url':
                     meta_db_url=url[1]
-
-            return int_db_url, ncbi_tax_url, meta_db_url
-
-    def write_output(self):
-        self.dataflow({
-            "key_list": self.param('key_list'),
-            "inputfile": self.param('inputfile')
-            },1)
-
+        reg_file.close()
+        print(f"int_db_url {int_db_url}")
+        return int_db_url, ncbi_tax_url, meta_db_url
