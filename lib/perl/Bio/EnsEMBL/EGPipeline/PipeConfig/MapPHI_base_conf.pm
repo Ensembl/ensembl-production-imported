@@ -107,7 +107,7 @@ sub pipeline_wide_parameters {
      %{$self->SUPER::pipeline_wide_parameters},
 
     'inputfile'             => $self->o('inputfile'),
-    #'interactions_db_url'   => $self->o('interactions_db_url'),
+    'obo_file'   	    => $self->o('obo_file'),
     'core_db_url'	    => $self->o('core_db_url'), 
     'registry'		    => $self->o('reg_file')
   };
@@ -136,8 +136,16 @@ sub pipeline_analyses {
 		       inputfile => '#inputfile#',
                       },
       -flow_into    => {
-                        1 => {'input_file' => INPUT_PLUS()},
+                        1 => {'load_ontologies' => INPUT_PLUS()},
                        },
+    },
+    {
+      -logic_name => 'load_ontologies',
+      -module     => 'ensembl.microbes.runnable.PHIbase_2.OntologiesLoader',
+      -language   => 'python3',
+      -flow_into    => {
+                         1 => 'input_file',
+                        },
     },
     {
       -logic_name => 'input_file',
@@ -146,9 +154,6 @@ sub pipeline_analyses {
       -parameters => {
 		       delimiter => ',',
 		       column_names => 1,
-		       #output_ids => '#output_ids#',
-		       #inputfile => '#inputfile#',
-		       #registry   => '#registry#',
                       },
       -flow_into    => {
 			2 => {'meta_ensembl_reader' => INPUT_PLUS() },
@@ -193,15 +198,6 @@ sub pipeline_analyses {
     {
       -logic_name => 'interaction_table',
       -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractionTable',
-      -language   => 'python3',
-      -flow_into    => {
-                        -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
-                         1 => WHEN ("#failed_job# eq '' " => { 'load_ontologies' => INPUT_PLUS() }),
-                        },
-    },
-    {
-      -logic_name => 'load_ontologies',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.OntologiesLoader',
       -language   => 'python3',
       -flow_into    => {
                         -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
