@@ -146,8 +146,8 @@ class InteractionKeys(eHive.BaseRunnable):
                     ncbi_tax_url=url[1]
                 elif url[0] == 'meta_db_url':
                     meta_db_url=url[1]
-
-            return int_db_url, ncbi_tax_url, meta_db_url
+        reg_file.close()
+        return int_db_url, ncbi_tax_url, meta_db_url
 
     def write_output(self):
         self.dataflow({
