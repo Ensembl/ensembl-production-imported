@@ -103,7 +103,7 @@ sub run_cmd {
     my ($stdout, $stderr, $exit) = capture {
       system( $cmd );
     };
-    die "Cannot execute $cmd: $stderr" if $exit != 0;
+    die "Cannot execute $cmd: $stderr ($stdout)" if $exit != 0;
   }
   
   if ($cmd_type eq 'align') {

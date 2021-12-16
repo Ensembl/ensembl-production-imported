@@ -33,7 +33,7 @@
       "properties": {
         "accessions" : {
           "type" : "array",
-          "items" : { "type" : "string" },
+          "items" :  { "$ref" : "#/definitions/sra_accession_info" },
           "description" : "List of SRA accessions"
         },
         "name" : { "type" : "string", "pattern" : "^[A-Za-z0-9_\\.-]+$" },
@@ -45,6 +45,11 @@
       "required": [
         "accessions"
       ]
+    },
+    "sra_accession_info": {
+      "type" : "string",
+      "pattern" : "^[SE]R[RSXP][0-9]+$",
+      "additionalProperties": false
     }
   },
 

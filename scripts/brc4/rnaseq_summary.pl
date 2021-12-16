@@ -19,7 +19,7 @@ use Try::Tiny;
 ###############################################################################
 # MAIN
 # Get command line args
-my %opt = %{ opt_check() };
+our %opt = %{ opt_check() };
 
 my $input = get_input_metadata($opt{input});
 get_dir_data($opt{dir}, $input);
@@ -66,13 +66,13 @@ sub get_dir_data {
             $data{InputStranded} = $input_metadata->{isStrandSpecific} ? 1 : 0;
             
             if ($data{Paired} != $data{InputPaired}) {
-              say STDERR "PAIRED DIFF\t$component\t$species\t$dataset\t$sample";
+              say STDERR "PAIRED DIFF\t$component\t$species\t$dataset\t$sample" if $opt{v};
               $data{DiffPaired} = 1;
             } else {
               $data{DiffPaired} = 0;
             }
             if ($data{Stranded} != $data{InputStranded}) {
-              say STDERR "STRAND DIFF\t$component\t$species\t$dataset\t$sample";
+              say STDERR "STRAND DIFF\t$component\t$species\t$dataset\t$sample" if $opt{v};
               $data{DiffStranded} = 1;
             } else {
               $data{DiffStranded} = 0;

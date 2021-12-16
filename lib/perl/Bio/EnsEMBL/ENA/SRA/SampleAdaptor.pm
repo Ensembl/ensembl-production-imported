@@ -39,6 +39,10 @@ use Bio::EnsEMBL::Utils::Argument qw( rearrange );
 use base qw( Bio::EnsEMBL::ENA::SRA::BaseSraAdaptor );
 use Bio::EnsEMBL::ENA::SRA::Sample;
 use Data::Dumper;
+use Try::Tiny;
+
+my $taxurl = 
+'https://www.ebi.ac.uk/ena/browser/api/xml/Taxon:%s';
 
 sub new {
     my ( $proto, @args ) = @_;
@@ -56,8 +60,14 @@ sub _hash_to_obj {
     if(!defined $taxid) {
         confess Dumper($hash);
     }
-    my $taxon = $self->taxonomy_adaptor()
-                       ->fetch_by_taxon_id( $taxid);
+    
+    my $taxon;
+    try {
+      my $tax_adaptor = $self->taxonomy_adaptor();
+      $taxon = $tax_adaptor->fetch_by_taxon_id($taxid);
+    } catch {
+      warn("Error getting the taxonomy for $taxid: $!");
+    };
     my $sample =
       Bio::EnsEMBL::ENA::SRA::Sample->new(
                      -ACCESSION   => $hash->{accession},
@@ -65,7 +75,7 @@ sub _hash_to_obj {
                      -ALIAS       => $hash->{alias},
                      -IDENTIFIERS => $hash->{IDENTIFIERS},
                      -TITLE       => $hash->{TITLE},
-                     -DESCRIPTION       => $hash->{DESCRIPTION},
+                     -DESCRIPTION => $hash->{DESCRIPTION},
                      -TAXON       => $taxon,
                      -LINKS      => $hash->{SAMPLE_LINKS}{SAMPLE_LINK},
                      -ATTRIBUTES => $hash->{SAMPLE_ATTRIBUTES}{SAMPLE_ATTRIBUTE}
@@ -82,9 +92,6 @@ sub get_by_taxon_id {
     }
     return $samples;
 }
-
-my $taxurl = 
-'https://www.ebi.ac.uk/ena/data/view/Taxon:%s&display=xml&portal=sample';
 
 sub get_accessions_for_taxon_id {
     my ( $self, $taxid ) = @_;

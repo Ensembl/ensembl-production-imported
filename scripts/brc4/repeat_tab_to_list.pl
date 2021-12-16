@@ -91,6 +91,7 @@ sub get_ref_map {
 
       my ($org) = @{ $meta->list_value_by_key("brc4.organism_abbrev") };
       $map{$org} = $species;
+      $meta->dbc->disconnect_if_idle();
     }
   };
   if ($stderr) {

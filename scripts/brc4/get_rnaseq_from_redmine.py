@@ -32,18 +32,27 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
     output_dir.mkdir(exist_ok=True)
     
     # Write all datasets in files
+    failed_issues = []
     all_datasets = []
+    used_names = []
+    
     for issue in issues:
         dataset = parse_dataset(issue)
         if not dataset:
-            print("Skipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
+            print("\tSkipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
+            failed_issues.append(issue)
             continue
-        all_datasets.append(dataset)
 
         try:
             component = dataset["component"]
             organism = dataset["species"]
             dataset_name = dataset["name"]
+            
+            if dataset_name in used_names:
+                print("\tWARNING: dataset name is already used! Please change it: %s" % dataset_name)
+                continue
+            else:
+                used_names.append(dataset_name)
             
             # Create directory
             dataset_dir = output_dir / component
@@ -52,12 +61,21 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             # Create file
             file_name = organism + "_" + dataset_name + ".json"
             dataset_file = dataset_dir / file_name
-            print(dataset_file)
+            print("\tFile written in %s" % dataset_file)
             with open(dataset_file, "w") as f:
                 json.dump([dataset], f, indent=True)
         except Exception as error:
             print("Skipped issue %d (%s). %s." % (issue.id, issue.subject, error))
+            failed_issues.append(issue)
             pass
+        all_datasets.append(dataset)
+
+    print("%d issues total" % len(issues))
+    if failed_issues:
+        print("%d issues loaded" % (len(all_datasets)))
+        print("%d issues failed to load" % (len(failed_issues)))
+        for issue in failed_issues:
+            print("\t%s/issues/%s = %s" % (url, issue.id, issue.subject))
 
     # Create a single merged file as well
     merged_file = Path(output_dir) / "all.json"
@@ -69,7 +87,6 @@ def parse_dataset(issue):
     Extract RNA-Seq dataset metadata from a Redmine issue
     Return a nested dict
     """
-    print("Parsing issue %s (%s)" % (issue.id, issue.subject))
     customs = get_custom_fields(issue)
     dataset = {
             "component": "",
@@ -81,13 +98,15 @@ def parse_dataset(issue):
     dataset["component"] = get_custom_value(customs, "Component DB")
     dataset["species"] = get_custom_value(customs, "Organism Abbreviation")
     dataset["name"] = get_custom_value(customs, "Internal dataset name")
+
+    print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
     
     failed = False
     if not dataset["species"]:
-        print("Missing Organism Abbreviation")
+        print("\tMissing Organism Abbreviation")
         failed = True
     if not dataset["name"]:
-        print("Missing Internal dataset name")
+        print("\tMissing Internal dataset name")
         failed = True
     else:
         dataset["name"] = normalize_name(dataset["name"])
@@ -98,13 +117,12 @@ def parse_dataset(issue):
         samples = parse_samples(samples_str)
         
         if not samples:
-            print("Missing Samples")
+            print("\tMissing Samples")
             failed = True
         
         dataset["runs"] = samples
-        return dataset
     except Exception as e:
-        print("Errors: %s" % e)
+        print("\tErrors: %s" % e)
         failed = True
     
     if not failed:
@@ -112,14 +130,21 @@ def parse_dataset(issue):
     else:
         return
     
-def normalize_name(name):
+def normalize_name(old_name):
     """Remove special characters, keep ascii only"""
     
     # Remove any diacritics
-    name = name.strip()
+    name = old_name.strip()
     name = unidecode(name)
     name = re.sub(r"[ /]", "_", name)
     name = re.sub(r"[;:.,()\[\]{}]", "", name)
+    name = re.sub(r"\+", "_plus_", name)
+    name = re.sub(r"\*", "_star_", name)
+    name = re.sub(r"%", "pc_", name)
+    name = re.sub(r"_+", "_", name)
+    if re.search(r"[^A-Za-z0-9_.-]", name):
+        print("WARNING: name contains special characters: %s (%s)" % (old_name, name))
+        return
     
     return name
 
@@ -128,6 +153,8 @@ def parse_samples(sample_str):
     
     # Parse each line
     lines = sample_str.split("\n")
+
+    sample_names = dict()
     for line in lines:
         line = line.strip()
         if line == "": continue
@@ -136,6 +163,12 @@ def parse_samples(sample_str):
         parts = line.split(":")
         if len(parts) == 2:
             sample_name = parts[0].strip()
+            
+            if sample_name in sample_names:
+                raise Exception("Several samples have the same name '%s'" % sample_name)
+            else:
+                sample_names[sample_name] = True;
+            
             accessions_str = parts[1].strip()
             accessions = [x.strip() for x in accessions_str.split(",")]
             sample = {
