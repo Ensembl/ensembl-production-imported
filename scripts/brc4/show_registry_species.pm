@@ -26,13 +26,20 @@ $registry->load_all($reg_path);
 
 my $sps = $registry->get_all_species();
 
-say scalar(@$sps) . " species";
+my @lines;
+my %report;
+if (not $opt{report}) {
+  push @lines, scalar(@$sps) . " species";
+}
+
+my $build = $opt{build} // 0;
+my $ens_version = 0;
 for my $sp (sort @$sps) {
   my $dbas;
   my %groups;
   $dbas = $registry->get_all_DBAdaptors($sp);
   %groups = map { $_->group => 1 } @$dbas;
-  
+
   my $stats = "";
   my $db = "";
   my $name = "";
@@ -43,6 +50,14 @@ for my $sp (sort @$sps) {
     try {
       my ($stdout, $stderr) = capture {
         $db = $core->dbc->dbname;
+
+        if ($build and not $db =~ /_${build}_\d+_\d+$/) {
+          return;
+        }
+        if ($db =~ /_(\d+)_\d+$/) {
+          $ens_version = $1;
+        }
+
         my $genea = $core->get_GeneAdaptor();
         my $tra = $core->get_TranscriptAdaptor();
         my $meta = $registry->get_adaptor($sp, "core", "MetaContainer");
@@ -70,18 +85,53 @@ for my $sp (sort @$sps) {
           }
         }
 
+        if ($opt{report}) {
+          my $species = {
+            abbrev => $org,
+            insdc => $insdc
+          };
+          push @{ $report{$comp} }, $species;
+        } else {
+          push @lines, "$db\t$sp\t$name\t" . join(", ", sort keys %groups) . "\t$stats" if not $skip;
+        }
+
       };
       $core->dbc->disconnect_if_idle();
       print($stdout);
-      
+
       print STDERR $stderr if $opt{debug};
     } catch {
-      warn("Error: can't use core for $sp");
+      warn("Error: can't use core for $sp: $_");
     };
   }
-
-  say "$db\t$sp\t$name\t" . join(", ", sort keys %groups) . "\t$stats" if not $skip;
 }
+
+if ($opt{report}) {
+  my $title = "EBI genomes processing - VEuPathDB build $build";
+  my @summary_start = ($title, "");
+  my @summary;
+  my @full_report;
+  my $ntotal = 0;
+  for my $comp (sort keys %report) {
+    my $species = $report{$comp};
+    my $nsp = scalar @$species;
+    $ntotal += $nsp;
+
+    push @summary, "- $nsp $comp";
+    
+    push @full_report, ($comp);
+    push @full_report, "$nsp new genomes:";
+    for my $sp (@$species) {
+      push @full_report, "- $sp->{abbrev} ($sp->{insdc})";
+    }
+  }
+  push @summary_start, "$ntotal new genomes:";
+  push @summary, "Ensembl API version " . $ens_version;
+  
+  @lines = (@summary_start, @summary, "", @full_report);
+}
+
+say join("\n", @lines);
 
 ###############################################################################
 # Parameters and usage
@@ -98,6 +148,10 @@ sub usage {
 
     --species <str>   : production_name from core db
     --organism <str>  : organism_abbrev from brc4
+
+    Optional:
+    --report          : format the output for BRC4 report
+    --build           : filter by brc4 build
     
     --help            : show this help message
     --verbose         : show detailed progress
@@ -113,6 +167,8 @@ sub opt_check {
     "registry=s",
     "species=s",
     "organism=s",
+    "report",
+    "build=s",
     "help",
     "verbose",
     "debug",
