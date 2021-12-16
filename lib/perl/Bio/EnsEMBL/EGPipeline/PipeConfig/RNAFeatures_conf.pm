@@ -311,9 +311,23 @@ sub pipeline_analyses {
                           },
       -rc_name         => 'default',
       -flow_into       => {
-                            '2' => ['BackupDatabase'],
+                            '2' => ['CreateWD'],
                           },
     },
+
+    {
+      -logic_name        => 'CreateWD',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
+      -parameters         => {
+                               cmscan_wd  => catdir($self->o('pipeline_dir'), '#species#', 'cmscan_wd'),
+                               trnascan_wd => catdir($self->o('pipeline_dir'), '#species#', 'trnascan_wd'),
+                               cmd => 'mkdir -p #cmscan_wd# #trnascan_wd#',
+      },
+      -rc_name           => 'normal',
+      -max_retry_count => 0,
+      -flow_into         => ['BackupDatabase'],
+    },
+
     {
       -logic_name        => 'BackupDatabase',
       -module            => 'Bio::EnsEMBL::EGPipeline::Common::RunnableDB::DatabaseDumper',
@@ -545,6 +559,7 @@ sub pipeline_analyses {
       -parameters        => {
                               escape_branch => -1,
                               db_name       => $self->o('rfam_db_name'),
+                              workdir       => catdir($self->o('pipeline_dir'), '#species#', 'cmscan_wd'),
                             },
       -rc_name           => $self->o('cmsscan_resource_class'),
       -flow_into         => {
@@ -560,6 +575,7 @@ sub pipeline_analyses {
       -max_retry_count   => 0,
       -parameters        => {
                               db_name => $self->o('rfam_db_name'),
+                              workdir       => catdir($self->o('pipeline_dir'), '#species#', 'cmscan_wd'),
                             },
       -rc_name           => 'cmscan_8Gb_mem',
       -flow_into         => {
@@ -575,6 +591,7 @@ sub pipeline_analyses {
       -max_retry_count   => 1,
       -parameters        => {
                               db_name => $self->o('rfam_db_name'),
+                              workdir       => catdir($self->o('pipeline_dir'), '#species#', 'cmscan_wd'),
                             },
       -rc_name           => 'cmscan_16Gb_mem',
     },
@@ -591,6 +608,7 @@ sub pipeline_analyses {
                               db_name      => $self->o('trnascan_db_name'),
                               pseudo       => $self->o('trnascan_pseudo'),
                               threshold    => $self->o('trnascan_threshold'),
+                              workdir      => catdir($self->o('pipeline_dir'), '#species#', 'trnascan_wd'),
                             },
       -rc_name           => 'normal',
     },
