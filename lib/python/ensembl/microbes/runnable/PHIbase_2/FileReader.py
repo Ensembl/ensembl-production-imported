@@ -107,7 +107,6 @@ class FileReader(eHive.BaseRunnable):
     
     def limit_string_length(self, string):
         value = "%.255s" % string
-        print (f"limited value={value}")
         return value
 
     def read_registry(self):
