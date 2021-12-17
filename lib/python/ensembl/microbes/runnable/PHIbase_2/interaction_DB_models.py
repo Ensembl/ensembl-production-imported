@@ -115,7 +115,6 @@ class Interaction(Base):
     doi = Column(String(255), nullable=False)   
     source_db_id = Column(INTEGER(11), ForeignKey("source_db.source_db_id"), nullable=False, index=True)
     import_timestamp = Column(TIMESTAMP, nullable=False)
-    key_value_id = Column(INTEGER(11), ForeignKey("key_value_pair.key_value_id"), nullable=False, index=True)
 
     source_dbs = relationship("SourceDb", back_populates="interactions")
     key_value_pairs = relationship("KeyValuePair", back_populates="interactions")
@@ -123,11 +122,11 @@ class Interaction(Base):
     def __repr__(self):
         try:
             i_id = self.interaction_id
-            return "<Interaction(interaction_id='%d', interactor_1='%s', interactor_2='%s', doi='%s', source_db_id='%d', import_timestamp='%s', meta_id='%d')>" % (
-                i_id, self.interactor_1, self. interactor_2, self.doi, self.source_db_id, str(self.import_timestamp), self.meta_id)
+            return "<Interaction(interaction_id='%d', interactor_1='%s', interactor_2='%s', doi='%s', source_db_id='%d', import_timestamp='%s')>" % (
+                i_id, self.interactor_1, self. interactor_2, self.doi, self.source_db_id, str(self.import_timestamp))
         except NameError:
-            return "<Interaction(interaction_id=Null-until-stored, interactor_1='%s', interactor_2='%s', doi='%s', source_db_id='%d', import_timestamp='%s', meta_id='%d')>" % (
-                self.interaction_id, self.interactor_1, self. interactor_2, self.doi, self.source_db_id, str(self.import_timestamp), self.meta_id)
+            return "<Interaction(interaction_id=Null-until-stored, interactor_1='%s', interactor_2='%s', doi='%s', source_db_id='%d', import_timestamp='%s')>" % (
+                self.interaction_id, self.interactor_1, self. interactor_2, self.doi, self.source_db_id, str(self.import_timestamp))
 
 class KeyValuePair(Base):
     __tablename__ = 'key_value_pair'
@@ -136,6 +135,7 @@ class KeyValuePair(Base):
     )
 
     key_value_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
+    interaction_id = Column(INTEGER(11), ForeignKey("interaction.interaction_id"), nullable=False, index=True)
     meta_key_id = Column(INTEGER(11), ForeignKey("meta_key.meta_key_id"), nullable=False,  index=True)
     value = Column(String(255), nullable=False)
     ontology_term_id = Column(INTEGER(11), ForeignKey("ontology_term.ontology_term_id"), index=True)
@@ -147,11 +147,11 @@ class KeyValuePair(Base):
     def __repr__(self):
         try:    
             kv_id = self.key_value_id
-            return "<KeyValuePair(key_value_id='%d', meta_key_id='%d', value='%s', ontology_term_id='%d')>" % (
-                kv_id, self.meta_key_id, self.value, self.ontology_term_id)
+            return "<KeyValuePair(key_value_id='%d', interaction_id='%d', meta_key_id='%d', value='%s', ontology_term_id='%d')>" % (
+                kv_id, self.interaction_id, self.meta_key_id, self.value, self.ontology_term_id)
         except TypeError:
-            return "<KeyValuePair(key_value_id=Null-until-stored, meta_key_id='%d', value='%s', ontology_term_id='%d')>" % (
-                self.meta_key_id, self.value, self.ontology_term_id)
+            return "<KeyValuePair(key_value_id=Null-until-stored, interaction_id='%d', meta_key_id='%d', value='%s', ontology_term_id='%d')>" % (
+                self.interaction_id, self.meta_key_id, self.value, self.ontology_term_id)
 
 class MetaKey(Base):
     __tablename__ = 'meta_key'
