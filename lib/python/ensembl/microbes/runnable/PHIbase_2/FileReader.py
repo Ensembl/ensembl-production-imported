@@ -22,6 +22,7 @@ import unittest
 import csv
 import codecs
 import eHive
+import ColumnMapper as col_map
 
 class FileReader(eHive.BaseRunnable):
     """csv parser to fan 1 job per column"""
@@ -49,6 +50,9 @@ class FileReader(eHive.BaseRunnable):
         self.warning("read_lines running")
         int_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
         self.param("interactions_db_url",int_db_url)
+        cm = col_map.ColumnMapper('PHI-base')
+        print (f"COLUMN Mapper cm.patho_uniprot_id {cm.patho_uniprot_id}")
+        print (f"COLUMN Mapper cm.source_db_label {cm.source_db_label}")
         with open(self.param('inputfile'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
@@ -57,34 +61,34 @@ class FileReader(eHive.BaseRunnable):
                 entry_line_dict = {
                     "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
                     "PHI_id": row[0],
-                    "patho_uniprot_id": row[2],
-                    "patho_sequence": row[5],
-                    "patho_interactor_name": row[8],
-                    "patho_protein_modification": self.limit_string_length(row[10]),
-                    "patho_other_names": row[4],
-                    "patho_species_taxon_id": row[15],
-                    "patho_species_strain": row[17],
-                    "host_uniprot_id": self.get_uniprot_id(row[47]),
-                    "host_interactor_name": row[46],
-                    "host_other_names": row[47],
-                    "host_species_taxon_id": row[21],
-                    "host_protein_modification": self.limit_string_length(row[48]),
-                    "disease_name": row[19],
-                    "interaction_phenotype": self.limit_string_length(row[50]),
-                    "litterature_id": row[56],
-                    "litterature_source": row[57],
-                    "doi": row [58],
-                    "pathogen_mutant_phenotype": self.limit_string_length(row[32]),
-                    "experimental_evidence": self.limit_string_length(row[52]),
-                    "transient_assay_exp_ev": self.limit_string_length(row[53]),
-                    "host_response_to_pathogen": self.limit_string_length(row[51]),
+                    "patho_uniprot_id": row[cm.patho_uniprot_id],
+                    "patho_sequence": row[cm.patho_sequence],
+                    "patho_interactor_name": row[cm.patho_interactor_name],
+                    "patho_protein_modification": self.limit_string_length(row[cm.patho_protein_modification]),
+                    "patho_other_names": row[cm.patho_other_names],
+                    "patho_species_taxon_id": row[cm.patho_species_taxon_id],
+                    "patho_species_strain": row[cm.patho_species_strain],
+                    "host_uniprot_id": self.get_uniprot_id(row[cm.host_uniprot_id]),
+                    "host_interactor_name": row[cm.host_interactor_name],
+                    "host_other_names": row[cm.host_other_names],
+                    "host_species_taxon_id": row[cm.host_species_taxon_id],
+                    "host_protein_modification": self.limit_string_length(row[cm.host_protein_modification]),
+                    "disease_name": row[cm.disease_name],
+                    "interaction_phenotype": self.limit_string_length(row[cm.interaction_phenotype]),
+                    "litterature_id": row[cm.litterature_id],
+                    "litterature_source": row[cm.litterature_source],
+                    "doi": row [cm.doi],
+                    "pathogen_mutant_phenotype": self.limit_string_length(row[cm.pathogen_mutant_phenotype]),
+                    "experimental_evidence": self.limit_string_length(row[cm.experimental_evidence]),
+                    "transient_assay_exp_ev": self.limit_string_length(row[cm.transient_assay_exp_ev]),
+                    "host_response_to_pathogen": self.limit_string_length(row[cm.host_response_to_pathogen]),
                     "interactions_db_url": int_db_url,
                     "ncbi_taxonomy_url": ncbi_tax_url,
                     "meta_ensembl_url": meta_db_url,
-                    "source_db_label": self.get_db_label(),
-        }   
+                    "source_db_label": cm.source_db_label,
+                }   
                 lines_list.append(entry_line_dict)
-            return lines_list
+        return lines_list
 
     def get_uniprot_id(self,accessions):
         result = None
