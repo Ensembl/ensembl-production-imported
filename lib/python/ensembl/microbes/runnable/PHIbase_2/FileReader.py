@@ -51,7 +51,6 @@ class FileReader(eHive.BaseRunnable):
         int_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
         self.param("interactions_db_url",int_db_url)
         cm = col_map.ColumnMapper('PHI-base')
-        print (f"COLUMN Mapper cm.patho_uniprot_id {cm.patho_uniprot_id}")
         print (f"COLUMN Mapper cm.source_db_label {cm.source_db_label}")
         with open(self.param('inputfile'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
@@ -64,7 +63,6 @@ class FileReader(eHive.BaseRunnable):
                     "patho_uniprot_id": row[cm.patho_uniprot_id],
                     "patho_sequence": row[cm.patho_sequence],
                     "patho_interactor_name": row[cm.patho_interactor_name],
-                    "patho_protein_modification": self.limit_string_length(row[cm.patho_protein_modification]),
                     "patho_other_names": row[cm.patho_other_names],
                     "patho_species_taxon_id": row[cm.patho_species_taxon_id],
                     "patho_species_strain": row[cm.patho_species_strain],
@@ -72,22 +70,23 @@ class FileReader(eHive.BaseRunnable):
                     "host_interactor_name": row[cm.host_interactor_name],
                     "host_other_names": row[cm.host_other_names],
                     "host_species_taxon_id": row[cm.host_species_taxon_id],
-                    "host_protein_modification": self.limit_string_length(row[cm.host_protein_modification]),
-                    "disease_name": row[cm.disease_name],
-                    "interaction_phenotype": self.limit_string_length(row[cm.interaction_phenotype]),
                     "litterature_id": row[cm.litterature_id],
                     "litterature_source": row[cm.litterature_source],
                     "doi": row [cm.doi],
-                    "pathogen_mutant_phenotype": self.limit_string_length(row[cm.pathogen_mutant_phenotype]),
-                    "experimental_evidence": self.limit_string_length(row[cm.experimental_evidence]),
-                    "transient_assay_exp_ev": self.limit_string_length(row[cm.transient_assay_exp_ev]),
-                    "host_response_to_pathogen": self.limit_string_length(row[cm.host_response_to_pathogen]),
                     "interactions_db_url": int_db_url,
                     "ncbi_taxonomy_url": ncbi_tax_url,
                     "meta_ensembl_url": meta_db_url,
                     "source_db_label": cm.source_db_label,
-                }   
+                    }
+                keys_rows_dict = col_map.ColumnMapper.keys_rows
+                for key in keys_rows_dict:
+                    row_number = keys_rows_dict[key]                  
+                    row_entry = row[row_number]
+                    if row_entry != '':
+                        entry_line_dict[key] = self.limit_string_length(row_entry)
+                        print(f" row_entry for {key} is :{row_entry}:")
                 lines_list.append(entry_line_dict)
+        print (f"lines_list {lines_list}")
         return lines_list
 
     def get_uniprot_id(self,accessions):

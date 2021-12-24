@@ -18,17 +18,14 @@
 
 import os
 import subprocess
-import unittest
 import sqlalchemy as db
 import sqlalchemy_utils as db_utils
 import pymysql
 import eHive
-import datetime
-import re
-import ensembl.microbes.runnable.PHIbase_2.core_DB_models as core_db_models
 import ensembl.microbes.runnable.PHIbase_2.interaction_DB_models as interaction_db_models
-import requests
+import ColumnMapper as col_map
 import csv
+
 from xml.etree import ElementTree
 
 from sqlalchemy.orm import sessionmaker
@@ -63,22 +60,14 @@ class InteractionKeys(eHive.BaseRunnable):
         engine = db.create_engine(p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
-
-        key_dict = {
-                "interaction_phenotype": "interaction phenotypoe",
-                "disease_name": "name of disease",
-                "patho_protein_modification": "protein modification in the pathogen interactor",
-                "host_protein_modification": "protein modification in the host interactor",
-                "experimental_evidence": "experimental evidence",
-                "transient_assay_exp_ev": "experimental evidence",
-                "host_response_to_pathogen": "host response to the pathogen",
-                "environment": "main bio-environment in which the interaction is observed"
-                }
+        
+        cm = col_map.ColumnMapper('PHI-base')
+        key_dict = cm.keys_descriptions
         
         key_list = []
         for k_name in key_dict:
-            print(f"keyname {k_name}")
-            key_value = self.get_key_value(session, k_name, k_name)
+            print(f"Added key {k_name}")
+            key_value = self.get_key_value(session, k_name, key_dict[k_name])
             session.add(key_value)
             key_list.append(k_name)
 
