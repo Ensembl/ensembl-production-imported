@@ -32,15 +32,17 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
     output_dir.mkdir(exist_ok=True)
     
     # Write all datasets in files
-    failed_issues = []
     all_datasets = []
     used_names = []
+
+    problems = []
+    ok_datasets = []
     
     for issue in issues:
-        dataset = parse_dataset(issue)
-        if not dataset:
-            print("\tSkipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
-            failed_issues.append(issue)
+        dataset, problem = parse_dataset(issue)
+        
+        if problem:
+            problems.append({"issue" : issue, "desc" : problem})
             continue
 
         try:
@@ -49,10 +51,12 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             dataset_name = dataset["name"]
             
             if dataset_name in used_names:
-                print("\tWARNING: dataset name is already used! Please change it: %s" % dataset_name)
+                problems.append({"issue" : issue, "desc" : "Dataset name already used: {dataset_name}"})
                 continue
             else:
                 used_names.append(dataset_name)
+
+            ok_datasets.append({"issue" : issue, "desc" : organism})
             
             # Create directory
             dataset_dir = output_dir / component
@@ -61,26 +65,33 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             # Create file
             file_name = organism + "_" + dataset_name + ".json"
             dataset_file = dataset_dir / file_name
-            print("\tFile written in %s" % dataset_file)
             with open(dataset_file, "w") as f:
                 json.dump([dataset], f, indent=True)
         except Exception as error:
-            print("Skipped issue %d (%s). %s." % (issue.id, issue.subject, error))
-            failed_issues.append(issue)
+            problems.append({"issue" : issue, "desc" : str(error)})
             pass
         all_datasets.append(dataset)
 
     print("%d issues total" % len(issues))
-    if failed_issues:
-        print("%d issues loaded" % (len(all_datasets)))
-        print("%d issues failed to load" % (len(failed_issues)))
-        for issue in failed_issues:
-            print("\t%s/issues/%s = %s" % (url, issue.id, issue.subject))
+    print_summaries(problems, "issues with problems")
+    print_summaries(ok_datasets, "datasets imported correctly")
 
     # Create a single merged file as well
     merged_file = Path(output_dir) / "all.json"
     with open(merged_file, "w") as f:
         json.dump(all_datasets, f, indent=True)
+        
+def print_summaries(summaries, description):
+    desc_length = 64
+    
+    if summaries:
+        print()
+        print(f"{len(summaries)} {description}:")
+        for summary in summaries:
+            desc = summary["desc"]
+            issue = summary["issue"]
+            print(f"\t{desc:{desc_length}}\t{issue.id}\t({issue.subject})")
+    
  
 def parse_dataset(issue):
     """
@@ -94,20 +105,19 @@ def parse_dataset(issue):
             "name": "",
             "runs": [],
             }
+    problem = ""
 
     dataset["component"] = get_custom_value(customs, "Component DB")
     dataset["species"] = get_custom_value(customs, "Organism Abbreviation")
     dataset["name"] = get_custom_value(customs, "Internal dataset name")
 
-    print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
+    #print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
     
     failed = False
     if not dataset["species"]:
-        print("\tMissing Organism Abbreviation")
-        failed = True
+        problem = "Missing Organism Abbreviation"
     if not dataset["name"]:
-        print("\tMissing Internal dataset name")
-        failed = True
+        problem = "Missing Internal dataset name"
     else:
         dataset["name"] = normalize_name(dataset["name"])
     
@@ -117,18 +127,13 @@ def parse_dataset(issue):
         samples = parse_samples(samples_str)
         
         if not samples:
-            print("\tMissing Samples")
-            failed = True
+            problem = "Missing Samples"
         
         dataset["runs"] = samples
     except Exception as e:
-        print("\tErrors: %s" % e)
-        failed = True
+        problem = str(e)
     
-    if not failed:
-        return dataset
-    else:
-        return
+    return dataset, problem
     
 def normalize_name(old_name):
     """Remove special characters, keep ascii only"""
