@@ -159,8 +159,13 @@ def parse_samples(sample_str):
         line = line.strip()
         if line == "": continue
 
-        # Assuming only one :
+        # Get sample_name -> accessions
         parts = line.split(":")
+        if len(parts) > 2:
+            end = parts[-1]
+            start = ":".join(parts[:-1])
+            parts = [start, end]
+        
         if len(parts) == 2:
             sample_name = parts[0].strip()
             
@@ -176,8 +181,6 @@ def parse_samples(sample_str):
                     "accessions": accessions
                     }
             samples.append(sample)
-        elif len(parts) > 2:
-            raise Exception("More than two parts (sample name may have a ':' in it)")
         else:
             raise Exception("Sample line doesn't have 2 parts: '%s'" % line)
     
