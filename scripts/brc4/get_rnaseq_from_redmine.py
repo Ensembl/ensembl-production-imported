@@ -17,11 +17,33 @@ insdc_pattern = "^GC[AF]_\d{9}(\.\d+)?$"
 accession_api_url = "https://www.ebi.ac.uk/ena/browser/api/xml/%s"
 veupathdb_id = 1976
 
-def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
+def load_abbrevs(path):
+    """
+    Load a list of organism abbrevs from a file. Expected to be one per line
+    """
+    if not path:
+        print("Warning: I don't have a list of older abbrevs to compare with.")
+        return []
+    abbrevs = []
+    with open(path, "r") as abbr_file:
+        for line in abbr_file:
+            line = line.rstrip()
+            if line:
+                fields = line.split("\t")
+                if len(fields) == 1:
+                    abbrevs.append(line)
+                else:
+                    raise Exception("Can't load current abbrevs from a multicolumn string")
+    return abbrevs
+
+def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None, abbrevs_file=None):
     """
     Get RNA-Seq metadata from Redmine, store them in json files.
     Each issue/dataset is stored as one file in the output dir
     """
+
+    all_abbrevs = load_abbrevs(abbrevs_file)
+    
     issues = get_issues(redmine, "RNA-seq", build)
     if not issues:
         print("No files to create")
@@ -37,6 +59,7 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
 
     problems = []
     ok_datasets = []
+    warn_abbrevs = []
     
     for issue in issues:
         dataset, problem = parse_dataset(issue)
@@ -55,6 +78,10 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
                 continue
             else:
                 used_names.append(dataset_name)
+            
+            if abbrevs_file and organism not in all_abbrevs:
+                warn_abbrevs.append({"issue" : issue, "desc" : organism})
+                
 
             ok_datasets.append({"issue" : issue, "desc" : organism})
             
@@ -74,6 +101,7 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
 
     print("%d issues total" % len(issues))
     print_summaries(problems, "issues with problems")
+    print_summaries(warn_abbrevs, "issues using unknown organism_abbrevs (maybe new ones). Those are still imported")
     print_summaries(ok_datasets, "datasets imported correctly")
 
     # Create a single merged file as well
@@ -108,15 +136,17 @@ def parse_dataset(issue):
     problem = ""
 
     dataset["component"] = get_custom_value(customs, "Component DB")
-    dataset["species"] = get_custom_value(customs, "Organism Abbreviation")
-    dataset["name"] = get_custom_value(customs, "Internal dataset name")
+    dataset["species"] = get_custom_value(customs, "Organism Abbreviation").strip()
+    dataset["name"] = get_custom_value(customs, "Internal dataset name").strip()
 
     #print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
     
     failed = False
     if not dataset["species"]:
         problem = "Missing Organism Abbreviation"
-    if not dataset["name"]:
+    elif not check_organism_abbrev(dataset["species"]):
+        problem = f"Wrong Organism Abbreviation format: '{dataset['species']}'"
+    elif not dataset["name"]:
         problem = "Missing Internal dataset name"
     else:
         dataset["name"] = normalize_name(dataset["name"])
@@ -134,6 +164,10 @@ def parse_dataset(issue):
         problem = str(e)
     
     return dataset, problem
+
+def check_organism_abbrev(name):
+    """Limited check: do not accept organism_abbrevs with special characters"""
+    return not re.search("[ \/\(\)#\[\]:]", name)
     
 def normalize_name(old_name):
     """Remove special characters, keep ascii only"""
@@ -265,6 +299,8 @@ def main():
     # Optional
     parser.add_argument('--build', type=int,
                 help='Restrict to a given build')
+    parser.add_argument('--current_abbrevs', type=str,
+                help='File that contains the list of current organism_abbrevs')
     args = parser.parse_args()
     
     # Start Redmine API
@@ -272,9 +308,9 @@ def main():
     
     # Choose which data to retrieve
     if args.get == 'rnaseq':
-        retrieve_rnaseq_datasets(redmine, args.output_dir, args.build)
+        retrieve_rnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
     elif args.get == 'dnaseq':
-        retrieve_dnaseq_datasets(redmine, args.output_dir, args.build)
+        retrieve_dnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
     else:
         print("Need to say what data you want to --get: rnaseq? dnaseq?")
 
