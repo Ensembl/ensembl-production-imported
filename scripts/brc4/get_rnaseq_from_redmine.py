@@ -211,10 +211,17 @@ def parse_samples(sample_str):
             if sample_name in sample_names:
                 raise Exception("Several samples have the same name '%s'" % sample_name)
             else:
-                sample_names[sample_name] = True;
+                sample_names[sample_name] = True
             
             accessions_str = parts[1].strip()
             accessions = [x.strip() for x in accessions_str.split(",")]
+            
+            if not validate_accessions(accessions):
+                if validate_accessions(sample_name.split(",")):
+                    raise Exception(f"Sample name and accessions are switched?")
+                else:
+                    raise Exception(f"Invalid accession among '{accessions}'")
+            
             sample = {
                     "name": normalize_name(sample_name),
                     "accessions": accessions
@@ -224,6 +231,16 @@ def parse_samples(sample_str):
             raise Exception("Sample line doesn't have 2 parts: '%s'" % line)
     
     return samples
+
+def validate_accessions(accessions):
+    """
+    Check the accessions, to make sure we get proper ones
+    """
+    if "" in accessions: return False
+    for acc in accessions:
+        if not re.search("^[SE]R[RSXP]\d+$", acc):
+            return False
+    return True
 
 def get_custom_fields(issue):
     """
