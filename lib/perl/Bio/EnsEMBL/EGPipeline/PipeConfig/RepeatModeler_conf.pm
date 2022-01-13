@@ -397,6 +397,7 @@ sub pipeline_analyses {
       {
         transcriptome_file      => '#transcripts_fasta#',
         overwrite       => 1,
+        remove_utrs     => 1, # models with repeats in UTRs are valid, so ignore UTRs when filtering
       },
       -rc_name           => 'normal',
     },
