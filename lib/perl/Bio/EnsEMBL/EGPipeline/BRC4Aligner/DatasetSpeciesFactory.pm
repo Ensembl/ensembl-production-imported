@@ -61,11 +61,11 @@ sub run {
     $dba->dbc->disconnect_if_idle();
   }
   
-  # Warn about any remaning species not found in the registry
+  # Flows the organisms not found in the registry to another place
   if (%organisms) {
-    my $names = join(", ", sort keys %organisms);
-    my $count = scalar %organisms;
-    die("$count organisms not found in the registry: $names");
+    for my $organism (sort keys %organisms) {
+      $self->dataflow_output_id({ organism => $organism }, 3);
+    }
   }
 }
 
