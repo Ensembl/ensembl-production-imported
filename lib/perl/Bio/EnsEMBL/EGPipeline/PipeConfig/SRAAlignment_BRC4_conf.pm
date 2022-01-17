@@ -186,7 +186,7 @@ sub pipeline_analyses {
         json_schema => $self->o('datasets_json_schema'),
       },
       -flow_into  => {
-        '1->A' => 'Species_factory',
+        '1->A' => 'Dataset_species_factory',
         'A->1' => 'Email_report',
       },
       -max_retry_count => 0,
@@ -196,20 +196,7 @@ sub pipeline_analyses {
     },
 
     {
-      -logic_name => 'Species_factory',
-      -module     => 'Bio::EnsEMBL::Production::Pipeline::Common::SpeciesFactory',
-      -parameters => {
-        run_all      => 1,
-      },
-      -flow_into  => { 2 => 'Species_filter' },
-      -max_retry_count => 0,
-      -rc_name    => 'normal',
-      -meadow_type       => 'LSF',
-      -analysis_capacity => 1,
-    },
-
-    {
-      -logic_name => 'Species_filter',
+      -logic_name => 'Dataset_species_factory',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::DatasetSpeciesFactory',
       -parameters => {
         datasets_file => $self->o('datasets_file'),
