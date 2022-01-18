@@ -42,6 +42,7 @@ class InteractionKeys(eHive.BaseRunnable):
         return {
             'inputfile' : '#inputfile#',
             'registry'  : '#registry#',
+            'source_db' : '#source_db#',
         }
 
     def fetch_input(self):
@@ -61,7 +62,8 @@ class InteractionKeys(eHive.BaseRunnable):
         Session = sessionmaker(bind=engine)
         session = Session()
         
-        cm = col_map.ColumnMapper('PHI-base')
+        source_db = self.param('source_db')
+        cm = col_map.ColumnMapper(source_db)
         key_dict = cm.keys_descriptions
         
         key_list = []
@@ -139,8 +141,16 @@ class InteractionKeys(eHive.BaseRunnable):
         return int_db_url, ncbi_tax_url, meta_db_url
 
     def write_output(self):
-        self.dataflow({
-            "key_list": self.param('key_list'),
-            "inputfile": self.param('inputfile')
+        try:
+            obo_file = self.param('obo_file')
+            self.dataflow({
+                "key_list": self.param('key_list'),
+                "inputfile": self.param('inputfile'),
+                "obo_file": obo_file,
+            },1)
+        except Exception as e:
+            self.dataflow({
+                "key_list": self.param('key_list'),
+                "inputfile": self.param('inputfile'),
             },1)
 

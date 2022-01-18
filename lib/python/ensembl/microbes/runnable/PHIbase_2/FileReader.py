@@ -50,7 +50,9 @@ class FileReader(eHive.BaseRunnable):
         self.warning("read_lines running")
         int_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
         self.param("interactions_db_url",int_db_url)
-        cm = col_map.ColumnMapper('PHI-base')
+        
+        source_db = self.param('source_db')
+        cm = col_map.ColumnMapper(source_db)
         print (f"COLUMN Mapper cm.source_db_label {cm.source_db_label}")
         with open(self.param('inputfile'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
@@ -84,9 +86,7 @@ class FileReader(eHive.BaseRunnable):
                     row_entry = row[row_number]
                     if row_entry != '':
                         entry_line_dict[key] = self.limit_string_length(row_entry)
-                        print(f" row_entry for {key} is :{row_entry}:")
                 lines_list.append(entry_line_dict)
-        print (f"lines_list {lines_list}")
         return lines_list
 
     def get_uniprot_id(self,accessions):
@@ -105,8 +105,8 @@ class FileReader(eHive.BaseRunnable):
         return result
 
     def get_db_label(self):
-	#TODO: implement a discriminating method to determine provenance of file(PHI-base, IntAct, HPIDD...)
-        return 'PHI-base'
+        source_db = self.param('source_db')
+        return source_db
     
     def limit_string_length(self, string):
         value = "%.255s" % string

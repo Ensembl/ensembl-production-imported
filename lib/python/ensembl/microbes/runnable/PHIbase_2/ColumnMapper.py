@@ -15,6 +15,7 @@
 
 class ColumnMapper():
 
+    ontology_description = ""
     keys_descriptions = {}
     keys_rows = {}
 
@@ -44,13 +45,15 @@ class ColumnMapper():
                     "source_db_label": d,
                     }
 
+            ColumnMapper.ontology_description = "Expertly curated molecular and biological information on genes proven to affect the outcome of pathogen-host interactions"
+
             ColumnMapper.keys_descriptions = {
                     "interaction_phenotype": "interaction phenotype/ disease outcome",
                     "disease_name": "name of disease",
                     "patho_protein_modification": "protein modification in the pathogen interactor",
                     "host_protein_modification": "protein modification in the host interactor",
                     "experimental_evidence": "experimental evidence",
-                    "transient_assay_exp_ev": "experimental evidence",
+                    "transient_assay_exp_ev": "transient experimental evidence",
                     "host_response_to_pathogen": "host response to the pathogen",
                     }
 
@@ -64,4 +67,4 @@ class ColumnMapper():
                     "host_response_to_pathogen": 51,
                     }
 
-            return file_rows
+        return file_rows

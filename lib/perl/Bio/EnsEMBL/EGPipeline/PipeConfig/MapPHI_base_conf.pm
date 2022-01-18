@@ -81,22 +81,7 @@ sub default_options {
   my ($self) = @_;
   return {
     %{$self->SUPER::default_options},
-
-    skip_blast_update          => 0, # By default, each blast DB will be checksummed to test for an eventual update (safest). 1 avoids this step saving time.
-    min_blast_identity         => 100,  #by default, do not annotate proteins that do not have 100 % identity
-    current_query_length_ratio => 1,  #by default, do not annotate the blasted proteins that do not have equal length (ratio 1) than their query
-    write                      => 0, #do not write the xrefs to the db unless explicitely being told so.
-        
-    # the following parameters are part of DBFactory    
-    species      => [], 
-    taxons       => [],
-    division     => [],
-    antispecies  => [],
-    antitaxons   => [],
-    run_all      => 0,
-    meta_filters => {},
-    db_type => 'core',
-    unique_rows => 1,
+      obo_file => '',
   };
 }
 
@@ -107,9 +92,9 @@ sub pipeline_wide_parameters {
      %{$self->SUPER::pipeline_wide_parameters},
 
     'inputfile'             => $self->o('inputfile'),
-    'obo_file'   	    => $self->o('obo_file'),
     'core_db_url'	    => $self->o('core_db_url'), 
-    'registry'		    => $self->o('reg_file')
+    'registry'		    => $self->o('reg_file'),
+    'source_db'		    => $self->o('source_db')
   };
 }
 
@@ -129,11 +114,14 @@ sub pipeline_analyses {
       -language   => 'python3',
       -input_ids  => [{
                        'inputfile' => $self->o('inputfile'),
-		       'registry' => $self->o('reg_file'),
+		       'registry'  => $self->o('reg_file'),
+		       'source_db' => $self->o('source_db'),
                      }],
       -parameters => {
                        registry   => '#registry#',
-		       inputfile => '#inputfile#',
+		       inputfile  => '#inputfile#',
+		       source_db  => '#source_db#',
+		       obo_file   => $self->o('obo_file'),
                       },
       -flow_into    => {
                         1 => {'load_ontologies' => INPUT_PLUS()},

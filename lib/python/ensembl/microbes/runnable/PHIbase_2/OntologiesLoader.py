@@ -29,8 +29,9 @@ import ensembl.microbes.runnable.PHIbase_2.core_DB_models as core_db_models
 import ensembl.microbes.runnable.PHIbase_2.interaction_DB_models as interaction_db_models
 import requests
 import csv
-from xml.etree import ElementTree
+import ColumnMapper as col_map
 
+from xml.etree import ElementTree
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -45,14 +46,17 @@ class OntologiesLoader(eHive.BaseRunnable):
     def fetch_input(self):
         self.warning("Fetch OntologiesLoader")
         self.param_required('registry')
-        obo_file = self.param_required('obo_file')
-        print(f"obo file {obo_file}")
 
     def run(self):
         self.warning("OntologiesLoader run")
-        self.param('entries_to_delete',{})
-        obo_dict = self.read_obo_entries()
-        self.insert_obo_values(obo_dict)
+        try:
+            obo_file = self.param_required('obo_file')
+            print(f"obo file {obo_file}")
+            self.param('entries_to_delete',{})
+            obo_dict = self.read_obo_entries()
+            self.insert_obo_values(obo_dict)
+        except Exception as e:
+            print(f"SKIPPING LOADING ONTOLOGIES. The .obo file has not been passed as a parameter. This is not a problem as long as the necessary ontologies have previously been  loaded before.")
 
     def insert_obo_values(self, obo_dict):
         
@@ -61,9 +65,15 @@ class OntologiesLoader(eHive.BaseRunnable):
         engine = db.create_engine(p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
+        
 
-        ontology_value = self.get_ontology_value(session)
-        onto_id = ontology_value["ontology_id"]
+        source_db = self.param('source_db')
+        cm = col_map.ColumnMapper(source_db)
+        ontology_description = cm.ontology_description
+        ontology_value = self.get_ontology_value(source_db, ontology_description, session)
+        session.add(ontology_value)
+        session.flush()
+        onto_id = ontology_value.ontology_id
 
         for t_id in obo_dict:
             onto_term_value = self.get_ontology_term_value(session, onto_id, t_id, obo_dict[t_id])
@@ -84,8 +94,20 @@ class OntologiesLoader(eHive.BaseRunnable):
             session.rollback()
             self.clean_entry(engine)
 
-    def get_ontology_value(self, session):
-        return {"ontology_id" :1, "name": "PHI-DUMMY", "description": "for debug and coding purpouses only. Can be deleted"}
+    def get_ontology_value(self, source_db, o_description, session):
+        ontology_value = None
+        
+        try:
+            ontology_value = session.query(interaction_db_models.Ontology).filter_by(name=source_db).one()
+            print(f" ontology_value already exists for source_db {source_db} ")
+        except MultipleResultsFound:
+            ontology_value = session.query(interaction_db_models.Ontology).filter_by(name=source_db).first()
+            print(f" multiple ontologies for DB  {source_db}")
+        except NoResultFound:
+            ontology_value = interaction_db_models.Ontology(name=source_db, description=o_description)
+            print(f" A new ontology_value has been created with name {source_db} and description {o_description}")
+            self.add_stored_value('Ontology', [source_db])
+        return ontology_value
 
     def get_ontology_term_value(self, session, onto_id, t_id, t_name):
         try:
@@ -105,7 +127,7 @@ class OntologiesLoader(eHive.BaseRunnable):
 
     def read_obo_entries(self):
         obo_file = self.param_required('obo_file')
-        of = open(obo_file, 'r')
+        of = open(obo_file, 'r')        
         Lines = of.readlines()
         obo_dict = {}
         term_id = None
@@ -140,6 +162,12 @@ class OntologiesLoader(eHive.BaseRunnable):
                 connection.execute(stmt)
                 print(f"term CLEANED: {obo_entry}")
 
+        if "Ontology" in entries_to_delete:
+            ontology_name = entries_to_delete["Ontology"]
+            ontology = db.Table('ontology', metadata, autoload=True, autoload_with=engine)
+            stmt = db.delete(ontology).where(ontology.c.name == ontology_name)
+            connection.execute(stmt)
+            print(f"ontology CLEANED: {ontology_name}")
 
     def add_stored_value(self, table,  value_dict):
         new_values = self.param('entries_to_delete')
