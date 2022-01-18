@@ -101,7 +101,7 @@ class FileReader(eHive.BaseRunnable):
             if not reported:
                 raise (AssertionError)
         except AssertionError:
-            print("Mmmm..., we need to find out the uniprot accession for this interactor: " + accessions)
+            print("Uniprot id not found. Thi interactor needs an Uniprot accession: " + accessions)
         return result
 
     def get_db_label(self):

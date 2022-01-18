@@ -109,8 +109,6 @@ class SequenceFinder(eHive.BaseRunnable):
             for entry in entries_list:
                 self.dataflow(entry, 1)
         else:
-            #output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
-            print(f"{phi_id} written to FailedJob")
             self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
 
     def check_param(self, param):

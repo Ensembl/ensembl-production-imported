@@ -44,7 +44,6 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         return { }
 
     def fetch_input(self):
-        self.warning("Fetch EnsemblCoreReader")
         self.param('failed_job', '')
         phi_id = self.param_required('PHI_id')
         
@@ -100,7 +99,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                 reported = True
                 
         if not reported:
-            print ("Mmmm..., we need to find out how we name this gene name in ensembl: " + alt_names)
+            print ("Ensembl_id non reported.This gene needs a name in Ensembl: " + alt_names)
         return result
 
     def get_ensembl_gene_value(self, session, stable_id, species_id):

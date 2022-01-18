@@ -183,10 +183,8 @@ class DBwriter(eHive.BaseRunnable):
 
         try:
             kv_pair_value = session.query(interaction_db_models.KeyValuePair).filter_by(interaction_id=int_id, meta_key_id=key_id, value=mkp_value).one()
-            print(f" mkp_value already exists with interaction_id {int_id}  mk_id {key_id} and value {mkp_value}")
         except MultipleResultsFound:
             kv_pair_value = session.query(interaction_db_models.KeyValuePair).filter_by(interaction_id=int_id, meta_key_id=key_id, value=mkp_value).first()
-            print(f" multiple mkp_value  exists with interaction_id {int_id} mk_id {key_id} and value {mkp_value}")
         except NoResultFound:
             kv_pair_value = interaction_db_models.KeyValuePair(interaction_id=int_id, meta_key_id=key_id, value=mkp_value, ontology_term_id=ontology_term_id)
 
@@ -216,12 +214,9 @@ class DBwriter(eHive.BaseRunnable):
         ontology_term = None
         try:
             ontology_term = session.query(interaction_db_models.OntologyTerm).filter_by(description=o_description, ontology_id=o_id).one()
-            print(f" ontology_term already exists with description {o_description} and onto_id {o_id}")
         except MultipleResultsFound:
             ontology_term = session.query(interaction_db_models.OntologyTerm).filter_by(description=o_description, ontology_id=o_id).first()
-            print(f" multiple ontology terms exists with description {o_description} and onto_id {o_id}")
         except NoResultFound:
-            print(f" No controlled term for {o_description} in the ontology defined by {o_id}")
             return None
         
         return ontology_term.ontology_term_id
@@ -230,13 +225,10 @@ class DBwriter(eHive.BaseRunnable):
         interaction_value = None
         try:
             interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id).one()
-            print(f" interaction_value already exists with interactors  {patho_intctr_id} and {host_intctr_id} doi {doi} ")
         except MultipleResultsFound:
             interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id).first()
-            print(f" multiple interactors  {patho_intctr_id} and {host_intctr_id} doi {doi}")
         except NoResultFound:
             interaction_value = interaction_db_models.Interaction(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id, import_timestamp=db.sql.functions.now())
-            print(f" A new interaction_value has been created with interactors {patho_intctr_id} and {host_intctr_id} + added as stored value with {i_doi}")
             self.add_stored_value('Interaction', [{"interactor_1": patho_intctr_id, "interactor_2": host_intctr_id, "doi": i_doi, "source_db_id": i_source_db_id}])
         return interaction_value
 
@@ -245,12 +237,10 @@ class DBwriter(eHive.BaseRunnable):
         interactor_value = None
         try:
             interactor_value = session.query(interaction_db_models.CuratedInteractor).filter_by(curies=curie).one()
-            print(f" interactor_value already exists with {curie}")
         except MultipleResultsFound:
             interactor_value = session.query(interaction_db_models.CuratedInteractor).filter_by(curies=curie).first()
         except NoResultFound:
             interactor_value = interaction_db_models.CuratedInteractor(interactor_type=i_type, curies=curie, name=i_name, molecular_structure=struct, import_timestamp=db.sql.functions.now(), ensembl_gene_id=gene_id)
-            print(f" A new interactor_value has been created with {curie} + added as stored value")
             self.add_stored_value('CuratedInteractor', [curie])
         return interactor_value
         
@@ -267,7 +257,6 @@ class DBwriter(eHive.BaseRunnable):
             db_label = entries_to_delete["SourceDb"]
             stmt = db.delete(source_db).where(source_db.columns.label == db_label)
             connection.execute(stmt)
-            print(f"SourceDb CLEANED: {db_label}")
 
         if "EnsemblGene" in entries_to_delete:
             genes_list = entries_to_delete["EnsemblGene"]
@@ -275,7 +264,6 @@ class DBwriter(eHive.BaseRunnable):
             for stable_id in genes_list:
                 stmt = db.delete(ensembl_gene).where(ensembl_gene.c.ensembl_stable_id == stable_id)
                 connection.execute(stmt)
-                print(f"EnsemblGene CLEANED: {stable_id}")
 
         if "Species" in entries_to_delete:
             species_list = entries_to_delete["Species"]
@@ -283,7 +271,6 @@ class DBwriter(eHive.BaseRunnable):
             for species_tax_id in species_list:
                 stmt = db.delete(species).where(species.c.taxon_id == species_tax_id)
                 connection.execute(stmt)
-                print(f"Species CLEANED: {species_tax_id}")
 
         if "CuratedInteractor" in entries_to_delete:
             interactor_list = entries_to_delete["CuratedInteractor"]
@@ -291,7 +278,6 @@ class DBwriter(eHive.BaseRunnable):
             for curie in interactor_list:
                 stmt = db.delete(interactors).where(interactors.c.curies == curie)
                 connection.execute(stmt)
-                print(f"CuratedInteractor CLEANED: {curie}")
         
         if "Interaction" in entries_to_delete:
             interaction_dict = entries_to_delete["Interaction"][0]
@@ -302,7 +288,6 @@ class DBwriter(eHive.BaseRunnable):
             interaction = db.Table('interaction', metadata, autoload=True, autoload_with=engine)
             stmt = db.delete(interaction).where(interaction.c.interactor_1 == int_1).where(interaction.c.interactor_2 == int_2).where(interaction.c.doi == doi).where(interaction.c.source_db_id == db_id)
             connection.execute(stmt)
-            print(f"Interaction CLEANED: {int_1} {int_2} {doi} {db_id}")
 
         if "MetaKey" in entries_to_delete:
             key_list = entries_to_delete["MetaKey"]
@@ -310,7 +295,6 @@ class DBwriter(eHive.BaseRunnable):
             for mk_name in key_list:
                 stmt = db.delete(meta_key).where(meta_key.c.name == mk_name)
                 connection.execute(stmt)
-                print(f"Keys CLEANED: {mk_name}")
 
         if "KeyValuePair" in entries_to_delete:
             kvp_list = entries_to_delete["KeyValuePair"]
@@ -322,7 +306,6 @@ class DBwriter(eHive.BaseRunnable):
                          .where(key_value_pair.c.value == kvp_dict["value"])
                          .where(key_value_pair.c.ontology_term_id == kvp_dict["ontology_term_id"]))
                 connection.execute(stmt)
-                print(f"KeyValuePair CLEANED: {kvp_dict}")
 
     def add_stored_value(self, table,  id_value):
         new_values = self.param('entries_to_delete')
@@ -333,13 +316,10 @@ class DBwriter(eHive.BaseRunnable):
         source_db_value = None
         try:
             source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).one()
-            print(f"db_value already exists with {db_label}")  
         except MultipleResultsFound:
             source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).first()
-            print(f" ERROR: Multiple db_value exist with {db_label}") 
         except NoResultFound:
             source_db_value = interaction_db_models.SourceDb(label='PHI-base', external_db='Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity.')
-            print(f" A new db_value has been created with {db_label} + added as stored value with sourceid {source_db_value.source_db_id}")
             self.add_stored_value('SourceDb', [db_label])
         return source_db_value
 
