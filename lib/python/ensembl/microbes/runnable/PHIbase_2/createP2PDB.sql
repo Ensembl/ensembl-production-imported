@@ -125,6 +125,3 @@ ALTER TABLE `key_value_pair` ADD CONSTRAINT `key_value_pair_fk1` FOREIGN KEY (`m
 ALTER TABLE `key_value_pair` ADD CONSTRAINT `key_value_pair_fk2` FOREIGN KEY (`ontology_term_id`) REFERENCES `ontology_term`(`ontology_term_id`);
 
 ALTER TABLE `ontology_term` ADD CONSTRAINT `ontology_term_fk0` FOREIGN KEY (`ontology_id`) REFERENCES `ontology`(`ontology_id`);
-
-INSERT INTO ontology VALUES (1,'PHI-DUMMY','Toy ontology for coding/debug purpouses. DELETE ME')
-

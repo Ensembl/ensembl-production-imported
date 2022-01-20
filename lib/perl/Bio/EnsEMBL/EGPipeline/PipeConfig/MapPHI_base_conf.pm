@@ -1,19 +1,13 @@
 =head1 LICENSE
 
-See the NOTICE file distributed with this work for additional information
-regarding copyright ownership.
+Ensembl
+Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2021] EMBL-European Bioinformatics Institute
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+This product includes software developed at:
 
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+EMBL-European Bioinformatics Institute
+Wellcome Trust Sanger Institute
 
 =cut
 
@@ -21,12 +15,12 @@ limitations under the License.
 
 =head1 NAME
 
-  perl::Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf
+  Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf
 
 =head1 SYNOPSIS
 
 
-  init_pipeline.pl perl::Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf  -pipeline_url $EHIVE_URL  -registry $REGISTRY_FILE -blast_db_dir $BLAST_DB_DIRECTORY -input_file $INPUT_ROTHAMSTED_FILE -hive_force_init 1
+  init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf  -pipeline_url $EHIVE_URL  -registry $REGISTRY_FILE -blast_db_dir $BLAST_DB_DIRECTORY -input_file $INPUT_ROTHAMSTED_FILE -hive_force_init 1
 
   runWorker.pl -url $EHIVE_URL
 
@@ -64,14 +58,14 @@ limitations under the License.
 
 =cut
 
-package perl::Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf;
+package Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf;
 
 
 use strict;
 use warnings;
 
 ## EG common configuration (mostly resource classes)
-use base ('perl::Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf');
+use base ('Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf');
 
 ## Hive common configuration (every hive pipeline needs this, i.e for using "INPUT_PLUS()")
 use Bio::EnsEMBL::Hive::PipeConfig::HiveGeneric_conf;
@@ -219,16 +213,6 @@ sub resource_classes {
   my $reg_requirement = '--reg_conf ' . $self->o('reg_file'); #pass registry on to the workers without needing to specify it with the beekeeper
   return {
     %{$self->SUPER::resource_classes},  # inherit 'default' from the parent class
-	     'datamove'          => {'LSF' => '-q ' . $self->o('datamove_queue_name')},
-	     'default'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-	     'normal'            => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-	     '2Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  2000 -R "rusage[mem=2000]"'},
-	     '4Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-	     '8Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  8000 -R "rusage[mem=8000]"'},
-	     '12Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 12000 -R "rusage[mem=12000]"'},
-	     '16Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 16000 -R "rusage[mem=16000]"'},
-	     '24Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 24000 -R "rusage[mem=24000]"'},
-	     '32Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 32000 -R "rusage[mem=32000]"'},
      };
 
 }

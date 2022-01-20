@@ -38,13 +38,13 @@ Description: Interface method that should return a hash of
              
 =cut
 
-package perl::Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf;
+package Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf;
 
 use strict;
 use warnings;
 
 use Bio::EnsEMBL::Hive::Version 2.2;
-use perl::Bio::EnsEMBL::EGPipeline::PrivateConfDetails;
+use Bio::EnsEMBL::EGPipeline::PrivateConfDetails;
 use base ('Bio::EnsEMBL::Hive::PipeConfig::EnsemblGeneric_conf');
 
 sub default_options {
@@ -96,11 +96,11 @@ sub resource_classes {
   my ($self) = @_;
   return {
     'datamove'          => {'LSF' => '-q ' . $self->o('datamove_queue_name')},
-    'default'           => {'LSF' => '-q standard ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-    'normal'            => {'LSF' => '-q standard ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-    '2Gb_mem'           => {'LSF' => '-q standard ' . $self->o('queue_name') . ' -M  2000 -R "rusage[mem=2000]"'},
-    '4Gb_mem'           => {'LSF' => '-q standard ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-    '8Gb_mem'           => {'LSF' => '-q standard ' . $self->o('queue_name') . ' -M  8000 -R "rusage[mem=8000]"'},
+    'default'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
+    'normal'            => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
+    '2Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  2000 -R "rusage[mem=2000]"'},
+    '4Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
+    '8Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  8000 -R "rusage[mem=8000]"'},
     '12Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 12000 -R "rusage[mem=12000]"'},
     '16Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 16000 -R "rusage[mem=16000]"'},
     '24Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 24000 -R "rusage[mem=24000]"'},
