@@ -53,23 +53,31 @@ class MetaEnsemblReader(eHive.BaseRunnable):
     def run(self):
         self.warning("EntryLine run")
 	
-        patho_species_taxon_id = int(self.param('patho_species_taxon_id'))
-       	host_species_taxon_id = int(self.param('host_species_taxon_id'))
-       	patho_division, patho_db_name = self.get_meta_ensembl_info(patho_species_taxon_id)
-       	patho_species_name = self.get_species_name(patho_species_taxon_id)
-       	self.param("patho_division",patho_division)
+        patho_taxon_id = int(self.param('patho_species_taxon_id'))
+        try:
+            patho_division, patho_db_name = self.get_meta_ensembl_info(patho_taxon_id)
+            patho_species_name = self.get_species_name(patho_taxon_id)
+        except Exception as e:
+            print (e)
+            patho_taxon_id = int(self.param('patho_species_strain'))
+            patho_division, patho_db_name = self.get_meta_ensembl_info(patho_taxon_id)
+            patho_species_name = self.get_species_name(patho_taxon_id)
+       	
+        self.param("patho_division",patho_division)
        	self.param("patho_dbname",patho_db_name)
        	self.param("patho_species_name",patho_species_name)
         
-        host_division, host_db_name = self.get_meta_ensembl_info(host_species_taxon_id)
-       	host_species_name = self.get_species_name(host_species_taxon_id)
-       	self.param("host_division",host_division)
+        host_taxon_id = int(self.param('host_species_taxon_id'))
+        host_division, host_db_name = self.get_meta_ensembl_info(host_taxon_id)
+       	host_species_name = self.get_species_name(host_taxon_id)
+        
+        
+        self.param("host_division",host_division)
        	self.param("host_dbname",host_db_name)
        	self.param("host_species_name",host_species_name)
 
     def get_meta_ensembl_info(self, species_tax_id):
         div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE short_name != 'EV' AND species_taxonomy_id=%d"
-        
         self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
         self.cur = self.db.cursor()
         try:
@@ -83,7 +91,6 @@ class MetaEnsemblReader(eHive.BaseRunnable):
                 self.connection_close()
         
         division = None
-
         if self.cur.rowcount == 1:
         #everything is ok, only 1 division here
             division = self.cur.fetchone()[0]
@@ -94,10 +101,11 @@ class MetaEnsemblReader(eHive.BaseRunnable):
                         division = row[0]
                     else:
                         # Species has more than one division
-                        # remove the check for tax 272952 (uncommented for development only)
-                        if species_tax_id == 272952:
+                        # remove the check for tax 559515 (uncommented for development only)
+                        if species_tax_id == 559515:
                             division='EPr'
                         else:
+                            print ("Division not recognised:" + str(division))
                             raise ValueError(f"Species with tax_id {species_tax_id} has more than one division")
 
         if division == 'EF':
@@ -109,7 +117,6 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         elif division == 'EB':
             division='bacteria'
         else:
-            print ("Division not recognised:" + str(division))
             raise ValueError(f"Weird... That division is not supposed to be here for tax_id {species_tax_id}")
 
         core_db_name = None
