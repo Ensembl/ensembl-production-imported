@@ -104,7 +104,7 @@ sub pipeline_analyses {
   return [
     { 
       -logic_name => 'interaction_keys',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractionKeys',
+      -module     => 'ensembl.microbes.runnables.PHIbase_2.InteractionKeys',
       -language   => 'python3',
       -input_ids  => [{
                        'inputfile' => $self->o('inputfile'),
@@ -123,7 +123,7 @@ sub pipeline_analyses {
     },
     {
       -logic_name => 'load_ontologies',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.OntologiesLoader',
+      -module     => 'ensembl.microbes.runnables.PHIbase_2.OntologiesLoader',
       -language   => 'python3',
       -flow_into    => {
                          1 => 'input_file',
@@ -131,7 +131,7 @@ sub pipeline_analyses {
     },
     {
       -logic_name => 'input_file',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.FileReader',
+      -module     => 'ensembl.microbes.runnables.PHIbase_2.FileReader',
       -language   => 'python3',
       -parameters => {
 		       delimiter => ',',
@@ -143,7 +143,7 @@ sub pipeline_analyses {
     },
     { 
       -logic_name => 'meta_ensembl_reader',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.MetaEnsemblReader',
+      -module     => 'ensembl.microbes.runnables.PHIbase_2.MetaEnsemblReader',
       -language   => 'python3',
       -flow_into    => {
                         1 => WHEN ("#failed_job# eq '' " => { 'ensembl_core_reader' => INPUT_PLUS() }),
@@ -152,7 +152,7 @@ sub pipeline_analyses {
     },
     {  
        -logic_name => 'ensembl_core_reader',
-       -module     => 'ensembl.microbes.runnable.PHIbase_2.EnsemblCoreReader',
+       -module     => 'ensembl.microbes.runnables.PHIbase_2.EnsemblCoreReader',
        -language   => 'python3',
        -flow_into    => {
                         1 => WHEN ("#failed_job# eq '' " => { 'sequence_finder' => INPUT_PLUS() }),
@@ -161,7 +161,7 @@ sub pipeline_analyses {
     },
     { 
        -logic_name => 'sequence_finder',
-       -module     => 'ensembl.microbes.runnable.PHIbase_2.SequenceFinder',
+       -module     => 'ensembl.microbes.runnables.PHIbase_2.SequenceFinder',
        -language   => 'python3',
        -flow_into    => {
                         1 => WHEN ("#failed_job# eq '' " => { 'interactor_data_manager' => INPUT_PLUS() }),
@@ -170,7 +170,7 @@ sub pipeline_analyses {
     },
     {
       -logic_name => 'interactor_data_manager',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractorDataManager',
+      -module     => 'ensembl.microbes.runnables.PHIbase_2.InteractorDataManager',
       -language   => 'python3',
       -flow_into    => {
                         -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
@@ -179,7 +179,7 @@ sub pipeline_analyses {
     },
     {
       -logic_name => 'interaction_table',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.InteractionTable',
+      -module     => 'ensembl.microbes.runnables.PHIbase_2.InteractionTable',
       -language   => 'python3',
       -flow_into    => {
                         -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
@@ -188,12 +188,12 @@ sub pipeline_analyses {
     },
     { 
       -logic_name => 'failed_entries',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.FailedEntries',
+      -module     => 'ensembl.microbes.runnables.PHIbase_2.FailedEntries',
       -language   => 'python3',
     },
     { 
       -logic_name => 'db_writer',
-      -module     => 'ensembl.microbes.runnable.PHIbase_2.DBwriter',
+      -module     => 'ensembl.microbes.runnables.PHIbase_2.DBwriter',
       -language   => 'python3',
     }
   ];
