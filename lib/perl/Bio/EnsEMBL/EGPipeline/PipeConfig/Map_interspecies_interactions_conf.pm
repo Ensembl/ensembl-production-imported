@@ -21,12 +21,12 @@ limitations under the License.
 
 =head1 NAME
 
-  Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf
+  Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interactions_conf
 
 =head1 SYNOPSIS
 
+  init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interactions_conf -pipeline_url $EHIVE_URL -reg_file $REGISTRY -obo_file $OBO_FILE -source_db $SOURCE_DB -inputfile $INPUT_DB_FILE -interactions_db_url $interactions_db_url 
 
-  init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf  -pipeline_url $EHIVE_URL  -registry $REGISTRY_FILE -blast_db_dir $BLAST_DB_DIRECTORY -input_file $INPUT_ROTHAMSTED_FILE -hive_force_init 1
 
   runWorker.pl -url $EHIVE_URL
 
@@ -64,7 +64,7 @@ limitations under the License.
 
 =cut
 
-package Bio::EnsEMBL::EGPipeline::PipeConfig::MapPHI_base_conf;
+package Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interactions_conf;
 
 
 use strict;
