@@ -44,7 +44,6 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         self.param('failed_job', '')
         phi_id = self.param_required('PHI_id')
         
-        core_db_url = self.param_required('core_db_url')
         self.check_param('patho_division')
         self.check_param('host_division')
         self.check_param('patho_species_name')
@@ -55,14 +54,6 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         self.check_param('host_core_dbname')
         self.check_param('patho_other_names')
         self.check_param('host_other_names')
-
-        jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
-        (c_user,c_pwd,c_host,c_port,c_db) = re.compile(jdbc_pattern).findall(core_db_url)[0]
-        self.param('core_user',c_user)
-        self.param('core_pwd',c_pwd)
-        self.param('core_host',c_host)
-        self.param('core_port',int(c_port))
-        self.param('core_db',c_db)
     
     def run(self):
         self.warning("EnsemblCoreReader run")

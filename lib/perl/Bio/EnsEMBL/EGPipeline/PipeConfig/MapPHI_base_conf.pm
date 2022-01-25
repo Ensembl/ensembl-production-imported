@@ -92,7 +92,6 @@ sub pipeline_wide_parameters {
      %{$self->SUPER::pipeline_wide_parameters},
 
     'inputfile'             => $self->o('inputfile'),
-    'core_db_url'	    => $self->o('core_db_url'), 
     'registry'		    => $self->o('reg_file'),
     'source_db'		    => $self->o('source_db')
   };
