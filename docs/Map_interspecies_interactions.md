@@ -1,5 +1,5 @@
 ## Map_interspecies_interactions
-### [Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interactions_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/Map_interspecies_interactions.pm)
+### [Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interactions_conf](../lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/Map_interspecies_interactions_conf.pm)
 
 Storing pathogen-host interactions data from different source DBs including [PHI-base](http://www.phi-base.org) into Ensembl Interspecies interactions DB
 
