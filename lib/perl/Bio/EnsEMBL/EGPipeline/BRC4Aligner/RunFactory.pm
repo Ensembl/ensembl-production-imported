@@ -84,6 +84,7 @@ sub run {
       my $metadata_file = catdir($sample_dir, "metadata.json");
 
       my @run_ids = $self->runs_from_sra_ids($sample->{accessions});
+      die "Could not retrieve run ids from accessions: " . join(", ", @{$sample->{accessions}}) if not @run_ids;
 
       my %sample_data = (
         component => $dataset->{component},
@@ -179,24 +180,27 @@ sub runs_from_sra_ids {
     if ($sra_id =~ /^[ESD]RP/) {
       # First look for a study
       foreach my $study (@{$study_adaptor->get_by_accession($sra_id)}) {
+        die "No runs to retrieve from $sra_id" if not @{$study->runs()};
         foreach my $run (@{$study->runs()}) {
           push @runs, $run;
         }
       }
     }
 
-    if ($sra_id =~ /^[ESD]RX/) {
+    elsif ($sra_id =~ /^[ESD]RX/) {
       # First look for an experiment
       foreach my $exp (@{$exp_adaptor->get_by_accession($sra_id)}) {
+        die "No runs to retrieve from $sra_id" if not @{$exp->runs()};
         foreach my $run (@{$exp->runs()}) {
           push @runs, $run;
         }
       }
     }
 
-    if ($sra_id =~ /^[ESD]RS/) {
+    elsif ($sra_id =~ /^[ESD]RS/) {
       # First look for a sample
       foreach my $sample (@{$sample_adaptor->get_by_accession($sra_id)}) {
+        die "No runs to retrieve from $sra_id" if not @{$sample->runs()};
         foreach my $run (@{$sample->runs()}) {
           push @runs, $run;
         }
@@ -204,10 +208,14 @@ sub runs_from_sra_ids {
     }
 
     # Next look for runs
-    if ($sra_id =~ /^[ESD]RR/) {
+    elsif ($sra_id =~ /^[ESD]RR/) {
       foreach my $run (@{$run_adaptor->get_by_accession($sra_id)}) {
         push @runs, $run;
       }
+    }
+    
+    else {
+      die "Unrecognized SRA accession pattern: $sra_id";
     }
 
   }
