@@ -104,7 +104,7 @@ $LOOP_CMD 2> $OUT_DIR/loop.stderr 1> $OUT_DIR/loop.stdout
 | Xref | [Bio::EnsEMBL::EGPipeline::PipeConfig::Xref_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/Xref_conf.pm) | MD5-based UniParc/Uniprot Xref pipeline  | [Xref](docs/Xref.md) | Used as a part of the `AllXref` pipeline
 | AllXref | [Bio::EnsEMBL::EGPipeline::PipeConfig::AllXref_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/AllXref_conf.pm) | Combined Xref/AlignmentXref pipeline | [AllXref](docs/AllXref.md) |
 | FindPHIBaseCandidates | [Bio::EnsEMBL::EGPipeline::PipeConfig::FindPHIBaseCandidates_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/FindPHIBaseCandidates_conf.pm) | Load Xrefs from PHIBase | [FindPHIBaseCandidates](docs/FindPHIBaseCandidates.md)
-| Map_interspecies_interactions | [Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interactions](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/Map_interspecies_interactions.pm) | Loads interactions to Ensembl InterspeciesinteractionsDB from different sources | [Map_interspecies_interactions](docs/Map_interspecies_interactions.md)
+| Map_interspecies_interactions | [Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interactions_conf](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/Map_interspecies_interactions_conf.pm) | Loads interactions to Ensembl InterspeciesinteractionsDB from different sources | [Map_interspecies_interactions](docs/Map_interspecies_interactions.md)
 
 ## Obsolete pipelines
 | Pipeline name | Module | Description | Document | Comment | Alternative |
