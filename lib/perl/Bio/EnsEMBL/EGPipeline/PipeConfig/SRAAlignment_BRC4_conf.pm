@@ -459,6 +459,7 @@ sub pipeline_analyses {
         tax_id_restrict => 0,
         check_library => 0,
       },
+      -failed_job_tolerance => 10,
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -rc_name           => 'normal',
@@ -543,6 +544,7 @@ sub pipeline_analyses {
       -parameters        => {
         work_dir => '#species_work_dir#',
       },
+      -failed_job_tolerance => 10,
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -rc_name           => 'normal',
@@ -554,6 +556,7 @@ sub pipeline_analyses {
     {
       -logic_name        => 'SRASeqFileFromENA',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SRASeqFile',
+      -failed_job_tolerance => 10,
       -analysis_capacity => 4,
       -max_retry_count => 3,
       -failed_job_tolerance => 10,
@@ -682,6 +685,7 @@ sub pipeline_analyses {
     {
       -logic_name        => 'AlignSubsetSequence',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::AlignSequence',
+      -failed_job_tolerance => 10,
       -analysis_capacity => 50,
       -max_retry_count => 0,
       -parameters        => {
