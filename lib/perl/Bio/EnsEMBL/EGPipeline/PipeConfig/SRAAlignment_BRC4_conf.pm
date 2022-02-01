@@ -696,9 +696,9 @@ sub pipeline_analyses {
         seq_file_1     => '#subset_seq_file_1#',
         seq_file_2     => '#subset_seq_file_2#',
         store_cmd      => 0,
-        threads       => $self->o('threads'),
+        threads       => 1,
       },
-      -rc_name           => '8GB_multicpu',
+      -rc_name           => '8GB',
       -flow_into         => {
         '2' => {
           'InferStrandness' => {
