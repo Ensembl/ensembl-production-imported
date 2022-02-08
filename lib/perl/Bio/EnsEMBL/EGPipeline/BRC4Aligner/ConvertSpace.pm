@@ -33,6 +33,7 @@ sub param_defaults {
   
   return {
     'threads' => 1,
+    'max_read_length' => 1000,
   };
 }
 
@@ -81,7 +82,7 @@ sub sequence_space {
 }
 
 sub convert_to_base_space {
-  my ($inpath) = @_;
+  my ($self, $inpath) = @_;
   return if not $inpath;
   
   my $outpath = $inpath . ".base";
@@ -90,14 +91,18 @@ sub convert_to_base_space {
   open my $infh, '<:gzip', $inpath;
   open my $outfh, '>:gzip', $outpath;
   
+  my $max_length = 0;
   while (my $id_line1 = readline $infh) {
     # Get the 4 lines of the read
     my $color_sequence = readline $infh;
     my $id_line2 = readline $infh;
     my $color_quality = readline $infh;
     
-    my $base_sequence = convert_sequence($color_sequence);
-    my $base_quality = convert_quality($color_quality);
+    my $base_sequence = $self->convert_sequence($color_sequence);
+    my $base_quality = $self->convert_quality($color_quality);
+    
+    my $read_length = length($base_sequence);
+    $max_length = $read_length if $read_length > $max_length;
     
     print $outfh $id_line1;
     print $outfh $base_sequence;
@@ -106,11 +111,15 @@ sub convert_to_base_space {
   }
   close $infh;
   
+  if ($max_length > $self->param("max_read_length")) {
+    die("Max read length is too much: $max_length");
+  }
+  
   rename $outpath, $inpath;
 }
 
 sub convert_sequence {
-  my ($cseq) = @_;
+  my ($self, $cseq) = @_;
   
   chomp $cseq;
   my $bseq;
@@ -144,7 +153,7 @@ sub convert_sequence {
 }
 
 sub convert_quality {
-  my ($cqual) = @_;
+  my ($self, $cqual) = @_;
   
   my $bqual = $cqual;
   $bqual =~ s/^.//;
