@@ -485,7 +485,7 @@ sub pipeline_analyses {
     {
       -logic_name        => 'SyncAlignmentFiles',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SyncAlignmentFiles',
-      -analysis_capacity => 4,
+      -analysis_capacity => 2,
       -max_retry_count   => 0,
       -rc_name           => 'datamove',
       -parameters => {
