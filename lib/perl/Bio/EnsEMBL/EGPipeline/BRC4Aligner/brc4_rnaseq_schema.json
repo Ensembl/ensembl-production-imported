@@ -48,7 +48,7 @@
     },
     "sra_accession_info": {
       "type" : "string",
-      "pattern" : "^[SE]R[RSXP][0-9]+$",
+      "pattern" : "^[SED]R[RSXP][0-9]+$",
       "additionalProperties": false
     }
   },
