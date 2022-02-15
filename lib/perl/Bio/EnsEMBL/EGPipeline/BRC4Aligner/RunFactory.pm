@@ -90,6 +90,7 @@ sub run {
         component => $dataset->{component},
         organism => $dataset->{species},
         study_name => $dataset->{name},
+        accessions => \@run_ids,
         input_is_paired => $sample->{hasPairedEnds} ? 1 : 0,
         input_is_stranded => $sample->{isStrandSpecific} ? 1 : 0,
         trim_reads => $sample->{trim_reads} ? 1 : 0,

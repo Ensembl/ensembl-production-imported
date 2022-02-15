@@ -53,6 +53,9 @@ sub write_output {
   if (defined $self->param("dnaseq")) {
     $metadata{dnaseq} = $self->param('dnaseq') ? JSON::true : JSON::false;
   }
+  if (defined $self->param("accessions")) {
+    $metadata{accessions} = $self->param('accessions');
+  }
 
   open my $meta_fh, '>', $meta_file;
   print $meta_fh encode_json(\%metadata);
