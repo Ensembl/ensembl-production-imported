@@ -169,14 +169,19 @@ sub read_length_check {
   
   my $max_length = 0;
   open my $fh, '<:gzip', $path;
-  for my $i (0..$number) {
-    my $id_line = readline $fh;
+  
+  my $count = 0;
+  while (my $id_line = readline $fh) {
     my $sequence_line = readline $fh;
+    my $id_line2 = readline $fh;
+    my $base_quality = readline $fh;
     
     my $length = length($sequence_line);
     if ($length > $max_length) {
       $max_length = $length;
     }
+    
+    last if $count++ > $number;
   }
   close $fh;
  
