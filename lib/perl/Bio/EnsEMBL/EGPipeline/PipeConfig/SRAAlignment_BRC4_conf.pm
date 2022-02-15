@@ -82,6 +82,9 @@ sub default_options {
     threads    => 4,
     samtobam_memory => 16000,
 
+    # Do not proceed if the reads are too long
+    max_read_length => 1000,
+
     ###########################################################################
     # PATHS
     # Path to trimmomatic binary and adapters folders
@@ -593,6 +596,7 @@ sub pipeline_analyses {
       -parameters        => {
         seq_file_1 => '#run_seq_file_1#',
         seq_file_2 => '#run_seq_file_2#',
+        max_read_length => $self->o('max_read_length'),
       },
       -flow_into         => {
         2 => [
