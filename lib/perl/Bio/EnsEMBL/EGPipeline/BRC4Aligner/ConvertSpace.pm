@@ -51,6 +51,9 @@ sub run {
     convert_to_base_space($seq2) if $seq2;
   }
   
+  my $reads_to_check = 10;
+  $self->read_length_check($seq1, $self->param('max_read_length'), $reads_to_check);
+  
   my $output = {
     seq_file_1 => $seq1,
     seq_file_2 => $seq2,
@@ -65,7 +68,7 @@ sub space_check {
   my $id_line = readline $fh;
   my $sequence_line = readline $fh;
   close $fh;
-  
+ 
   return sequence_space($sequence_line);
 }
 
@@ -159,6 +162,27 @@ sub convert_quality {
   $bqual =~ s/^.//;
   
   return $bqual;
+}
+
+sub read_length_check {
+  my ($self, $path, $max_read_length, $number) = @_;
+  
+  my $max_length = 0;
+  open my $fh, '<:gzip', $path;
+  for my $i (0..$number) {
+    my $id_line = readline $fh;
+    my $sequence_line = readline $fh;
+    
+    my $length = length($sequence_line);
+    if ($length > $max_length) {
+      $max_length = $length;
+    }
+  }
+  close $fh;
+ 
+  if ($max_length > $max_read_length) {
+    die("Some reads that are too long: $max_length (> $max_read_length)");
+  }
 }
 
 1;
