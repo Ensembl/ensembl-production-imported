@@ -82,6 +82,9 @@ sub default_options {
     threads    => 4,
     samtobam_memory => 16000,
 
+    # Do not proceed if the reads are too long
+    max_read_length => 1000,
+
     ###########################################################################
     # PATHS
     # Path to trimmomatic binary and adapters folders
@@ -186,7 +189,7 @@ sub pipeline_analyses {
         json_schema => $self->o('datasets_json_schema'),
       },
       -flow_into  => {
-        '1->A' => 'Species_factory',
+        '1->A' => 'Dataset_species_factory',
         'A->1' => 'Email_report',
       },
       -max_retry_count => 0,
@@ -196,20 +199,7 @@ sub pipeline_analyses {
     },
 
     {
-      -logic_name => 'Species_factory',
-      -module     => 'Bio::EnsEMBL::Production::Pipeline::Common::SpeciesFactory',
-      -parameters => {
-        run_all      => 1,
-      },
-      -flow_into  => { 2 => 'Species_filter' },
-      -max_retry_count => 0,
-      -rc_name    => 'normal',
-      -meadow_type       => 'LSF',
-      -analysis_capacity => 1,
-    },
-
-    {
-      -logic_name => 'Species_filter',
+      -logic_name => 'Dataset_species_factory',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::DatasetSpeciesFactory',
       -parameters => {
         datasets_file => $self->o('datasets_file'),
@@ -217,12 +207,22 @@ sub pipeline_analyses {
       -flow_into  => {
         '2->A' => 'Prepare_genome',
         'A->2' => 'Species_report',
+        '3' => 'Organisms_not_found',
       },
       -rc_name    => 'normal',
       -meadow_type       => 'LSF',
       -analysis_capacity => 1,
       -max_retry_count => 0,
     },
+
+    {
+      -logic_name        => 'Organisms_not_found',
+      -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -max_retry_count => 0,
+    },
+
 
     {
       -logic_name        => 'Species_report',
@@ -462,6 +462,7 @@ sub pipeline_analyses {
         tax_id_restrict => 0,
         check_library => 0,
       },
+      -failed_job_tolerance => 10,
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -rc_name           => 'normal',
@@ -487,7 +488,7 @@ sub pipeline_analyses {
     {
       -logic_name        => 'SyncAlignmentFiles',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SyncAlignmentFiles',
-      -analysis_capacity => 4,
+      -analysis_capacity => 2,
       -max_retry_count   => 0,
       -rc_name           => 'datamove',
       -parameters => {
@@ -546,6 +547,7 @@ sub pipeline_analyses {
       -parameters        => {
         work_dir => '#species_work_dir#',
       },
+      -failed_job_tolerance => 10,
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -rc_name           => 'normal',
@@ -557,6 +559,7 @@ sub pipeline_analyses {
     {
       -logic_name        => 'SRASeqFileFromENA',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SRASeqFile',
+      -failed_job_tolerance => 10,
       -analysis_capacity => 4,
       -max_retry_count => 3,
       -failed_job_tolerance => 10,
@@ -593,6 +596,7 @@ sub pipeline_analyses {
       -parameters        => {
         seq_file_1 => '#run_seq_file_1#',
         seq_file_2 => '#run_seq_file_2#',
+        max_read_length => $self->o('max_read_length'),
       },
       -flow_into         => {
         2 => [
@@ -685,6 +689,7 @@ sub pipeline_analyses {
     {
       -logic_name        => 'AlignSubsetSequence',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::AlignSequence',
+      -failed_job_tolerance => 10,
       -analysis_capacity => 50,
       -max_retry_count => 0,
       -parameters        => {
@@ -695,9 +700,9 @@ sub pipeline_analyses {
         seq_file_1     => '#subset_seq_file_1#',
         seq_file_2     => '#subset_seq_file_2#',
         store_cmd      => 0,
-        threads       => $self->o('threads'),
+        threads       => 1,
       },
-      -rc_name           => '8GB_multicpu',
+      -rc_name           => '8GB',
       -flow_into         => {
         '2' => {
           'InferStrandness' => {

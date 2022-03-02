@@ -17,11 +17,33 @@ insdc_pattern = "^GC[AF]_\d{9}(\.\d+)?$"
 accession_api_url = "https://www.ebi.ac.uk/ena/browser/api/xml/%s"
 veupathdb_id = 1976
 
-def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
+def load_abbrevs(path):
+    """
+    Load a list of organism abbrevs from a file. Expected to be one per line
+    """
+    if not path:
+        print("Warning: I don't have a list of older abbrevs to compare with.")
+        return []
+    abbrevs = []
+    with open(path, "r") as abbr_file:
+        for line in abbr_file:
+            line = line.rstrip()
+            if line:
+                fields = line.split("\t")
+                if len(fields) == 1:
+                    abbrevs.append(line)
+                else:
+                    raise Exception("Can't load current abbrevs from a multicolumn string")
+    return abbrevs
+
+def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None, abbrevs_file=None):
     """
     Get RNA-Seq metadata from Redmine, store them in json files.
     Each issue/dataset is stored as one file in the output dir
     """
+
+    all_abbrevs = load_abbrevs(abbrevs_file)
+    
     issues = get_issues(redmine, "RNA-seq", build)
     if not issues:
         print("No files to create")
@@ -32,15 +54,18 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
     output_dir.mkdir(exist_ok=True)
     
     # Write all datasets in files
-    failed_issues = []
     all_datasets = []
     used_names = []
+
+    problems = []
+    ok_datasets = []
+    warn_abbrevs = []
     
     for issue in issues:
-        dataset = parse_dataset(issue)
-        if not dataset:
-            print("\tSkipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
-            failed_issues.append(issue)
+        dataset, problem = parse_dataset(issue)
+        
+        if problem:
+            problems.append({"issue" : issue, "desc" : problem})
             continue
 
         try:
@@ -49,10 +74,16 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             dataset_name = dataset["name"]
             
             if dataset_name in used_names:
-                print("\tWARNING: dataset name is already used! Please change it: %s" % dataset_name)
+                problems.append({"issue" : issue, "desc" : "Dataset name already used: {dataset_name}"})
                 continue
             else:
                 used_names.append(dataset_name)
+            
+            if abbrevs_file and organism not in all_abbrevs:
+                warn_abbrevs.append({"issue" : issue, "desc" : organism})
+                
+
+            ok_datasets.append({"issue" : issue, "desc" : organism})
             
             # Create directory
             dataset_dir = output_dir / component
@@ -61,26 +92,34 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             # Create file
             file_name = organism + "_" + dataset_name + ".json"
             dataset_file = dataset_dir / file_name
-            print("\tFile written in %s" % dataset_file)
             with open(dataset_file, "w") as f:
                 json.dump([dataset], f, indent=True)
         except Exception as error:
-            print("Skipped issue %d (%s). %s." % (issue.id, issue.subject, error))
-            failed_issues.append(issue)
+            problems.append({"issue" : issue, "desc" : str(error)})
             pass
         all_datasets.append(dataset)
 
     print("%d issues total" % len(issues))
-    if failed_issues:
-        print("%d issues loaded" % (len(all_datasets)))
-        print("%d issues failed to load" % (len(failed_issues)))
-        for issue in failed_issues:
-            print("\t%s/issues/%s = %s" % (url, issue.id, issue.subject))
+    print_summaries(problems, "issues with problems")
+    print_summaries(warn_abbrevs, "issues using unknown organism_abbrevs (maybe new ones). Those are still imported")
+    print_summaries(ok_datasets, "datasets imported correctly")
 
     # Create a single merged file as well
     merged_file = Path(output_dir) / "all.json"
     with open(merged_file, "w") as f:
         json.dump(all_datasets, f, indent=True)
+        
+def print_summaries(summaries, description):
+    desc_length = 64
+    
+    if summaries:
+        print()
+        print(f"{len(summaries)} {description}:")
+        for summary in summaries:
+            desc = summary["desc"]
+            issue = summary["issue"]
+            print(f"\t{desc:{desc_length}}\t{issue.id}\t({issue.subject})")
+    
  
 def parse_dataset(issue):
     """
@@ -94,20 +133,21 @@ def parse_dataset(issue):
             "name": "",
             "runs": [],
             }
+    problem = ""
 
     dataset["component"] = get_custom_value(customs, "Component DB")
-    dataset["species"] = get_custom_value(customs, "Organism Abbreviation")
-    dataset["name"] = get_custom_value(customs, "Internal dataset name")
+    dataset["species"] = get_custom_value(customs, "Organism Abbreviation").strip()
+    dataset["name"] = get_custom_value(customs, "Internal dataset name").strip()
 
-    print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
+    #print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
     
     failed = False
     if not dataset["species"]:
-        print("\tMissing Organism Abbreviation")
-        failed = True
-    if not dataset["name"]:
-        print("\tMissing Internal dataset name")
-        failed = True
+        problem = "Missing Organism Abbreviation"
+    elif not check_organism_abbrev(dataset["species"]):
+        problem = f"Wrong Organism Abbreviation format: '{dataset['species']}'"
+    elif not dataset["name"]:
+        problem = "Missing Internal dataset name"
     else:
         dataset["name"] = normalize_name(dataset["name"])
     
@@ -117,18 +157,17 @@ def parse_dataset(issue):
         samples = parse_samples(samples_str)
         
         if not samples:
-            print("\tMissing Samples")
-            failed = True
+            problem = "Missing Samples"
         
         dataset["runs"] = samples
     except Exception as e:
-        print("\tErrors: %s" % e)
-        failed = True
+        problem = str(e)
     
-    if not failed:
-        return dataset
-    else:
-        return
+    return dataset, problem
+
+def check_organism_abbrev(name):
+    """Limited check: do not accept organism_abbrevs with special characters"""
+    return not re.search("[ \/\(\)#\[\]:]", name)
     
 def normalize_name(old_name):
     """Remove special characters, keep ascii only"""
@@ -159,29 +198,49 @@ def parse_samples(sample_str):
         line = line.strip()
         if line == "": continue
 
-        # Assuming only one :
+        # Get sample_name -> accessions
         parts = line.split(":")
+        if len(parts) > 2:
+            end = parts[-1]
+            start = ":".join(parts[:-1])
+            parts = [start, end]
+        
         if len(parts) == 2:
             sample_name = parts[0].strip()
             
             if sample_name in sample_names:
                 raise Exception("Several samples have the same name '%s'" % sample_name)
             else:
-                sample_names[sample_name] = True;
+                sample_names[sample_name] = True
             
             accessions_str = parts[1].strip()
             accessions = [x.strip() for x in accessions_str.split(",")]
+            
+            if not validate_accessions(accessions):
+                if validate_accessions(sample_name.split(",")):
+                    raise Exception(f"Sample name and accessions are switched?")
+                else:
+                    raise Exception(f"Invalid accession among '{accessions}'")
+            
             sample = {
                     "name": normalize_name(sample_name),
                     "accessions": accessions
                     }
             samples.append(sample)
-        elif len(parts) > 2:
-            raise Exception("More than two parts (sample name may have a ':' in it)")
         else:
             raise Exception("Sample line doesn't have 2 parts: '%s'" % line)
     
     return samples
+
+def validate_accessions(accessions):
+    """
+    Check the accessions, to make sure we get proper ones
+    """
+    if "" in accessions: return False
+    for acc in accessions:
+        if not re.search("^[SE]R[RSXP]\d+$", acc):
+            return False
+    return True
 
 def get_custom_fields(issue):
     """
@@ -257,6 +316,8 @@ def main():
     # Optional
     parser.add_argument('--build', type=int,
                 help='Restrict to a given build')
+    parser.add_argument('--current_abbrevs', type=str,
+                help='File that contains the list of current organism_abbrevs')
     args = parser.parse_args()
     
     # Start Redmine API
@@ -264,9 +325,9 @@ def main():
     
     # Choose which data to retrieve
     if args.get == 'rnaseq':
-        retrieve_rnaseq_datasets(redmine, args.output_dir, args.build)
+        retrieve_rnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
     elif args.get == 'dnaseq':
-        retrieve_dnaseq_datasets(redmine, args.output_dir, args.build)
+        retrieve_dnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
     else:
         print("Need to say what data you want to --get: rnaseq? dnaseq?")
 
