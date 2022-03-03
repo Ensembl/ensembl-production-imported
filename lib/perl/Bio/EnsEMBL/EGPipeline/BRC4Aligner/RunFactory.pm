@@ -91,8 +91,6 @@ sub run {
         organism => $dataset->{species},
         study_name => $dataset->{name},
         accessions => \@run_ids,
-        input_is_paired => $sample->{hasPairedEnds} ? 1 : 0,
-        input_is_stranded => $sample->{isStrandSpecific} ? 1 : 0,
         trim_reads => $sample->{trim_reads} ? 1 : 0,
         sample_name => $sample_name,
         sample_dir => $sample_dir,
@@ -101,42 +99,79 @@ sub run {
         sorted_bam_file => $sorted_bam_file,
         metadata_file => $metadata_file,
       );
-      if ($sample_data{input_is_stranded}) {
+      
+      # Input metadata provided separately
+      my %input_metadata = (
+        is_paired => $sample->{hasPairedEnds} ? 1 : 0,
+        is_stranded => $sample->{isStrandSpecific} ? 1 : 0,
+      );
+      
+      if ($input_metadata{is_stranded}) {
         if ($sample->{strandDirection}) {
-          $sample_data{input_strand_direction} = $sample->{strandDirection};
+          $input_metadata{strand_direction} = $sample->{strandDirection};
         } else {
-          $sample_data{input_strand_direction} = $default_direction;
+          $input_metadata{strand_direction} = $default_direction;
         }
         
-        if ($sample_data{input_is_paired}) {
-          if ($sample_data{input_strand_direction} eq 'forward') {
-            $sample_data{input_strandness} = "FR";
-          } elsif ($sample_data{input_strand_direction} eq 'reverse') {
-            $sample_data{input_strandness} = "RF";
+        if ($input_metadata{is_paired}) {
+          if ($input_metadata{strand_direction} eq 'forward') {
+            $input_metadata{strandness} = "FR";
+          } elsif ($input_metadata{strand_direction} eq 'reverse') {
+            $input_metadata{strandness} = "RF";
           }
         } else {
-          if ($sample_data{input_strand_direction} eq 'forward') {
-            $sample_data{input_strandness} = "F";
-          } elsif ($sample_data{input_strand_direction} eq 'reverse') {
-            $sample_data{input_strandness} = "R";
+          if ($input_metadata{strand_direction} eq 'forward') {
+            $input_metadata{strandness} = "F";
+          } elsif ($input_metadata{strand_direction} eq 'reverse') {
+            $input_metadata{strandness} = "R";
           }
         }
       }
+      $sample_data{input_metadata} = \%input_metadata;
       
       # In all cases, output the runs metadata (useful for htseq-count)
       $self->dataflow_output_id(\%sample_data, 3);
       
       # Don't remake an existing file
       if (not -s $sorted_bam_file) {
-        for my $run_id (@run_ids) {
-          my %run_data = (
-            run_id => $run_id,
-          );
-          $self->dataflow_output_id(\%run_data, 2);
+        
+        # Also check that the sample file (might have a different name) doesn't already exist
+        my $sample_dl_dir = $self->param_required('species_work_dir');
+        my ($seq1, $seq2) = $self->has_sample_files($sample_dl_dir, $sample_name);
+        
+        if ($seq1) {
+          # No need to redownload the files
+          $sample_data{run_seq_files_1} = [$seq1];
+          $sample_data{run_seq_files_2} = [$seq2];
+          $self->dataflow_output_id(\%sample_data, 4);
+        } else {
+          for my $run_id (@run_ids) {
+            my %run_data = (
+              run_id => $run_id,
+            );
+            $self->dataflow_output_id(\%run_data, 2);
+          }
         }
         $self->dataflow_output_id(\%sample_data, 4);
       }
     }
+  }
+}
+
+sub has_sample_files {
+  my ($self, $sample_dir, $sample_name) = @_;
+  
+  my $base_name = "$sample_dir/$sample_name" . "_all";
+  my $unique_file = $base_name . ".fastq.gz";
+  my $paired_file_1 = $base_name . "_1.fastq.gz";
+  my $paired_file_2 = $base_name . "_2.fastq.gz";
+  
+  if (-s $unique_file) {
+    return ($unique_file, undef);
+  } elsif (-s $paired_file_1 and -s $paired_file_2) {
+    return ($paired_file_1, $paired_file_2);
+  } else {
+    return (undef, undef);
   }
 }
 

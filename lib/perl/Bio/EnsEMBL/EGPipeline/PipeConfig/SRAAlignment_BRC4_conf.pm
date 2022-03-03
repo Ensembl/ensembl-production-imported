@@ -128,6 +128,14 @@ sub beekeeper_extra_cmdline_options {
   return $options;
 }
 
+sub hive_meta_table {
+    my ($self) = @_;
+    return {
+        %{$self->SUPER::hive_meta_table},       # here we inherit anything from the base class
+        'hive_use_param_stack'  => 1,           # switch on the new param_stack mechanism
+    };
+}
+
 sub pipeline_create_commands {
   my ($self) = @_;
   
@@ -265,7 +273,7 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        1 => { 'Genome_data_factory' => INPUT_PLUS() },
+        1 => 'Genome_data_factory',
       },
     },
 
@@ -274,8 +282,8 @@ sub pipeline_analyses {
       -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
       -rc_name           => 'normal',
       -flow_into         => {
-        '1->A' => { 'Genome_factory' => INPUT_PLUS() },
-        'A->1' => { 'Runs_factory' => INPUT_PLUS() },
+        '1->A' => 'Genome_factory',
+        'A->1' => 'Runs_factory',
       },
     },
   );
@@ -481,7 +489,7 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        2 => { "SyncAlignmentFiles" => INPUT_PLUS() },
+        2 => "SyncAlignmentFiles",
       },
     },
 
@@ -509,7 +517,7 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into         => {
-        2 => { 'HtseqFactory_redo' => INPUT_PLUS() },
+        2 => 'HtseqFactory_redo',
       },
 
     },
@@ -524,7 +532,7 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into         => {
-        2 => { 'HtseqCount_redo' => INPUT_PLUS() },
+        2 => 'HtseqCount_redo',
       },
     },
 
@@ -552,7 +560,7 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        2 => { "PreAlignment" => INPUT_PLUS() },
+        2 => "PreAlignment",
       }
     },
 
@@ -613,7 +621,7 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -analysis_capacity => 1,
       -flow_into         => {
-        '1' => WHEN('#trim_reads#', { 'Trim' => INPUT_PLUS() }, ELSE { 'CheckMetadata' => INPUT_PLUS() })
+        '1' => WHEN('#trim_reads#', 'Trim', ELSE 'GetMetadata')
       },
     },
 
@@ -633,14 +641,26 @@ sub pipeline_analyses {
       },
       -rc_name           => '16GB',
       -flow_into         => {
-        '2' => 'CheckMetadata',
+        '2' => 'GetMetadata',
       },
     },
   );
 
     ####################################################################
-    # Alignment
-  my @sample_alignment = (
+    # Get metadata for each sample, to use for the aligner
+  my @get_metadata = (
+
+    {
+      -logic_name        => 'GetMetadata',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -max_retry_count => 0,
+      -flow_into         => {
+        '1->A' => 'CheckMetadata',
+        'A->1' => 'AlignSequence',
+      },
+    },
 
     {
       -logic_name        => 'CheckMetadata',
@@ -649,8 +669,8 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        2 => WHEN("#infer_metadata#", { "SubsetSequence" => INPUT_PLUS() }, ELSE({ "UseInputMetadata" => INPUT_PLUS() })),
-        3 => { "UseInputMetadata" => INPUT_PLUS() },
+        2 => WHEN("#infer_metadata#", "SubsetSequence", ELSE("UseInputMetadata")),
+        3 => "UseInputMetadata",
       },
     },
 
@@ -661,12 +681,7 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into         => {
-        '1' => { "AlignSequence" => {
-            is_paired => "#input_is_paired#",
-            is_stranded => "#input_is_stranded#",
-            strand_direction => "#input_strand_direction#",
-            strandness => "#input_strandness#",
-          } }
+        1 => '?accu_name=aligner_metadata&accu_input_variable=input_metadata',
       },
     },
     
@@ -682,7 +697,7 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        '1' => { 'AlignSubsetSequence' => INPUT_PLUS() },
+        '1' => 'AlignSubsetSequence',
       },
     },
 
@@ -699,6 +714,7 @@ sub pipeline_analyses {
         max_intron     => $self->o('max_intron'),
         seq_file_1     => '#subset_seq_file_1#',
         seq_file_2     => '#subset_seq_file_2#',
+        aligner_metadata => '#input_metadata#',
         store_cmd      => 0,
         threads       => 1,
       },
@@ -726,7 +742,7 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -failed_job_tolerance => 50,
       -flow_into         => {
-        '1' => 'AlignSequence',
+        2 => '?accu_name=aligner_metadata&accu_input_variable=aligner_metadata',
       },
     },
   );
@@ -751,8 +767,8 @@ sub pipeline_analyses {
       -max_retry_count => 1,
       -rc_name           => '8GB_multicpu',
       -flow_into         => {
-                              '-1' => { 'AlignSequence_HighMem' => INPUT_PLUS() },
-                               '2' => { 'SamToBam' => INPUT_PLUS() },
+                              '-1' => 'AlignSequence_HighMem',
+                               '2' => 'SamToBam',
                             },
     },
 
@@ -774,7 +790,7 @@ sub pipeline_analyses {
       -rc_name           => '16GB_multicpu',
       -failed_job_tolerance => 100,
       -flow_into         => {
-                               '2' => { 'SamToBam' => INPUT_PLUS() },
+                               '2' => 'SamToBam',
                             },
     },
 
@@ -927,7 +943,7 @@ sub pipeline_analyses {
       -analysis_capacity => 25,
       -max_retry_count => 0,
       -flow_into         => {
-        2 => { 'Split_strands' => INPUT_PLUS() },
+        2 => 'Split_strands',
       },
     },
 
@@ -955,7 +971,7 @@ sub pipeline_analyses {
       -analysis_capacity => 10,
       -max_retry_count => 0,
       -flow_into         => {
-        1 => { 'CreateBedGraph' => INPUT_PLUS() },
+        1 => 'CreateBedGraph',
         3 => '?accu_name=bam_stats&accu_address=[]',
       },
     },
@@ -1059,7 +1075,7 @@ sub pipeline_analyses {
     @backbone,
     @genomes,
     @files,
-    @sample_alignment,
+    @get_metadata,
     @alignment,
     @post_alignment,
     @post_process

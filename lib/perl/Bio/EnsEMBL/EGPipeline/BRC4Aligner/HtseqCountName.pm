@@ -46,8 +46,10 @@ sub run {
   my $gtf = $self->param_required('gtf_file');
   my $strand = $self->param_required('strand');
   my $number = $self->param_required('number');
-  my $strand_direction = $self->param('strand_direction');
   my $feature = $self->param('feature');
+
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  my $strand_direction = $aligner_metadata->{'strand_direction'};
 
   my $results_dir = dirname($bam);
 
