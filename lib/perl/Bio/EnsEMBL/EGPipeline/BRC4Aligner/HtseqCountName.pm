@@ -54,6 +54,7 @@ sub run {
   my $results_dir = dirname($bam);
 
   my $htseq_file = 'genes.htseq-union.' . $feature . '.' . $strand;
+  $htseq_file = 'genes.htseq-union.' . $strand if $feature eq 'exon';
   if ($number eq 'total') {
     $htseq_file .= '.nonunique';
   }
