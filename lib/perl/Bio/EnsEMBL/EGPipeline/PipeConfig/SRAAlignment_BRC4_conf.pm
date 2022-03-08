@@ -72,7 +72,7 @@ sub default_options {
     # If there is already an alignment for a sample, redo its htseq-count only
     # (do nothing otherwise)
     redo_htseqcount => 0,
-    features => ['exon', 'CDS'],
+    features => ['exon'],
     alignments_dir => undef,
     
     # Use input metadata, instead of inferring them (pair/strand)
