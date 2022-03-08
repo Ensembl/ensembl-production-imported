@@ -29,6 +29,7 @@ sub param_defaults {
   my ($self) = @_;
   
   return {
+    force_aligner_metadata => undef
   };
 }
 
@@ -39,8 +40,19 @@ sub fetch_input {
 sub run {
   my ($self) = @_;
   
-  my $all_metadata = $self->param('aligner_metadata_array');
-  my $consensus_metadata = $self->create_consensus_metadata($all_metadata);
+  
+  my $force_metadata = $self->param('force_metadata');
+  
+  my $consensus_metadata;
+  if ($force_metadata) {
+    $consensus_metadata = $force_metadata;
+  } else {
+    my $all_metadata = $self->param('aligner_metadata_array');
+    $consensus_metadata = $self->create_consensus_metadata($all_metadata);
+  }
+
+  # Check the metadata
+  $self->check_metadata($consensus_metadata);
 
   my $output_data = {
     aggregated_aligner_metadata => $consensus_metadata,
@@ -48,6 +60,20 @@ sub run {
   $self->dataflow_output_id($output_data, 2);
 }
 
+sub check_metadata {
+  my ($self, $met) = @_;
+  
+  my @errors;
+  push @errors, "No 'is_paired' value" if not defined $met->{is_paired};
+  push @errors, "No 'is_stranded' value" if not defined $met->{is_stranded};
+  if ($met->{is_stranded}) {
+    push @errors, "No 'strandness' value" if not defined $met->{strandness};
+    push @errors, "No 'strand_direction' value" if not defined $met->{strand_direction};
+  }
+  
+  die("Error in consensus metadata: " . join("\n", @errors)) if @errors;
+}
+  
 sub create_consensus_metadata {
   my ($self, $metadata_array) = @_;
 
@@ -70,17 +96,22 @@ sub create_consensus_metadata {
   my @errors;
   for my $key (keys %met_counts) {
     my @sub_keys = keys %{$met_counts{$key}};
+    @sub_keys = grep { $_ ne "" } @sub_keys;
     
     if (@sub_keys == 1) {
       my $unique_value = shift @sub_keys;
       $consensus{$key} = $unique_value;
     } else {
-      push @errors, "There are " . scalar(@sub_keys) . " different values for metadata $key.";
+      my @pairs = map { "$_=$met_counts{$key}->{$_}" } @sub_keys;
+      push @errors, "There are " . scalar(@sub_keys) . " different values for metadata '$key' (".join(", ", @pairs).")";
+      $consensus{$key} = join("|", @sub_keys);
     }
   }
   
   if (@errors) {
-    die("Could not create a consensus: " . join("; ", @errors));
+    my $cons_str = encode_json(\%consensus);
+    $cons_str =~ s/:/ => /g;
+    die("Could not create a consensus: " . join("; ", @errors) . "\nPlease check the logs and fix the Current Consensus (and copy it as 'force_metadata' param for this job):\n" . $cons_str);
   }
 
   return \%consensus;
