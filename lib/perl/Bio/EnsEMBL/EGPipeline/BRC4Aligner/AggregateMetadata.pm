@@ -98,13 +98,13 @@ sub create_consensus_metadata {
     my @sub_keys = keys %{$met_counts{$key}};
     @sub_keys = grep { $_ ne "" } @sub_keys;
     
-    if (@sub_keys == 1) {
-      my $unique_value = shift @sub_keys;
-      $consensus{$key} = $unique_value;
-    } else {
+    if (@sub_keys > 1) {
       my @pairs = map { "$_=$met_counts{$key}->{$_}" } @sub_keys;
       push @errors, "There are " . scalar(@sub_keys) . " different values for metadata '$key' (".join(", ", @pairs).")";
       $consensus{$key} = join("|", @sub_keys);
+    } else {
+      my $unique_value = shift @sub_keys;
+      $consensus{$key} = $unique_value;
     }
   }
   
