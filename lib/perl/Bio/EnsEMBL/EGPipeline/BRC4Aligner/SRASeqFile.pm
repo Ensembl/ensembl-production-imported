@@ -49,8 +49,17 @@ sub run {
   
   make_path($work_dir) unless -e $work_dir;
   
-  my $run_adaptor = get_adaptor('Run');
-  my @runs = @{$run_adaptor->get_by_accession($run_id)};
+  my @runs; 
+  if ($run_id =~ /^.RR/) {
+    my $run_adaptor = get_adaptor('Run');
+    @runs = @{$run_adaptor->get_by_accession($run_id)};
+  } elsif ($run_id =~ /^.RS/) {
+    my $sample_adaptor = get_adaptor('Sample');
+    @runs = @{$sample_adaptor->get_by_accession($run_id)};
+  } else {
+    die "Unrecognized accession format '$run_id'";
+  }
+  die "No runs retrieved from accession '$run_id'" if @runs == 0;
   
   my @output = ();
   my @output_failed = ();
@@ -99,16 +108,12 @@ sub retrieve_files {
   my $run_acc = $run->accession;
   my @files = grep { $_->file_name() } @{$run->files()};
   
-  my $experiment = $run->experiment();
-  my $paired = defined $experiment->design()->{LIBRARY_DESCRIPTOR}{LIBRARY_LAYOUT}{PAIRED};
-  
-  # Single but several files?? Treat as single, as it is likely an error in SRA
-  if (not $paired and @files > 1) {
-    warn "Experiment is SINGLE, but there are several files. Changed to PAIRED.\n";
+  # Define paired with the number of files
+  my $paired = 0;
+  if (@files > 1) {
     $paired = 1;
   }
-  if ($paired and @files == 1) {
-    warn "Experiment is PAIRED, but there is only one file. Changed to SINGLE.\n";
+  elsif (@files == 1) {
     $paired = 0;
   } elsif (@files == 0) {
     die("There is no file to download for $run_acc");

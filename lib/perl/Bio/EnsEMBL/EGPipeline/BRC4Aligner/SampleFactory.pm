@@ -230,9 +230,13 @@ sub runs_from_sra_ids {
     elsif ($sra_id =~ /^[ESD]RS/) {
       # First look for a sample
       foreach my $sample (@{$sample_adaptor->get_by_accession($sra_id)}) {
-        die "No runs to retrieve from $sra_id" if not @{$sample->runs()};
-        foreach my $run (@{$sample->runs()}) {
-          push @runs, $run;
+        if (@{$sample->runs()}) {
+          foreach my $run (@{$sample->runs()}) {
+            push @runs, $run;
+          }
+        } else {
+          # Use the sample as if it was a run
+          push @runs, $sample;
         }
       }
     }
