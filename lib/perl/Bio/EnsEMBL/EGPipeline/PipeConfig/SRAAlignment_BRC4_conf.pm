@@ -476,8 +476,17 @@ sub pipeline_analyses {
       -flow_into         => {
         '2->A' => WHEN("not #redo_htseqcount#", 'Sub_Samples_factory'),
         'A->2' => WHEN("not #redo_htseqcount#", 'Aggregate_metadata'),
-        '3' => WHEN("#redo_htseqcount#", 'Redo_Samples_factory'),
+        '2' => WHEN("#redo_htseqcount#", 'Redo_Samples_factory'),
+        '3' => 'Datasets_not_redone',
       },
+    },
+
+    {
+      -logic_name        => 'Datasets_not_redone',
+      -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -max_retry_count => 0,
     },
 
     {

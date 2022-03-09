@@ -45,13 +45,20 @@ sub run {
   
   my $datasets_file = $self->param('datasets_file');
   my $organism = $self->param('organism');
+  my $results_dir = $self->param('results_dir');
 
   print "Get datasets for $organism from $datasets_file\n";
   my $datasets = $self->get_datasets($datasets_file, $organism);
   print "Number of datasets: " . scalar(@$datasets) . "\n";
 
   for my $dataset (@$datasets) {
-    $self->dataflow_output_id({ dataset_metadata => $dataset }, 2);
+    # Check there is not already a directory for this dataset
+    my $ds_dir = catdir($results_dir, $dataset->{name});
+    if (not -e $ds_dir) {
+      $self->dataflow_output_id({ dataset_metadata => $dataset }, 2);
+    } else {
+      $self->dataflow_output_id({ dataset_metadata => $dataset }, 3);
+    }
   }
 }
 
