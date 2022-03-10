@@ -757,7 +757,7 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -flow_into         => {
         1 => [
-          '?accu_name=aligner_metadata_array&accu_input_variable=aligner_metadata&accu_address=[]',
+          '?accu_name=aligner_metadata_hash&accu_input_variable=aligner_metadata&accu_address={sample_name}',
         ],
       },
     },

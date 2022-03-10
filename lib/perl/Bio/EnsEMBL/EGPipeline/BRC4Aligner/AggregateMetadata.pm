@@ -47,7 +47,7 @@ sub run {
   if ($force_metadata) {
     $consensus_metadata = $force_metadata;
   } else {
-    my $all_metadata = $self->param('aligner_metadata_array');
+    my $all_metadata = $self->param('aligner_metadata_hash');
     $consensus_metadata = $self->create_consensus_metadata($all_metadata);
   }
 
@@ -75,7 +75,7 @@ sub check_metadata {
 }
   
 sub create_consensus_metadata {
-  my ($self, $metadata_array) = @_;
+  my ($self, $metadata_hash) = @_;
 
   my %met_counts = (
     "is_paired" => {},
@@ -84,7 +84,8 @@ sub create_consensus_metadata {
     "strandness" => {}
   );
   
-  for my $met (@$metadata_array) {
+  for my $sample (keys %$metadata_hash) {
+    my $met = $metadata_hash->{$sample};
     for my $key (keys %$met) {
       my $value = $met->{$key};
       $met_counts{$key}{$value}++;
@@ -111,7 +112,9 @@ sub create_consensus_metadata {
   if (@errors) {
     my $cons_str = encode_json(\%consensus);
     $cons_str =~ s/:/ => /g;
-    die("Could not create a consensus: " . join("; ", @errors) . "\nPlease check the logs and fix the Current Consensus (and copy it as 'force_metadata' param for this job):\n" . $cons_str);
+    
+    my $all_met_str = encode_json($metadata_hash);
+    die("Could not create a consensus: " . join("; ", @errors) . "\nPlease check the logs and fix the Current Consensus (and copy it as 'force_metadata' param for this job):\n" . $cons_str . "\nAll metadata: " . $all_met_str);
   }
 
   return \%consensus;
