@@ -45,7 +45,7 @@ sub run {
   
   my $work_dir = $self->param_required('work_dir');
   my $run_id   = $self->param_required('run_id');
-  my $use_ncbi   = $self->param('use_ncbi');
+  my $fallback_ncbi   = $self->param('fallback_ncbi');
   
   make_path($work_dir) unless -e $work_dir;
   
@@ -76,7 +76,7 @@ sub run {
     } catch {
       my $error = $_;
 
-      if ($use_ncbi) {
+      if ($fallback_ncbi) {
         print STDERR "ERROR: $error\n";
         push @output_failed, { run_id => $run_id };
       } else {

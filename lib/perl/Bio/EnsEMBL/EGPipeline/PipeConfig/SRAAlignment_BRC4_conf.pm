@@ -63,8 +63,10 @@ sub default_options {
     skip_cleanup => $self->o('dnaseq'),
     
     # Download via SRA from NCBI if ENA fails (fallback)
-    use_ncbi => 0,
+    fallback_ncbi => 0,
     sra_dir => undef,
+    # Force using NCBI SRA instead of ENA
+    force_ncbi => 0,
     
     # Clean up temp files at the end (split bam etc.)
     clean_up      => 1,
@@ -161,6 +163,7 @@ sub pipeline_wide_parameters {
     'redo_htseqcount'      => $self->o('redo_htseqcount'),
     'infer_metadata' => $self->o('infer_metadata'),
     'dnaseq'      => $self->o('dnaseq'),
+    'force_ncbi'      => $self->o('force_ncbi'),
   };
 }
 
@@ -492,7 +495,7 @@ sub pipeline_analyses {
     {
       -logic_name        => 'Aggregate_metadata',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::AggregateMetadata',
-      -failed_job_tolerance => 0,
+      -failed_job_tolerance => 100,
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -rc_name           => 'normal',
@@ -546,11 +549,20 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        '2->A' => 'SRASeqFileFromENA',
+        '2->A' => 'Download',
         'A->4' => 'Sub_Merge_fastq',
       },
     },
 
+    {
+      -logic_name        => 'Download',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -flow_into         => {
+        '1' => WHEN('#force_ncbi#', 'SRASeqFileFromNCBI', ELSE 'SRASeqFileFromENA'),
+      },
+    },
 
     # HTseq recount path
     {
@@ -661,7 +673,7 @@ sub pipeline_analyses {
       -failed_job_tolerance => 10,
       -parameters        => {
         work_dir => '#species_work_dir#',
-        use_ncbi => $self->o('use_ncbi'),
+        fallback_ncbi => $self->o('fallback_ncbi'),
       },
       -rc_name           => 'normal',
       -flow_into         => {
