@@ -30,6 +30,7 @@ use File::Spec::Functions qw(catdir);
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use LWP::Simple qw(getstore);
 use Carp;
+use Cwd qw(getcwd);
 
 sub run {
   my ($self) = @_;
@@ -70,7 +71,6 @@ sub retrieve_files {
   my ($self, $work_dir, $run) = @_;
   
   my $sra_dir = $self->param('sra_dir');
-  die "Can't download from NCBI without the -sra_dir parameter (dir where the fastq-dump binary is accessible)" if not $sra_dir;
   
   my $run_acc = $run->accession;
   my $sam_file = catdir($work_dir, "$run_acc.sam");
@@ -94,6 +94,8 @@ sub retrieve_files {
   
   my $sra_acc = $run_acc;
   my $download_sra = 0;
+  
+  my $previous_dir = getcwd();
   chdir $work_dir;
   if ($download_sra) {
     # Retrieve the SRA file
@@ -116,45 +118,62 @@ sub retrieve_files {
   
   # Next, extract the fastq file(s)
   warn "Getting file from fastq-dump";
+  
+  my $sra_dump_bin = $sra_dir ? "$sra_dir/fastq-dump": "fastq-dump";
+  
   # NB: -B ensures we get base-space data, not color-space
-  my $sra_command = "$sra_dir/fastq-dump -I -B --split-files --gzip $sra_acc";
+  my $sra_command = "$sra_dump_bin -I -B --split-files $sra_acc";
+  print("SRA download command: '$sra_command'\n");
   my $stats = `$sra_command`;
   
   # The downloaded files should be named {$run_acc}_1.gz or {$run_acc}.gz
   # Check file names and rename to our standard names
   
-  my $lone_fastq = "$run_acc.fastq.gz";
-  my $downloaded_1 = "${run_acc}_1.fastq.gz";
-  my $downloaded_2 = "${run_acc}_2.fastq.gz";
+  my $lone_fastq = "$run_acc.fastq";
+  my $downloaded_1 = "${run_acc}_1.fastq";
+  my $downloaded_2 = "${run_acc}_2.fastq";
+
   if (-f $lone_fastq) {
-    $seq_file_1 = "${run_acc}_all.fastq.gz";
+    $seq_file_1 = "${run_acc}_all.fastq";
     rename $lone_fastq, $seq_file_1;
+
+    `gzip $seq_file_1`;
+    $seq_file_1 .= '.gz';
   } elsif (-f $downloaded_1 and -f $downloaded_2) {
     # Check both files have the same number of lines
-    my $lines1 = `zcat $downloaded_1 | wc -l`; chomp $lines1;
-    my $lines2 = `zcat $downloaded_2 | wc -l`; chomp $lines2;
+    my $lines1 = `cat $downloaded_1 | wc -l`; chomp $lines1;
+    my $lines2 = `cat $downloaded_2 | wc -l`; chomp $lines2;
     if ($lines1 != $lines2) {
-      die("Extracted files have different line counts ($lines1 vs $lines2): $downloaded_1 and $downloaded_2");
+      die("Files have different line counts ($lines1 vs $lines2): $downloaded_1 and $downloaded_2");
     }
 
-    $seq_file_1 = "${run_acc}_all_1.fastq.gz";
-    $seq_file_2 = "${run_acc}_all_2.fastq.gz";
+    $seq_file_1 = "${run_acc}_all_1.fastq";
+    $seq_file_2 = "${run_acc}_all_2.fastq";
     rename $downloaded_1, $seq_file_1;
     rename $downloaded_2, $seq_file_2;
+    `gzip $seq_file_1`;
+    $seq_file_1 .= '.gz';
+    `gzip $seq_file_2`;
+    $seq_file_2 .= '.gz';
 
   } elsif (-f $downloaded_1) {
     warn("Using $downloaded_1 as the sole file for $run_acc");
-    $seq_file_1 = "${run_acc}_all.fastq.gz";
+    $seq_file_1 = "${run_acc}_all.fastq";
     rename $downloaded_1, $seq_file_1;
+    `gzip $seq_file_1`;
+    $seq_file_1 .= '.gz';
   } else {
+    chdir($previous_dir);
     die "Can't find the fastq files extracted for $run_acc downloaded in $work_dir";
   }
-  # Back to the root dir: need to update the seq files path
-  $seq_file_1 = catdir($work_dir, $seq_file_1);
-  $seq_file_2 = catdir($work_dir, $seq_file_2) if $seq_file_2;
   
   # Remove sra file
   unlink $sra_acc if -s $sra_acc;
+
+  # Back to the root dir: need to update the seq files path
+  chdir($previous_dir);
+  $seq_file_1 = catdir($work_dir, $seq_file_1);
+  $seq_file_2 = catdir($work_dir, $seq_file_2) if $seq_file_2;
   
   return ($seq_file_1, $seq_file_2, $sam_file);
 }
