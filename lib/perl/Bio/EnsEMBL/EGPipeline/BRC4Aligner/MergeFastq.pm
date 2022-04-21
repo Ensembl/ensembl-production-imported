@@ -69,8 +69,8 @@ sub merge_fastq {
 
   # Only one run: no need to merge
   if (scalar(@$files1) == 1) {
-    rename $files1->[0], $output1;
-    rename $files2->[0], $output2 if @$files2;
+    rename $files1->[0], $output1 if not -s $output1;
+    rename $files2->[0], $output2 if @$files2 and not -s $output2;
   } else {
     
     # Merge the files in order

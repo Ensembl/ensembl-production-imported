@@ -52,8 +52,9 @@ sub fetch_input {
   my $samtools_dir  = $self->param('samtools_dir');
   my $max_intron    = $self->param('max_intron');
   my $gtf_file      = $self->param('gtf_file');
-  my $strandness    = $self->param('strandness');
   my $dnaseq        = $self->param('dnaseq');
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  my $strandness    = $aligner_metadata->{strandness};
 
   # DNA-Seq special changes
   $strandness = undef if $dnaseq;

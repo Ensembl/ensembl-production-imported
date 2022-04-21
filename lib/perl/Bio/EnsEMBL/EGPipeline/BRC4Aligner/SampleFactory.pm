@@ -17,7 +17,7 @@ limitations under the License.
 
 =cut
 
-package Bio::EnsEMBL::EGPipeline::BRC4Aligner::RunFactory;
+package Bio::EnsEMBL::EGPipeline::BRC4Aligner::SampleFactory;
 
 use strict;
 use warnings;
@@ -50,110 +50,104 @@ sub fetch_input {
 sub run {
   my ($self) = @_;
   
-  my $datasets_file = $self->param('datasets_file');
+  my $dataset = $self->param('dataset_metadata');
   my $organism = $self->param('organism');
   my $results_dir = $self->param('results_dir');
   my $default_direction = $self->param('default_direction');
 
-  print "Get datasets for $organism from $datasets_file\n";
-  my $datasets = $self->get_datasets($datasets_file, $organism);
-  print "Number of datasets: " . scalar(@$datasets) . "\n";
+  print "Number of runs for $dataset->{name}: " . scalar(@{ $dataset->{runs} }) . "\n";
 
-  for my $dataset (@$datasets) {
-    print "Number of runs for $dataset->{name}: " . scalar(@{ $dataset->{runs} }) . "\n";
+  my %unique_sample;
+  for my $sample (@{ $dataset->{runs} }) {
+    
+    # Sample data
+    my $sample_name = $sample->{name} // $sample->{accessions}->[0];
+    die "Missing sample name for $dataset->{name}" if not $sample_name;
+    if (exists $unique_sample{$sample_name}) {
+      die("There are several samples with the name $sample_name in the dataset $dataset->{name}");
+    } else {
+      $unique_sample{$sample_name} = 1;
+    }
+    
+    my $sample_dir = catdir($results_dir, $dataset->{name}, $sample_name);
+    make_path($sample_dir);
 
-    my %unique_sample;
-    for my $sample (@{ $dataset->{runs} }) {
-      
-      # Sample data
-      my $sample_name = $sample->{name} // $sample->{accessions}->[0];
-      die "Missing sample name for $dataset->{name}" if not $sample_name;
-      if (exists $unique_sample{$sample_name}) {
-        die("There are several samples with the name $sample_name in the dataset $dataset->{name}");
+    my $sample_bam_file = catdir($sample_dir, "results.bam");
+    (my $sorted_bam_file = $sample_bam_file) =~ s/\.bam/_name.bam/;
+    (my $sample_sam_file = $sample_bam_file) =~ s/\.bam/.sam/;
+
+    my $metadata_file = catdir($sample_dir, "metadata.json");
+
+    my @run_ids = $self->runs_from_sra_ids($sample->{accessions});
+    die "Could not retrieve run ids from accessions: " . join(", ", @{$sample->{accessions}}) if not @run_ids;
+
+    my %sample_data = (
+      component => $dataset->{component},
+      organism => $dataset->{species},
+      study_name => $dataset->{name},
+      accessions => \@run_ids,
+      trim_reads => $sample->{trim_reads} ? 1 : 0,
+      sample_name => $sample_name,
+      sample_dir => $sample_dir,
+      sample_bam_file => $sample_bam_file,
+      sample_sam_file => $sample_sam_file,
+      sorted_bam_file => $sorted_bam_file,
+      metadata_file => $metadata_file,
+    );
+    
+    # Input metadata provided separately
+    my %input_metadata = (
+      is_paired => $sample->{hasPairedEnds} ? 1 : 0,
+      is_stranded => $sample->{isStrandSpecific} ? 1 : 0,
+    );
+    
+    if ($input_metadata{is_stranded}) {
+      if ($sample->{strandDirection}) {
+        $input_metadata{strand_direction} = $sample->{strandDirection};
       } else {
-        $unique_sample{$sample_name} = 1;
+        $input_metadata{strand_direction} = $default_direction;
       }
       
-      my $sample_dir = catdir($results_dir, $dataset->{name}, $sample_name);
-      make_path($sample_dir);
-
-      my $sample_bam_file = catdir($sample_dir, "results.bam");
-      (my $sorted_bam_file = $sample_bam_file) =~ s/\.bam/_name.bam/;
-      (my $sample_sam_file = $sample_bam_file) =~ s/\.bam/.sam/;
-
-      my $metadata_file = catdir($sample_dir, "metadata.json");
-
-      my @run_ids = $self->runs_from_sra_ids($sample->{accessions});
-      die "Could not retrieve run ids from accessions: " . join(", ", @{$sample->{accessions}}) if not @run_ids;
-
-      my %sample_data = (
-        component => $dataset->{component},
-        organism => $dataset->{species},
-        study_name => $dataset->{name},
-        accessions => \@run_ids,
-        trim_reads => $sample->{trim_reads} ? 1 : 0,
-        sample_name => $sample_name,
-        sample_dir => $sample_dir,
-        sample_bam_file => $sample_bam_file,
-        sample_sam_file => $sample_sam_file,
-        sorted_bam_file => $sorted_bam_file,
-        metadata_file => $metadata_file,
-      );
-      
-      # Input metadata provided separately
-      my %input_metadata = (
-        is_paired => $sample->{hasPairedEnds} ? 1 : 0,
-        is_stranded => $sample->{isStrandSpecific} ? 1 : 0,
-      );
-      
-      if ($input_metadata{is_stranded}) {
-        if ($sample->{strandDirection}) {
-          $input_metadata{strand_direction} = $sample->{strandDirection};
-        } else {
-          $input_metadata{strand_direction} = $default_direction;
+      if ($input_metadata{is_paired}) {
+        if ($input_metadata{strand_direction} eq 'forward') {
+          $input_metadata{strandness} = "FR";
+        } elsif ($input_metadata{strand_direction} eq 'reverse') {
+          $input_metadata{strandness} = "RF";
         }
-        
-        if ($input_metadata{is_paired}) {
-          if ($input_metadata{strand_direction} eq 'forward') {
-            $input_metadata{strandness} = "FR";
-          } elsif ($input_metadata{strand_direction} eq 'reverse') {
-            $input_metadata{strandness} = "RF";
-          }
-        } else {
-          if ($input_metadata{strand_direction} eq 'forward') {
-            $input_metadata{strandness} = "F";
-          } elsif ($input_metadata{strand_direction} eq 'reverse') {
-            $input_metadata{strandness} = "R";
-          }
+      } else {
+        if ($input_metadata{strand_direction} eq 'forward') {
+          $input_metadata{strandness} = "F";
+        } elsif ($input_metadata{strand_direction} eq 'reverse') {
+          $input_metadata{strandness} = "R";
         }
       }
-      $sample_data{input_metadata} = \%input_metadata;
+    }
+    $sample_data{input_metadata} = \%input_metadata;
+    
+    # In all cases, output the runs metadata (useful for htseq-count)
+    $self->dataflow_output_id(\%sample_data, 3);
+    
+    # Don't remake an existing file
+    if (not -s $sorted_bam_file) {
       
-      # In all cases, output the runs metadata (useful for htseq-count)
-      $self->dataflow_output_id(\%sample_data, 3);
+      # Also check that the sample file (might have a different name) doesn't already exist
+      my $sample_dl_dir = $self->param_required('species_work_dir');
+      my ($seq1, $seq2) = $self->has_sample_files($sample_dl_dir, $sample_name);
       
-      # Don't remake an existing file
-      if (not -s $sorted_bam_file) {
-        
-        # Also check that the sample file (might have a different name) doesn't already exist
-        my $sample_dl_dir = $self->param_required('species_work_dir');
-        my ($seq1, $seq2) = $self->has_sample_files($sample_dl_dir, $sample_name);
-        
-        if ($seq1) {
-          # No need to redownload the files
-          $sample_data{run_seq_files_1} = [$seq1];
-          $sample_data{run_seq_files_2} = [$seq2];
-          $self->dataflow_output_id(\%sample_data, 4);
-        } else {
-          for my $run_id (@run_ids) {
-            my %run_data = (
-              run_id => $run_id,
-            );
-            $self->dataflow_output_id(\%run_data, 2);
-          }
-        }
+      if ($seq1) {
+        # No need to redownload the files
+        $sample_data{run_seq_files_1} = $seq1 ? [$seq1] : [];
+        $sample_data{run_seq_files_2} = $seq2 ? [$seq2] : [];
         $self->dataflow_output_id(\%sample_data, 4);
+      } else {
+        for my $run_id (@run_ids) {
+          my %run_data = (
+            run_id => $run_id,
+          );
+          $self->dataflow_output_id(\%run_data, 2);
+        }
       }
+      $self->dataflow_output_id(\%sample_data, 4);
     }
   }
 }
@@ -236,9 +230,13 @@ sub runs_from_sra_ids {
     elsif ($sra_id =~ /^[ESD]RS/) {
       # First look for a sample
       foreach my $sample (@{$sample_adaptor->get_by_accession($sra_id)}) {
-        die "No runs to retrieve from $sra_id" if not @{$sample->runs()};
-        foreach my $run (@{$sample->runs()}) {
-          push @runs, $run;
+        if (@{$sample->runs()}) {
+          foreach my $run (@{$sample->runs()}) {
+            push @runs, $run;
+          }
+        } else {
+          # Use the sample as if it was a run
+          push @runs, $sample;
         }
       }
     }

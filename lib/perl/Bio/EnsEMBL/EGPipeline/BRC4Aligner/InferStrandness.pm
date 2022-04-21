@@ -42,8 +42,10 @@ sub run {
   my $bed_file = $self->param_required('bed_file');
   my $sam_file = $self->param_required('sam_file');
   my $n_samples = $self->param_required('n_samples');
-  my $input_is_paired = $self->param('input_is_paired');
-  my $input_is_stranded = $self->param('input_is_stranded');
+  
+  my $input_metadata = $self->param('input_metadata');
+  my $input_is_paired = $input_metadata->{'is_paired'};
+  my $input_is_stranded = $input_metadata->{'is_stranded'};
 
   my $sample_1 = $self->param('sample_seq_file_1');
   my $sample_2 = $self->param('sample_seq_file_2');
@@ -106,12 +108,15 @@ sub run {
   }
   close $LOG;
 
-  $self->dataflow_output_id({
+  my $aligner_metadata = {
       is_stranded => $is_stranded,
       is_paired => $is_paired,
       strand_direction => $strand_direction,
       strandness => $strandness,
-    },  1);
+  };
+  $self->dataflow_output_id({
+      aligner_metadata => $aligner_metadata
+    },  2);
 
   cleanup_file($sam_file);
   cleanup_file($self->param('sample_seq_file_1'));
