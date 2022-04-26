@@ -48,13 +48,6 @@ sub default_options {
     # Datasets to align
     datasets_file => $self->o('datasets_file'),
     datasets_json_schema => catfile($package_dir, '../BRC4Aligner/brc4_rnaseq_schema.json'),
-
-    # Species factory
-    species => [],
-    antispecies => [],
-    division => [],
-    run_all => 0,
-    meta_filters => {},
     
     # BEHAVIOUR
     # Use DNA-Seq specific parameters
@@ -67,9 +60,6 @@ sub default_options {
     sra_dir => undef,
     # Force using NCBI SRA instead of ENA
     force_ncbi => 0,
-    
-    # Clean up temp files at the end (split bam etc.)
-    clean_up      => 1,
     
     # If there is already an alignment for a sample, redo its htseq-count only
     # (do nothing otherwise)
