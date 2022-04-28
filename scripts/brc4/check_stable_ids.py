@@ -21,7 +21,7 @@ import argparse
 import mysql.connector
 from mysql.connector.cursor import MySQLCursor
 import os, json, re, time
-from sqlalchemy import Column, Integer, String, ForeignKey, insert, select
+from sqlalchemy import Column, Integer, Index, String, ForeignKey, insert, select
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import create_engine
 
@@ -139,6 +139,7 @@ class StableId(Base):
     db_id = Column(ForeignKey('db.db_id'))
     feature = Column(String)
     name = Column(String)
+    Index('ix_feat_name', feature, name)
 
 class StableIdDB(object):
     """Representation of an SQLite database of stable ids
