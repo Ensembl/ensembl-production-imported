@@ -160,9 +160,9 @@ class StableIdDB(object):
                 conn.commit()
                 db_id = result.inserted_primary_key[0]
                 
-                for stable_id in core_server.get_stable_ids(core, feature):
-                    id_stmt = insert(StableId).values(db_id=db_id, feature=feature, name=stable_id)
-                    result = conn.execute(id_stmt)
+                stable_ids = core_server.get_stable_ids(core, feature)
+                to_insert = [ { 'db_id': db_id, 'feature': feature, 'name': stable_id } for stable_id in stable_ids ]
+                result = conn.execute(insert(StableId), to_insert)
                 conn.commit()
         
 
