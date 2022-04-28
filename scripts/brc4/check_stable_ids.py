@@ -21,7 +21,7 @@ import argparse
 import mysql.connector
 from mysql.connector.cursor import MySQLCursor
 import os, json, re, time
-from sqlalchemy import Column, Integer, String, ForeignKey, insert
+from sqlalchemy import Column, Integer, String, ForeignKey, insert, select
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import create_engine
 
@@ -155,15 +155,34 @@ class StableIdDB(object):
         with self.engine.connect() as conn:
             for core in core_server.cores:
                 print(f"Load {feature} ids from {core}")
-                db_stmt = insert(Db).values(db_name=core)
-                result = conn.execute(db_stmt)
-                conn.commit()
-                db_id = result.inserted_primary_key[0]
                 
                 stable_ids = core_server.get_stable_ids(core, feature)
+                db_id = self._get_db_id(conn, core)
                 to_insert = [ { 'db_id': db_id, 'feature': feature, 'name': stable_id } for stable_id in stable_ids ]
                 result = conn.execute(insert(StableId), to_insert)
                 conn.commit()
+
+    def _get_db_id(self, conn, db_name: str) -> None:
+
+        stmt_get = select(Db).where(Db.db_name == db_name)
+        results = conn.execute(stmt_get)
+
+        rows = []
+        for row in results:
+            rows.append(row)
+        
+        if len(rows) > 1:
+            raise Exception(f"Several rows in database loaded for db_name {db_name}")
+        elif len(rows) == 1:
+            row = rows[0]
+            db_id = row["db_id"]
+        else:
+            db_stmt = insert(Db).values(db_name=db_name)
+            result = conn.execute(db_stmt)
+            conn.commit()
+            db_id = result.inserted_primary_key[0]
+        
+        return db_id
         
 
 def main():
