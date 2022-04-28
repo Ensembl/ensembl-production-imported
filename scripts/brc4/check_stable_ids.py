@@ -98,6 +98,29 @@ class CoreServer(object):
         for row in cursor:
             yield row[0]
     
+    def get_core_metadata(self, core_name: str, key: str) -> list:
+        """Retrieve a metadata value from a given core
+        
+        Args:
+            core_name: name of the core database to use
+            key: metadata_key to get the metadata_value from
+        
+        Returns:
+            List of all values
+        """
+        
+        self.db.database = core_name
+        cursor = self.db.cursor()
+        
+        query = f"SELECT meta_value FROM meta WHERE meta_key = %s"
+        cursor.execute(query, [key])
+        
+        rows = []
+        for row in cursor:
+            rows.append(row[0])
+        
+        return rows
+
 ####################################################################################################
 # Prepare the SQLalchemy schema
 Base = declarative_base()
@@ -154,15 +177,16 @@ class StableIdDB(object):
         """
         with self.engine.connect() as conn:
             for core in core_server.cores:
-                print(f"Load {feature} ids from {core}")
+                prod_name = core_server.get_core_metadata(core, 'species.production_name')
+                print(f"Load {feature} ids from {core} ({prod_name[0]})")
                 
                 stable_ids = core_server.get_stable_ids(core, feature)
-                db_id = self._get_db_id(conn, core)
+                db_id = self._get_db_id(conn, core, prod_name[0])
                 to_insert = [ { 'db_id': db_id, 'feature': feature, 'name': stable_id } for stable_id in stable_ids ]
                 result = conn.execute(insert(StableId), to_insert)
                 conn.commit()
 
-    def _get_db_id(self, conn, db_name: str) -> None:
+    def _get_db_id(self, conn, db_name: str, prod_name: str) -> None:
 
         stmt_get = select(Db).where(Db.db_name == db_name)
         results = conn.execute(stmt_get)
@@ -177,7 +201,7 @@ class StableIdDB(object):
             row = rows[0]
             db_id = row["db_id"]
         else:
-            db_stmt = insert(Db).values(db_name=db_name)
+            db_stmt = insert(Db).values(db_name=db_name, production_name=prod_name)
             result = conn.execute(db_stmt)
             conn.commit()
             db_id = result.inserted_primary_key[0]
