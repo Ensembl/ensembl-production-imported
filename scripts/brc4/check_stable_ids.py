@@ -225,6 +225,7 @@ class StableIdDB(object):
 
         Return:
             A list of dicts with 3 keys: db1, db2, name
+            ordered by the stable_id names, then db1 and db2
         """
         
         query = text("""SELECT db1.production_name, db2.production_name, s1.name
@@ -234,6 +235,7 @@ class StableIdDB(object):
                         AND s1.feature=s2.feature
                         AND s1.feature = :feature
                         AND s1.name = s2.name
+                    ORDER BY s1.name, db1.production_name, db2.production_name
                 """)
         
         dup_ids = []
@@ -263,6 +265,7 @@ class StableIdDB(object):
 
         Return:
             A list of dicts with 3 keys: db1, db2, count
+            ordered by db1, db2
         """
         
         query = text("""SELECT db1.production_name, db2.production_name, count(*)
@@ -273,6 +276,7 @@ class StableIdDB(object):
                         AND s1.feature = :feature
                         AND s1.name = s2.name
                     GROUP BY db1.db_id, db2.db_id
+                    ORDER BY db1.production_name, db2.production_name
                 """)
         
         dup_ids = []
