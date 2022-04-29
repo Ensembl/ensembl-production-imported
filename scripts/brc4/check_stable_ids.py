@@ -15,6 +15,18 @@
 # limitations under the License.
 
 """This script creates a database of stable ids to check their uniqueness
+
+How to use:
+    1. You need to create the (empty) database with --create. This will replace any file with that same name.
+    2. Add stable_ids from EnsEMBL cores on a given server (you can filter by db name with --prefix)
+    3. Print out a summary with --summary, or the whole list of duplicates with --list_duplicates
+
+Example:
+    $ python check_stable_ids.py --db ids.sqlite3 --create
+    $ python check_stable_ids.py --db ids.sqlite3 --add --host $HOST --port $PORT --user $USER --password $PASSWORD
+    $ python check_stable_ids.py --db ids.sqlite3 --summary
+    $ python check_stable_ids.py --db ids.sqlite3 --list_duplicates
+    
 """
 
 import argparse
@@ -32,7 +44,13 @@ class CoreServer(object):
     """
 
     def __init__(self, host: str, port: str, user: str, password: str):
-        """Init the database object
+        """Init the server object and connect to it
+        
+        Args:
+            host: MySQL server host
+            port: MySQL server port
+            user: MySQL server user
+            password: MySQL server password
         """
         
         self.host = host
@@ -55,7 +73,7 @@ class CoreServer(object):
                 host=self.host, 
                 port=self.port) 
 
-    def cursor(self) -> MySQLCursor:
+    def _cursor(self) -> MySQLCursor:
         return self.db.cursor()
     
     def get_cores(self, prefix: str) -> None:
@@ -70,7 +88,7 @@ class CoreServer(object):
         
         query = "SHOW DATABASES LIKE '%_core_%'"
 
-        cursor = self.cursor()
+        cursor = self._cursor()
         cursor.execute(query)
         
         for db in cursor:
@@ -89,7 +107,7 @@ class CoreServer(object):
         """
         
         self.db.database = core_name
-        cursor = self.db.cursor()
+        cursor = self._cursor()
         
         query = f"SELECT stable_id FROM {feature}"
         cursor.execute(query)
@@ -109,7 +127,7 @@ class CoreServer(object):
         """
         
         self.db.database = core_name
-        cursor = self.db.cursor()
+        cursor = self._cursor()
         
         query = f"SELECT meta_value FROM meta WHERE meta_key = %s"
         cursor.execute(query, [key])
@@ -121,7 +139,7 @@ class CoreServer(object):
         return rows
 
 ####################################################################################################
-# Prepare the SQLalchemy schema
+# Prepare the SQLalchemy schema for the stable_id database
 Base = declarative_base()
 
 class Db(Base):
@@ -145,8 +163,11 @@ class StableIdDB(object):
     """
     all_features = ('gene', 'transcript', 'translation')
     
-    def __init__(self, path: str, replace=False):
+    def __init__(self, path: str):
         """Init the database object
+        
+        Args:
+            path: path to the SQLite database file
         """
         self.path = path
         self.engine = None
@@ -155,7 +176,7 @@ class StableIdDB(object):
         """Create the SQLite database
         
         Note:
-            Recreate the file if it already exists
+            Recreate the file from scratch if it already exists
         """
         
         if os.path.exists(self.path):
@@ -164,9 +185,9 @@ class StableIdDB(object):
         url = f"sqlite+pysqlite:///{self.path}"
         self.engine = create_engine(url, echo=False, future=True)
         Base.metadata.create_all(self.engine)
-    
+
     def connect(self) -> None:
-        """Connect to the SQLite database
+        """Connect to an existing SQLite database
         """
         
         if not os.path.exists(self.path):
@@ -199,6 +220,16 @@ class StableIdDB(object):
                     conn.commit()
 
     def _get_db_id(self, conn, db_name: str, prod_name: str) -> None:
+        """Get the db_id for a given core from the database
+        
+        Note:
+            Add the core db to the database if it is not already in it.
+        
+        Args:
+            conn: a database connection (made from engine.connect)
+            db_name: the core name
+            prod_name: the production_name from the core
+        """
 
         stmt_get = select(Db).where(Db.db_name == db_name)
         results = conn.execute(stmt_get)
@@ -226,7 +257,7 @@ class StableIdDB(object):
         Args:
             feature: the feature of the stable_ids to compare
 
-        Return:
+        Returns:
             A list of dicts with 3 keys: db1, db2, name
             ordered by the stable_id names, then db1 and db2
         """
@@ -266,7 +297,7 @@ class StableIdDB(object):
         Args:
             feature: the feature of the stable_ids to compare
 
-        Return:
+        Returns:
             A list of dicts with 3 keys: db1, db2, count
             ordered by db1, db2
         """
@@ -314,18 +345,22 @@ def main():
     parser.add_argument('--user', type=str, help='User of the server to use')
     parser.add_argument('--password', type=str, help='Password of the server to use')
 
-    parser.add_argument('--create', action='store_true', help='Create the db')
-    parser.add_argument('--add', action='store_true', help='Add to the db')
-    parser.add_argument('--summary', action='store_true', help='Get a summary of the db')
+    parser.add_argument('--create', action='store_true', help='Create the db (replace and reinit if it exists)')
+    parser.add_argument('--add', action='store_true', help='Add ids from the cores to the db')
+    parser.add_argument('--summary', action='store_true', help='Get a summary of the duplicates')
     parser.add_argument('--list_duplicates', action='store_true', help='Show a complete list of duplicated ids')
 
     parser.add_argument('--prefix', type=str, help='Optional prefix to filter cores to use')
     args = parser.parse_args()
     
-    # Choose which data to retrieve
+    # Init the db (no action yet)
     iddb = StableIdDB(args.db)
+
+    # Create the database (empty)
     if args.create:
         iddb.create()
+
+    # Add stable ids from the cores, to the database
     elif args.add:
         core_server = CoreServer(host=args.host, port=args.port, user=args.user, password=args.password)
         core_server.get_cores(args.prefix)
@@ -339,6 +374,8 @@ def main():
             print(f"{len(cores)} cores, starting with {cores[0]}")
         else:
             print(f"No cores")
+    
+    # Print out all the duplicated stable_ids, and between which pairs of cores
     elif args.list_duplicates:
         iddb.connect()
         dup_ids = iddb.get_duplicated_ids('gene')
@@ -346,6 +383,8 @@ def main():
         print("#db1\tdb2\tname")
         for dup in dup_ids:
             print(f"{dup['db1']}\t{dup['db2']}\t{dup['name']}")
+    
+    # Print out a summary count of duplicates between pairs of cores
     elif args.summary:
         iddb.connect()
         dup_ids = iddb.get_duplicates_summary('gene')
