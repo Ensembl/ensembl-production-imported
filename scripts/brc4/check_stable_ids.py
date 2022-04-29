@@ -20,7 +20,7 @@
 import argparse
 import mysql.connector
 from mysql.connector.cursor import MySQLCursor
-import os, json, re, time
+import os, json, re, time, errno
 from sqlalchemy import Column, Integer, Index, String, ForeignKey, insert, select, text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import create_engine
@@ -168,6 +168,9 @@ class StableIdDB(object):
     def connect(self) -> None:
         """Connect to the SQLite database
         """
+        
+        if not os.path.exists(self.path):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), self.path)
 
         if not self.engine:
             url = f"sqlite+pysqlite:///{self.path}"
