@@ -63,7 +63,6 @@ class CoreServer(object):
         
         Args:
             prefix: only use cores that start with this prefix.
-            
         """
 
         if not self.db:
@@ -144,6 +143,7 @@ class StableId(Base):
 class StableIdDB(object):
     """Representation of an SQLite database of stable ids
     """
+    all_features = ('gene', 'transcript', 'translation')
     
     def __init__(self, path: str, replace=False):
         """Init the database object
@@ -172,20 +172,28 @@ class StableIdDB(object):
         if not self.engine:
             url = f"sqlite+pysqlite:///{self.path}"
             self.engine = create_engine(url, echo=False, future=True)
-    
-    def add_features(self, core_server: CoreServer, feature: str) -> None:
-        """Get the stable ids from the cores in a server and store them in the db
+
+    def add_stable_ids(self, core_server: CoreServer, features: list = all_features) -> None:
+        """Get the stable ids for a list of features from the cores in a server and store them in the db
+        
+        If no features are provided, the features list from all_features is used
+        
+        Args:
+            core_server: a CoreServer object
+            features: a list of features to extract the stable_ids from (gene, transcript, translation)
         """
+        
         with self.engine.connect() as conn:
             for core in core_server.cores:
                 prod_name = core_server.get_core_metadata(core, 'species.production_name')
-                print(f"Load {feature} ids from {core} ({prod_name[0]})")
+                print(f"Load data from {prod_name[0]}")
                 
-                stable_ids = core_server.get_stable_ids(core, feature)
-                db_id = self._get_db_id(conn, core, prod_name[0])
-                to_insert = [ { 'db_id': db_id, 'feature': feature, 'name': stable_id } for stable_id in stable_ids ]
-                result = conn.execute(insert(StableId), to_insert)
-                conn.commit()
+                for feature in features:
+                    stable_ids = core_server.get_stable_ids(core, feature)
+                    db_id = self._get_db_id(conn, core, prod_name[0])
+                    to_insert = [ { 'db_id': db_id, 'feature': feature, 'name': stable_id } for stable_id in stable_ids ]
+                    result = conn.execute(insert(StableId), to_insert)
+                    conn.commit()
 
     def _get_db_id(self, conn, db_name: str, prod_name: str) -> None:
 
@@ -238,9 +246,7 @@ def main():
         core_server.get_cores(args.prefix)
 
         iddb.connect()
-        iddb.add_features(core_server, 'gene')
-        iddb.add_features(core_server, 'transcript')
-        iddb.add_features(core_server, 'translation')
+        iddb.add_stable_ids(core_server)
 
         cores = core_server.cores
         
