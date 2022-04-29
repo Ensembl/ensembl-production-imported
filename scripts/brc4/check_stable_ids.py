@@ -21,7 +21,7 @@ import argparse
 import mysql.connector
 from mysql.connector.cursor import MySQLCursor
 import os, json, re, time
-from sqlalchemy import Column, Integer, Index, String, ForeignKey, insert, select
+from sqlalchemy import Column, Integer, Index, String, ForeignKey, insert, select, text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import create_engine
 
@@ -216,6 +216,83 @@ class StableIdDB(object):
             db_id = result.inserted_primary_key[0]
         
         return db_id
+
+    def get_duplicated_ids(self, feature: str) -> list:
+        """Retrieve all duplicated stable_ids of the same feature between different core dbs
+        
+        Args:
+            feature: the feature of the stable_ids to compare
+
+        Return:
+            A list of dicts with 3 keys: db1, db2, name
+        """
+        
+        query = text("""SELECT db1.production_name, db2.production_name, s1.name
+                   FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
+                        db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
+                   WHERE s1.name_id != s2.name_id
+                        AND s1.feature=s2.feature
+                        AND s1.feature = :feature
+                        AND s1.name = s2.name
+                """)
+        
+        dup_ids = []
+        no_reverse = {}
+        with self.engine.connect() as conn:
+            for record in conn.execute(query, {'feature': feature}):
+                (db1, db2, name) = record
+                
+                id_hash1 = f"{db1}_{db2}_{name}"
+                id_hash2 = f"{db2}_{db1}_{name}"
+                if id_hash1 in no_reverse or id_hash2 in no_reverse:
+                    continue
+                else:
+                    no_reverse[id_hash1] = 1
+                    no_reverse[id_hash2] = 1
+                
+                dup_id = {'db1': db1, 'db2': db2, 'name': name}
+                dup_ids.append(dup_id)
+        
+        return dup_ids
+        
+    def get_duplicates_summary(self, feature: str) -> list:
+        """Show a summary of all duplicates for a given feature
+        
+        Args:
+            feature: the feature of the stable_ids to compare
+
+        Return:
+            A list of dicts with 3 keys: db1, db2, count
+        """
+        
+        query = text("""SELECT db1.production_name, db2.production_name, count(*)
+                   FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
+                        db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
+                   WHERE s1.name_id != s2.name_id
+                        AND s1.feature=s2.feature
+                        AND s1.feature = :feature
+                        AND s1.name = s2.name
+                    GROUP BY db1.db_id, db2.db_id
+                """)
+        
+        dup_ids = []
+        no_reverse = {}
+        with self.engine.connect() as conn:
+            for record in conn.execute(query, {'feature': feature}):
+                (db1, db2, count) = record
+                
+                id_hash1 = f"{db1}_{db2}"
+                id_hash2 = f"{db2}_{db1}"
+                if id_hash1 in no_reverse or id_hash2 in no_reverse:
+                    continue
+                else:
+                    no_reverse[id_hash1] = 1
+                    no_reverse[id_hash2] = 1
+                
+                dup_id = {'db1': db1, 'db2': db2, 'count': count}
+                dup_ids.append(dup_id)
+        
+        return dup_ids
         
 
 def main():
@@ -233,6 +310,7 @@ def main():
     parser.add_argument('--create', action='store_true', help='Create the db')
     parser.add_argument('--add', action='store_true', help='Add to the db')
     parser.add_argument('--summary', action='store_true', help='Get a summary of the db')
+    parser.add_argument('--list_duplicates', action='store_true', help='Show a complete list of duplicated ids')
 
     parser.add_argument('--prefix', type=str, help='Optional prefix to filter cores to use')
     args = parser.parse_args()
@@ -254,8 +332,20 @@ def main():
             print(f"{len(cores)} cores, starting with {cores[0]}")
         else:
             print(f"No cores")
+    elif args.list_duplicates:
+        iddb.connect()
+        dup_ids = iddb.get_duplicated_ids('gene')
+
+        print("#db1\tdb2\tname")
+        for dup in dup_ids:
+            print(f"{dup['db1']}\t{dup['db2']}\t{dup['name']}")
     elif args.summary:
-        pass
+        iddb.connect()
+        dup_ids = iddb.get_duplicates_summary('gene')
+
+        print("#db1\tdb2\tcount")
+        for dup in dup_ids:
+            print(f"{dup['db1']}\t{dup['db2']}\t{dup['count']}")
     else:
         print("No action performed")
 
