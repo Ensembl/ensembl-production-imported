@@ -55,7 +55,7 @@ sub run {
   
   my $aligner  = $self->param_required('aligner_object');
   my $sam_file = $self->param_required('sam_file');
-  my $skip_cleanup = $self->param_required('skip_cleanup')
+  my $skip_cleanup = $self->param_required('skip_cleanup');
   my $final_bam_file = $self->param('final_bam_file');
   
   # Can we reuse some files?
