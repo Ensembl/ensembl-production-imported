@@ -1,23 +1,24 @@
 #!env python3
 
-from redminelib import Redmine
+from typing import List
 import argparse
-import os, json, re, time
-import requests
-import xml.etree.ElementTree as ET
+import json
+import re
 from unidecode import unidecode
 from pathlib import Path
- 
+from redminelib import Redmine
+
 url = 'https://redmine.apidb.org'
 default_fields = dict(
-        status_name = 'Data Processing (EBI)',
-        cf_17 = "Data Processing (EBI)",
-        )
-insdc_pattern = "^GC[AF]_\d{9}(\.\d+)?$"
+    status_name='Data Processing (EBI)',
+    cf_17="Data Processing (EBI)",
+)
+insdc_pattern = r'^GC[AF]_\d{9}(\.\d+)?$'
 accession_api_url = "https://www.ebi.ac.uk/ena/browser/api/xml/%s"
 veupathdb_id = 1976
 
-def load_abbrevs(path):
+
+def load_abbrevs(path) -> List[str]:
     """
     Load a list of organism abbrevs from a file. Expected to be one per line
     """
@@ -33,8 +34,10 @@ def load_abbrevs(path):
                 if len(fields) == 1:
                     abbrevs.append(line)
                 else:
-                    raise Exception("Can't load current abbrevs from a multicolumn string")
+                    raise Exception(
+                        "Can't load current abbrevs from a multicolumn string")
     return abbrevs
+
 
 def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None, abbrevs_file=None):
     """
@@ -43,7 +46,7 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None, abbrevs_file=
     """
 
     all_abbrevs = load_abbrevs(abbrevs_file)
-    
+
     issues = get_issues(redmine, "RNA-seq", build)
     if not issues:
         print("No files to create")
@@ -65,7 +68,7 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None, abbrevs_file=
         dataset, problem = parse_dataset(issue)
         
         if problem:
-            problems.append({"issue" : issue, "desc" : problem})
+            problems.append({"issue": issue, "desc": problem})
             continue
 
         try:
@@ -74,16 +77,17 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None, abbrevs_file=
             dataset_name = dataset["name"]
             
             if dataset_name in used_names:
-                problems.append({"issue" : issue, "desc" : "Dataset name already used: {dataset_name}"})
+                problems.append(
+                    {"issue": issue, "desc": f"Dataset name already used: {dataset_name}"}
+                )
                 continue
             else:
                 used_names.append(dataset_name)
             
             if abbrevs_file and organism not in all_abbrevs:
-                warn_abbrevs.append({"issue" : issue, "desc" : organism})
+                warn_abbrevs.append({"issue": issue, "desc": organism})
                 
-
-            ok_datasets.append({"issue" : issue, "desc" : organism})
+            ok_datasets.append({"issue": issue, "desc": organism})
             
             # Create directory
             dataset_dir = output_dir / component
@@ -95,20 +99,24 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None, abbrevs_file=
             with open(dataset_file, "w") as f:
                 json.dump([dataset], f, indent=True)
         except Exception as error:
-            problems.append({"issue" : issue, "desc" : str(error)})
+            problems.append({"issue": issue, "desc": str(error)})
             pass
         all_datasets.append(dataset)
 
     print("%d issues total" % len(issues))
     print_summaries(problems, "issues with problems")
-    print_summaries(warn_abbrevs, "issues using unknown organism_abbrevs (maybe new ones). Those are still imported")
+    print_summaries(
+        warn_abbrevs,
+        "issues using unknown organism_abbrevs (maybe new ones). Those are still imported"
+    )
     print_summaries(ok_datasets, "datasets imported correctly")
 
     # Create a single merged file as well
     merged_file = Path(output_dir) / "all.json"
     with open(merged_file, "w") as f:
         json.dump(all_datasets, f, indent=True)
-        
+
+       
 def print_summaries(summaries, description):
     desc_length = 64
     
@@ -128,20 +136,17 @@ def parse_dataset(issue):
     """
     customs = get_custom_fields(issue)
     dataset = {
-            "component": "",
-            "species": "",
-            "name": "",
-            "runs": [],
-            }
+        "component": "",
+        "species": "",
+        "name": "",
+        "runs": [],
+    }
     problem = ""
 
     dataset["component"] = get_custom_value(customs, "Component DB")
     dataset["species"] = get_custom_value(customs, "Organism Abbreviation").strip()
     dataset["name"] = get_custom_value(customs, "Internal dataset name").strip()
 
-    #print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
-    
-    failed = False
     if not dataset["species"]:
         problem = "Missing Organism Abbreviation"
     elif not check_organism_abbrev(dataset["species"]):
@@ -165,10 +170,12 @@ def parse_dataset(issue):
     
     return dataset, problem
 
+
 def check_organism_abbrev(name):
     """Limited check: do not accept organism_abbrevs with special characters"""
-    return not re.search("[ \/\(\)#\[\]:]", name)
-    
+    return not re.search(r'[ \/\(\)#\[\]:]', name)
+
+
 def normalize_name(old_name):
     """Remove special characters, keep ascii only"""
     
@@ -187,6 +194,7 @@ def normalize_name(old_name):
     
     return name
 
+
 def parse_samples(sample_str):
     samples = []
     
@@ -196,7 +204,8 @@ def parse_samples(sample_str):
     sample_names = dict()
     for line in lines:
         line = line.strip()
-        if line == "": continue
+        if line == "":
+            continue
 
         # Get sample_name -> accessions
         parts = line.split(":")
@@ -218,29 +227,32 @@ def parse_samples(sample_str):
             
             if not validate_accessions(accessions):
                 if validate_accessions(sample_name.split(",")):
-                    raise Exception(f"Sample name and accessions are switched?")
+                    raise Exception("Sample name and accessions are switched?")
                 else:
                     raise Exception(f"Invalid accession among '{accessions}'")
             
             sample = {
-                    "name": normalize_name(sample_name),
-                    "accessions": accessions
-                    }
+                "name": normalize_name(sample_name),
+                "accessions": accessions
+            }
             samples.append(sample)
         else:
             raise Exception("Sample line doesn't have 2 parts: '%s'" % line)
     
     return samples
 
+
 def validate_accessions(accessions):
     """
     Check the accessions, to make sure we get proper ones
     """
-    if "" in accessions: return False
+    if "" in accessions:
+        return False
     for acc in accessions:
-        if not re.search("^[SE]R[RSXP]\d+$", acc):
+        if not re.search(r'^[SE]R[RSXP]\d+$', acc):
             return False
     return True
+
 
 def get_custom_fields(issue):
     """
@@ -253,6 +265,7 @@ def get_custom_fields(issue):
         cfs[c["name"]] = c
     return cfs
 
+
 def get_custom_value(customs, key):
    
     try:
@@ -260,10 +273,10 @@ def get_custom_value(customs, key):
         if isinstance(value, list):
             if len(value) == 1:
                 value = value[0]
-            elif len(components) > 1:
+            elif len(value) > 1:
                 raise Exception("More than 1 values for key %s" % (key))
         return value
-    except:
+    except KeyError:
         print("No field %s" % (key))
         return ""
     
@@ -274,12 +287,13 @@ def get_issues(redmine, datatype, build=None):
     Return a Redmine ResourceSet
     """
     
-    other_fields = { "cf_94" : datatype }
+    other_fields = {"cf_94": datatype}
     if build:
         version_id = get_version_id(redmine, build)
         other_fields["fixed_version_id"] = version_id
 
     return list(get_ebi_issues(redmine, other_fields))
+
 
 def get_version_id(redmine, build):
     """
@@ -289,15 +303,15 @@ def get_version_id(redmine, build):
     version_name = "Build " + str(build)
     version_id = [version.id for version in versions if version.name == version_name]
     return version_id
-    
+
+   
 def get_ebi_issues(redmine, other_fields=dict()):
     """
     Get EBI issues from Redmine, add other fields if provided
     Return a Redmine ResourceSet
     """
-
     # Other fields replace the keys that already exist in default_fields
-    search_fields = { **default_fields, **other_fields }
+    search_fields = {**default_fields, **other_fields}
     
     return redmine.issue.filter(**search_fields)
     
@@ -307,17 +321,17 @@ def main():
     parser = argparse.ArgumentParser(description='Retrieve metadata from Redmine')
     
     parser.add_argument('--key', type=str, required=True,
-                help='Redmine authentification key')
+                        help='Redmine authentification key')
     parser.add_argument('--output_dir', type=str, required=True,
-                help='Output_dir')
+                        help='Output_dir')
     # Choice
     parser.add_argument('--get', choices=['rnaseq', 'dnaseq'], required=True,
-                help='Get rnaseq, or dnaseq issues')
+                        help='Get rnaseq, or dnaseq issues')
     # Optional
     parser.add_argument('--build', type=int,
-                help='Restrict to a given build')
+                        help='Restrict to a given build')
     parser.add_argument('--current_abbrevs', type=str,
-                help='File that contains the list of current organism_abbrevs')
+                        help='File that contains the list of current organism_abbrevs')
     args = parser.parse_args()
     
     # Start Redmine API
@@ -327,9 +341,12 @@ def main():
     if args.get == 'rnaseq':
         retrieve_rnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
     elif args.get == 'dnaseq':
-        retrieve_dnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
+        # TODO
+        # retrieve_dnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
+        print("Not yet implemented")
     else:
         print("Need to say what data you want to --get: rnaseq? dnaseq?")
+
 
 if __name__ == "__main__":
     main()
