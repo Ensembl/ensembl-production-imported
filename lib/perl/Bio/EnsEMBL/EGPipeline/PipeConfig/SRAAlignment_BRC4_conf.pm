@@ -907,7 +907,7 @@ sub pipeline_analyses {
       -parameters        => {
         samtools_dir   => $self->o('samtools_dir'),
         memory         => $self->o('samtobam_memory'),
-        clean_up       => $self->o('clean_up'),
+        skip_cleanup   => $self->o('skip_cleanup'),
         final_bam_file => '#sample_bam_file#',
         threads       => $self->o('threads'),
       },
