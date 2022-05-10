@@ -447,7 +447,8 @@ To use this route, simply add the following parameter:
 If you have already aligned a dataset, and the corresponding genome has had a gene set update, then
 you can rerun only the recount part of the pipeline. To do so, use the following parameters:
 
-  init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::SRAAlignment_BRC4_conf $(h2-w details hive) \
+  init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::SRAAlignment_BRC4_conf \
+  --host $HOST --port $PORT --user $USER --pass $PASS \
   --pipeline_name rnaseq_recount \
   --pipeline_dir temp/rnaseq_recount \
   --reg_conf $REGISTRY \
