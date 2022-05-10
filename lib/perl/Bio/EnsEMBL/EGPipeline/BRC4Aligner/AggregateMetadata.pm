@@ -29,7 +29,8 @@ sub param_defaults {
   my ($self) = @_;
   
   return {
-    force_aligner_metadata => undef
+    force_aligner_metadata => undef,
+    ignore_single_paired => 0
   };
 }
 
@@ -64,7 +65,9 @@ sub check_metadata {
   my ($self, $met) = @_;
   
   my @errors;
-  push @errors, "No 'is_paired' value" if not defined $met->{is_paired};
+  if (not $self->param('ignore_single_paired') and not defined $met->{is_paired}) {
+    push @errors, "No 'is_paired' value"
+  }
   push @errors, "No 'is_stranded' value" if not defined $met->{is_stranded};
   if ($met->{is_stranded}) {
     push @errors, "No 'strandness' value" if not defined $met->{strandness};
@@ -92,6 +95,11 @@ sub create_consensus_metadata {
     }
   }
   
+  # Special: we can process mixed single/paired end
+  if ($self->param('ignore_single_paired')) {
+    delete $met_counts{'is_paired'};
+  }
+  
   # Check that there is only 1 value for each key
   my %consensus;
   my @errors;
@@ -110,10 +118,11 @@ sub create_consensus_metadata {
   }
   
   if (@errors) {
-    my $cons_str = encode_json(\%consensus);
+    my $json = JSON->new->pretty->canonical(1);
+    my $cons_str = $json->encode(\%consensus);
     $cons_str =~ s/:/ => /g;
     
-    my $all_met_str = encode_json($metadata_hash);
+    my $all_met_str = $json->encode($metadata_hash);
     die("Could not create a consensus: " . join("; ", @errors) . "\nPlease check the logs and fix the Current Consensus (and copy it as 'force_metadata' param for this job):\n" . $cons_str . "\nAll metadata: " . $all_met_str);
   }
 
