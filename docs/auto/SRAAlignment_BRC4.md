@@ -56,7 +56,7 @@ Where:
 # DESCRIPTION
 
 Perform short read aligments, primarily RNA-Seq (but also supports DNA-Seq).
-Cf the IN-DEPTH OVERVIEW below for more details.
+Cf the ["IN-DEPTH OVERVIEW"](#in-depth-overview) below for more details.
 
 ## PARAMETERS
 
@@ -134,9 +134,11 @@ Cf the IN-DEPTH OVERVIEW below for more details.
 - **--infer\_metadata**
 
     Automatically infer the reads metadata:
-      single/paired-end
-      stranded/unstranded
-      and in which direction.
+
+    - single/paired-end
+    - stranded/unstranded
+    - and in which direction.
+
     Otherwise, use the values from the \`datasets\_file\`
 
     Default: 1
@@ -187,27 +189,27 @@ Cf the IN-DEPTH OVERVIEW below for more details.
 
 # IN-DEPTH OVERVIEW
 
-    1. The pipeline first extracts genome data from the cores
-    2. Then it retrieves the runs data from SRA for every sample
-    3. Pre-alignment, each sample data may be trimmed, and their strandness is inferred
-    4. The inferrences are checked over the whole of each dataset
-    5. Each sample is then aligned against its reference sequence, and converted into a bam file
-    6. Various post-alignment steps are performed
+- 1. The pipeline first extracts genome data from the cores
+- 2. Then it retrieves the runs data from SRA for every sample
+- 3. Pre-alignment, each sample data may be trimmed, and their strandness is inferred
+- 4. The inferences are checked over the whole of each dataset
+- 5. Each sample is then aligned against its reference sequence, and converted into a bam file
+- 6. Various post-alignment steps are performed
 
-## Genome data preparation
+## 1. GENOME DATA PREPARATION
 
-    * Extract the DNA sequence from the core into a fasta file
-    * Index the fasta file for hisat2 with hisat2-build (without splice sites or exons files)
-    * Extract the gene models from the core in a gtf format (for htseq-count)
-    * Extract the gene models from the core in a bed format (for strand inference)
+- Extract the DNA sequence from the core into a fasta file
+- Index the fasta file for hisat2 with hisat2-build (without splice sites or exons files)
+- Extract the gene models from the core in a gtf format (for htseq-count)
+- Extract the gene models from the core in a bed format (for strand inference)
 
-## RNA-Seq data retrieval
+## 2. RNA-SEQ DATA RETRIEVAL
 
 For each run, download the fastq data files from ENA using its SRA accession.
 
 All following processes are performed for each run.
 
-## Pre-alignment processes
+## 3. PRE-ALIGNMENT PROCESSES
 
 ### **Trimming**
 
@@ -231,29 +233,33 @@ strandness of the data is necessary.
 
 Steps:
 
-    * Create a subset of reads files with 20,000 reads
-    * Align those files (without strandness) with hisat2
-    * Run infer_experiment.py on the alignment file
+- 1. Create a subset of reads files with 20,000 reads
+- 2. Align those files (without strandness) with hisat2
+- 3. Run infer\_experiment.py on the alignment file
 
 The inference compares how the reads are aligned compared to the known gene models:
 
-\- If most reads expected to be forward are forward (and vice versa),
-then the data is deemed as stranded in the forward direction.
+- If most reads expected to be forward are forward (and vice versa):
 
-\- If most reads expected to be forward are reversed (and vice versa),
-then the data is deemed as stranded in the reverse direction.
+        then the data is deemed as stranded in the forward direction.
 
-\- If the reads are equally in both directions, then the data is deemed unstranded.
+- If most reads expected to be forward are reversed (and vice versa):
+
+        then the data is deemed as stranded in the reverse direction.
+
+- If the reads are equally in both directions:
+
+        then the data is deemed unstranded.
 
 A cut-off at 85% of aligned reads is applied to discriminate between stranded data:
 if the ratio is below this value, then the run is deemed unstranded.
 
 Following hisat2 notation:
 
-    If the data is stranded forward and single-ended, its strandness is stored as "F"
-    If the data is stranded reversed and single-ended, its strandness is stored as "R"
-    If the data is stranded forward and paired-ended, its strandness is stored as "FR"
-    If the data is stranded reversed and paired-ended, its strandness is stored as "RF"
+- If the data is stranded forward and single-ended, its strandness is stored as "F"
+- If the data is stranded reversed and single-ended, its strandness is stored as "R"
+- If the data is stranded forward and paired-ended, its strandness is stored as "FR"
+- If the data is stranded reversed and paired-ended, its strandness is stored as "RF"
 
 If the strandness or the pair/single-end values differ from those provided in the dataset json file,
 then the difference is noted in the log file with a WARNING.
@@ -261,9 +267,9 @@ The infer\_experiment output is also stored in this file.
 
 Note that If the values differ, the pipeline continues running using the values inferred.
 
-## Alignment parameters consensus
+## 4. ALIGNMENT PARAMETERS CONSENSUS FROM INFERENCES
 
-In order to avoid having datasets with mixed parameters, this step checks all samples inferrences
+In order to avoid having datasets with mixed parameters, this step checks all samples inferences
 and proposes a consensus.
 
 If a single sample doesn't follow the general consensus, then the runnable Aggregate will fail.
@@ -284,7 +290,7 @@ In this case, there are several possibilities:
 
         force_aligner_metadata = {consensus}
 
-## Alignment
+## 5. ALIGNMENT
 
 Using hisat2 with the following parameters:
 
@@ -314,17 +320,17 @@ The second file can be conserved and reused for htseq-recount.
 
 The process also generates additional temporary bam files, extracted from the main bam:
 
-    One for unique reads
-    One for non-unique reads
+- One for unique reads
+- One for non-unique reads
 
 If the data is stranded, then each unique/non-unique bam file is also split into:
 
-    Forward stranded reads
-    Reverse stranded reads
+- Forward stranded reads
+- Reverse stranded reads
 
 So if the data is stranded, 4 files are generated. If it is unstranded, 2 files are generated.
 
-## Post-alignment processing
+## 6. POST-ALIGNMENT PROCESSING
 
 ### **Bam stats**
 
@@ -332,11 +338,11 @@ Samtools stats are run on the main bam file, as well as all final split bam file
 
 The following values are computed:
 
-    coverage (computed with bedtools genomecov)
-    mapped (from samtools stats "reads_mapped" / "raw total sequences")
-    number_reads_mapped (from samtools stats "reads mapped")
-    average_reads_length (from samtools stats "average length")
-    number_pairs_mapped (if paired, from samtools stats "reads properly paired")
+- coverage (computed with bedtools genomecov)
+- mapped (from samtools stats "reads\_mapped" / "raw total sequences")
+- number\_reads\_mapped (from samtools stats "reads mapped")
+- average\_reads\_length (from samtools stats "average length")
+- number\_pairs\_mapped (if paired, from samtools stats "reads properly paired")
 
 Note that for the split bam files, the "mapped" number ratio is over the
 main bam "raw total sequences".
@@ -354,9 +360,9 @@ From the main bam file, the pipeline extracts all the splice junctions into a ta
 
 The pipeline extracts the junctions as follow:
 
-    For each read aligned with "N"s in its cigar string
-    Get the strand direction from the XS tag
-    Get the uniqueness from the NH tag
+- For each read aligned with "N"s in its cigar string
+- Get the strand direction from the XS tag
+- Get the uniqueness from the NH tag
 
 Create a splice junction for each group of Ns found in the cigar string, with the coordinates,
 strand and uniqueness.
@@ -365,16 +371,19 @@ strand and uniqueness.
 
 From the bam file sorted by name, the pipeline runs HTSeq-count:
 
-    * Once using unique reads
-    * Once using all reads (note that this file is named "nonunique" because the parameter used
-      is "--nonunique all" instead of "--nonunique none")
-    * If the reads are stranded in the forward direction, use --stranded=yes
-    * If the reads are stranded in the reverse direction, use --stranded=reverse
-    * If the reads are not stranded, use --stranded=no
-    * With parameter --order=name
-    * With parameter --type=exon --idattr=gene_id
-    * With parameter --mode union
-    * With the gtf file
+- Once using unique reads
+- Once using all reads
+
+        Note that this file is named "nonunique" because the parameter used
+        is "--nonunique all" instead of "--nonunique none")
+
+- If the reads are stranded in the forward direction, use --stranded=yes
+- If the reads are stranded in the reverse direction, use --stranded=reverse
+- If the reads are not stranded, use --stranded=no
+- With parameter --order=name
+- With parameter --type=exon --idattr=gene\_id
+- With parameter --mode union
+- With the gtf file
 
 This is done for each strand, so there will be 4 HTSeq-count files for stranded data,
 and 2 for unstranded data.
@@ -394,13 +403,13 @@ this works as long as there is only one read per accession).
 
 Each run directory contains the following files:
 
-    mappingStats.txt
-    metadata.json
-    log.txt
-    junctions.tab
-    commands.json
-    2 or 4 htseq-count files
-    2 or 4 bed files
+- mappingStats.txt
+- metadata.json
+- log.txt
+- junctions.tab
+- commands.json
+- 2 or 4 htseq-count files
+- 2 or 4 bed files
 
 EBI conserves the final name sorted bam file, but this file is not transferred to UPenn
 
