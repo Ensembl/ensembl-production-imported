@@ -189,27 +189,27 @@ Cf the ["IN-DEPTH OVERVIEW"](#in-depth-overview) below for more details.
 
 # IN-DEPTH OVERVIEW
 
-- 1. The pipeline first extracts genome data from the cores
-- 2. Then it retrieves the runs data from SRA for every sample
-- 3. Pre-alignment, each sample data may be trimmed, and their strandness is inferred
-- 4. The inferences are checked over the whole of each dataset
-- 5. Each sample is then aligned against its reference sequence, and converted into a bam file
-- 6. Various post-alignment steps are performed
+- 1) The pipeline first extracts genome data from the cores
+- 2) Then it retrieves the runs data from SRA for every sample
+- 3) Pre-alignment, each sample data may be trimmed, and their strandness is inferred
+- 4) The inferences are checked over the whole of each dataset
+- 5) Each sample is then aligned against its reference sequence, and converted into a bam file
+- 6) Various post-alignment steps are performed
 
-## 1. GENOME DATA PREPARATION
+## 1) GENOME DATA PREPARATION
 
 - Extract the DNA sequence from the core into a fasta file
 - Index the fasta file for hisat2 with hisat2-build (without splice sites or exons files)
 - Extract the gene models from the core in a gtf format (for htseq-count)
 - Extract the gene models from the core in a bed format (for strand inference)
 
-## 2. RNA-SEQ DATA RETRIEVAL
+## 2) RNA-SEQ DATA RETRIEVAL
 
 For each run, download the fastq data files from ENA using its SRA accession.
 
 All following processes are performed for each run.
 
-## 3. PRE-ALIGNMENT PROCESSES
+## 3) PRE-ALIGNMENT PROCESSES
 
 ### **Trimming**
 
@@ -233,23 +233,23 @@ strandness of the data is necessary.
 
 Steps:
 
-- 1. Create a subset of reads files with 20,000 reads
-- 2. Align those files (without strandness) with hisat2
-- 3. Run infer\_experiment.py on the alignment file
+- 1) Create a subset of reads files with 20,000 reads
+- 2) Align those files (without strandness) with hisat2
+- 3) Run infer\_experiment.py on the alignment file
 
 The inference compares how the reads are aligned compared to the known gene models:
 
 - If most reads expected to be forward are forward (and vice versa):
 
-        then the data is deemed as stranded in the forward direction.
+    then the data is deemed as stranded in the forward direction.
 
 - If most reads expected to be forward are reversed (and vice versa):
 
-        then the data is deemed as stranded in the reverse direction.
+    then the data is deemed as stranded in the reverse direction.
 
 - If the reads are equally in both directions:
 
-        then the data is deemed unstranded.
+    then the data is deemed unstranded.
 
 A cut-off at 85% of aligned reads is applied to discriminate between stranded data:
 if the ratio is below this value, then the run is deemed unstranded.
@@ -267,7 +267,7 @@ The infer\_experiment output is also stored in this file.
 
 Note that If the values differ, the pipeline continues running using the values inferred.
 
-## 4. ALIGNMENT PARAMETERS CONSENSUS FROM INFERENCES
+## 4) ALIGNMENT PARAMETERS CONSENSUS FROM INFERENCES
 
 In order to avoid having datasets with mixed parameters, this step checks all samples inferences
 and proposes a consensus.
@@ -290,7 +290,7 @@ In this case, there are several possibilities:
 
         force_aligner_metadata = {consensus}
 
-## 5. ALIGNMENT
+## 5) ALIGNMENT
 
 Using hisat2 with the following parameters:
 
@@ -330,7 +330,7 @@ If the data is stranded, then each unique/non-unique bam file is also split into
 
 So if the data is stranded, 4 files are generated. If it is unstranded, 2 files are generated.
 
-## 6. POST-ALIGNMENT PROCESSING
+## 6) POST-ALIGNMENT PROCESSING
 
 ### **Bam stats**
 
@@ -351,7 +351,7 @@ main bam "raw total sequences".
 
 For each split bam file, the pipeline creates a coverage file in BedGraph format, using:
 
-    bamutils tobedgraph (with stranded parameters --plus or --minus if stranded)
+    bamutils tobedgraph # (with stranded parameters --plus or --minus if stranded)
     bedSort
 
 ### **Extract junctions**
@@ -374,8 +374,8 @@ From the bam file sorted by name, the pipeline runs HTSeq-count:
 - Once using unique reads
 - Once using all reads
 
-        Note that this file is named "nonunique" because the parameter used
-        is "--nonunique all" instead of "--nonunique none")
+    Note that this file is named "nonunique" because the parameter used is "--nonunique all"
+    instead of "--nonunique none")
 
 - If the reads are stranded in the forward direction, use --stranded=yes
 - If the reads are stranded in the reverse direction, use --stranded=reverse

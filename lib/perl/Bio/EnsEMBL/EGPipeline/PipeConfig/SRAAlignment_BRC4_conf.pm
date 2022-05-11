@@ -209,21 +209,21 @@ Default: 1
 
 =over
 
-=item 1. The pipeline first extracts genome data from the cores
+=item 1) The pipeline first extracts genome data from the cores
 
-=item 2. Then it retrieves the runs data from SRA for every sample
+=item 2) Then it retrieves the runs data from SRA for every sample
 
-=item 3. Pre-alignment, each sample data may be trimmed, and their strandness is inferred
+=item 3) Pre-alignment, each sample data may be trimmed, and their strandness is inferred
 
-=item 4. The inferences are checked over the whole of each dataset
+=item 4) The inferences are checked over the whole of each dataset
 
-=item 5. Each sample is then aligned against its reference sequence, and converted into a bam file
+=item 5) Each sample is then aligned against its reference sequence, and converted into a bam file
 
-=item 6. Various post-alignment steps are performed
+=item 6) Various post-alignment steps are performed
 
 =back
 
-=head2 1. GENOME DATA PREPARATION
+=head2 1) GENOME DATA PREPARATION
 
 =over
 
@@ -237,13 +237,13 @@ Default: 1
 
 =back
 
-=head2 2. RNA-SEQ DATA RETRIEVAL
+=head2 2) RNA-SEQ DATA RETRIEVAL
 
 For each run, download the fastq data files from ENA using its SRA accession.
 
 All following processes are performed for each run.
 
-=head2 3. PRE-ALIGNMENT PROCESSES
+=head2 3) PRE-ALIGNMENT PROCESSES
 
 =head3 B<Trimming>
 
@@ -269,11 +269,11 @@ Steps:
 
 =over
 
-=item 1. Create a subset of reads files with 20,000 reads
+=item 1) Create a subset of reads files with 20,000 reads
 
-=item 2. Align those files (without strandness) with hisat2
+=item 2) Align those files (without strandness) with hisat2
 
-=item 3. Run infer_experiment.py on the alignment file
+=item 3) Run infer_experiment.py on the alignment file
 
 =back
 
@@ -283,15 +283,15 @@ The inference compares how the reads are aligned compared to the known gene mode
 
 =item * If most reads expected to be forward are forward (and vice versa):
 
-  then the data is deemed as stranded in the forward direction.
+then the data is deemed as stranded in the forward direction.
 
 =item * If most reads expected to be forward are reversed (and vice versa):
 
-  then the data is deemed as stranded in the reverse direction.
+then the data is deemed as stranded in the reverse direction.
 
 =item * If the reads are equally in both directions:
 
-  then the data is deemed unstranded.
+then the data is deemed unstranded.
 
 =back
 
@@ -319,7 +319,7 @@ The infer_experiment output is also stored in this file.
 
 Note that If the values differ, the pipeline continues running using the values inferred.
 
-=head2 4. ALIGNMENT PARAMETERS CONSENSUS FROM INFERENCES
+=head2 4) ALIGNMENT PARAMETERS CONSENSUS FROM INFERENCES
 
 In order to avoid having datasets with mixed parameters, this step checks all samples inferences
 and proposes a consensus.
@@ -346,7 +346,7 @@ values replaced, with the following parameter:
 
 =back
 
-=head2 5. ALIGNMENT
+=head2 5) ALIGNMENT
 
 Using hisat2 with the following parameters:
 
@@ -396,7 +396,7 @@ If the data is stranded, then each unique/non-unique bam file is also split into
 
 So if the data is stranded, 4 files are generated. If it is unstranded, 2 files are generated.
 
-=head2 6. POST-ALIGNMENT PROCESSING
+=head2 6) POST-ALIGNMENT PROCESSING
 
 =head3 B<Bam stats>
 
@@ -425,7 +425,7 @@ main bam "raw total sequences".
 
 For each split bam file, the pipeline creates a coverage file in BedGraph format, using:
 
-  bamutils tobedgraph (with stranded parameters --plus or --minus if stranded)
+  bamutils tobedgraph # (with stranded parameters --plus or --minus if stranded)
   bedSort
 
 =head3 B<Extract junctions>
@@ -457,8 +457,8 @@ From the bam file sorted by name, the pipeline runs HTSeq-count:
 
 =item * Once using all reads
 
-  Note that this file is named "nonunique" because the parameter used
-  is "--nonunique all" instead of "--nonunique none")
+Note that this file is named "nonunique" because the parameter used is "--nonunique all"
+instead of "--nonunique none")
 
 =item * If the reads are stranded in the forward direction, use --stranded=yes
 
