@@ -18,7 +18,7 @@ limitations under the License.
 =head1 NAME
 
 SRA Alignment BRC4 conf. A pipeline that aligns reads against genomic
-sequences extracted from core databases.
+sequences extracted from EnsEMBL core databases.
 
 =head1 SYNOPSIS
 
@@ -31,7 +31,7 @@ sequences extracted from core databases.
       --results_dir $OUTPUT \
       ${OTHER_OPTIONS}
 
-Where
+Where:
 
 =over
 
@@ -60,10 +60,7 @@ See list of options below
 =head1 DESCRIPTION
 
 Perform short read aligments, primarily RNA-Seq (but also supports DNA-Seq).
-
-Here's a general overview of the parts of the pipeline:
-
-TODO
+Cf the IN-DEPTH OVERVIEW below for more details.
 
 =head2 PARAMETERS
 
@@ -226,7 +223,7 @@ All following processes are performed for each run.
 
 =head3 B<Trimming>
 
-If the run has a flag “trim_reads” set to true, then fastq files are trimmed using trimmomatic
+If the run has a flag 'trim_reads' set to true, then fastq files are trimmed using trimmomatic
 using the following parameters:
 
     ILLUMINACLIP:$adapters:2:30:10
@@ -266,10 +263,10 @@ if the ratio is below this value, then the run is deemed unstranded.
 
 Following hisat2 notation:
 
-  If the data is stranded forward and single-ended, its strandness is stored as “F”
-  If the data is stranded reversed and single-ended, its strandness is stored as “R”
-  If the data is stranded forward and paired-ended, its strandness is stored as “FR”
-  If the data is stranded reversed and paired-ended, its strandness is stored as “RF”
+  If the data is stranded forward and single-ended, its strandness is stored as "F"
+  If the data is stranded reversed and single-ended, its strandness is stored as "R"
+  If the data is stranded forward and paired-ended, its strandness is stored as "FR"
+  If the data is stranded reversed and paired-ended, its strandness is stored as "RF"
 
 If the strandness or the pair/single-end values differ from those provided in the dataset json file,
 then the difference is noted in the log file with a WARNING.
@@ -309,7 +306,7 @@ values replaced, with the following parameter:
 Using hisat2 with the following parameters:
 
   --max-intronlen $max_intron_length # (see below for the value)
-  --rna-strandness $strandness # (if stranded, the value is either “F”, “R“, “FR”, or “RF”)
+  --rna-strandness $strandness # (if stranded, the value is either "F", "R", "FR", or "RF")
 
 The --max-intronlen parameter is computed from the gene set data in the core database,
 as the maximum of:
@@ -353,13 +350,13 @@ Samtools stats are run on the main bam file, as well as all final split bam file
 The following values are computed:
 
   coverage (computed with bedtools genomecov)
-  mapped (from samtools stats “reads_mapped” / “raw total sequences”)
-  number_reads_mapped (from samtools stats “reads mapped”)
-  average_reads_length (from samtools stats “average length”)
-  number_pairs_mapped (if paired, from samtools stats “reads properly paired”)
+  mapped (from samtools stats "reads_mapped" / "raw total sequences")
+  number_reads_mapped (from samtools stats "reads mapped")
+  average_reads_length (from samtools stats "average length")
+  number_pairs_mapped (if paired, from samtools stats "reads properly paired")
 
-Note that for the split bam files, the “mapped” number ratio is over the
-main bam “raw total sequences”.
+Note that for the split bam files, the "mapped" number ratio is over the
+main bam "raw total sequences".
 
 =head3 B<Create BedGraph>
 
@@ -374,7 +371,7 @@ From the main bam file, the pipeline extracts all the splice junctions into a ta
 
 The pipeline extracts the junctions as follow:
 
-  For each read aligned with “N”s in its cigar string
+  For each read aligned with "N"s in its cigar string
   Get the strand direction from the XS tag
   Get the uniqueness from the NH tag
 
@@ -386,8 +383,8 @@ strand and uniqueness.
 From the bam file sorted by name, the pipeline runs HTSeq-count:
 
   * Once using unique reads
-  * Once using all reads (note that this file is named “nonunique” because the parameter used
-    is “--nonunique all” instead of “--nonunique none”)
+  * Once using all reads (note that this file is named "nonunique" because the parameter used
+    is "--nonunique all" instead of "--nonunique none")
   * If the reads are stranded in the forward direction, use --stranded=yes
   * If the reads are stranded in the reverse direction, use --stranded=reverse
   * If the reads are not stranded, use --stranded=no
@@ -410,7 +407,7 @@ This is important for the ulterior htseq-count runs.
 
 
 At the end of the pipeline, each run contains all its data files in a directory using its run name
-defined in the dataset file (note that the name can be any SRA accession like SRX…,
+defined in the dataset file (note that the name can be any SRA accession like SRX...,
 this works as long as there is only one read per accession).
 
 Each run directory contains the following files:
