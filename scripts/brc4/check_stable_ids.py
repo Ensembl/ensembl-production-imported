@@ -314,7 +314,7 @@ class StableIdDB(object):
             ordered by db1, db2
         """
         
-        query = text("""SELECT db1.production_name, db2.production_name, count(*)
+        query = text("""SELECT db1.db_name, db2.db_name, count(*)
                    FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
                         db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
                    WHERE s1.name_id != s2.name_id
