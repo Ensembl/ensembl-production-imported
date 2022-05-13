@@ -80,11 +80,12 @@ class CoreServer(object):
     def _cursor(self) -> MySQLCursor:
         return self.db.cursor()
     
-    def get_cores(self, prefix: str) -> None:
+    def get_cores(self, prefix: str, build: int) -> None:
         """Retrieve the list of cores on the server
         
         Args:
             prefix: only use cores that start with this prefix.
+            build: only use cores from this build.
         """
 
         if not self.db:
@@ -97,6 +98,8 @@ class CoreServer(object):
         
         for db in cursor:
             if prefix and not db[0].startswith(prefix):
+                continue
+            if build and not f"_core_{build}_" in db[0]:
                 continue
             self.cores.append(db[0])
     
@@ -361,6 +364,7 @@ def main():
                         help='Create the db (replace and reinit if it exists)')
     parser.add_argument('--add', action='store_true',
                         help='Add ids from the cores to the db')
+    parser.add_argument('--build', type=int, help='Filter addition by build number')
     parser.add_argument('--summary', action='store_true',
                         help='Get a summary of the duplicates')
     parser.add_argument('--list_duplicates', action='store_true',
@@ -380,7 +384,7 @@ def main():
     elif args.add:
         core_server = CoreServer(host=args.host, port=args.port, user=args.user,
                                  password=args.password)
-        core_server.get_cores(args.prefix)
+        core_server.get_cores(args.prefix, args.build)
 
         iddb.connect()
         iddb.add_stable_ids(core_server)
