@@ -113,25 +113,37 @@ class CoreServer(object):
                 continue
             self.cores.append(db[0])
     
-    def get_stable_ids(self, core_name: str, feature: str) -> list:
-        """Retrieve all the stable ids for a feature in a given core
+    def get_features(self, core_name: str, feature: str) -> List[Feature]:
+        """Retrieve all the stable ids for a feature table in a given core
         
         Args:
             core_name: name of the core database to use
             feature: feature name (gene, transcript, or translation)
         
         Returns:
-            A list of stable_ids strings
+            A list of Features
         """
         
         self.db.database = core_name
         cursor = self._cursor()
         
-        query = f"SELECT stable_id FROM {feature}"
+        biotype = ''
+        query = ''
+        if feature in ('gene', 'transcript'):
+            query = f"SELECT stable_id, biotype FROM {feature}"
+        elif feature == 'translation':
+            query = f"SELECT stable_id FROM {feature}"
+        else:
+            raise Exception(f"Unsupported feature type: {feature}")
+
         cursor.execute(query)
         
         for row in cursor:
-            yield row[0]
+            name = row[0]
+            if feature in ('gene', 'transcript'):
+                biotype = row[1]
+            feat = Feature(name=name, feature=feature, biotype=biotype)
+            yield feat
     
     def get_core_metadata(self, core_name: str, key: str) -> list:
         """Retrieve a metadata value from a given core
@@ -177,6 +189,7 @@ class StableId(Base):
     db_id = Column(ForeignKey('db.db_id'))
     feature = Column(String)
     name = Column(String)
+    biotype = Column(String)
     Index('ix_feat_name', feature, name)
 
 
@@ -219,7 +232,8 @@ class StableIdDB(object):
             url = f"sqlite+pysqlite:///{self.path}"
             self.engine = create_engine(url, echo=False, future=True)
 
-    def add_stable_ids(self, core_server: CoreServer, features: list = all_features) -> None:
+    def add_stable_ids(self, core_server: CoreServer,
+                       features: List[Feature] = all_features) -> None:
         """Get the stable ids for a list of features from the cores in a server and store them in the db
         
         If no features are provided, the features list from all_features is used
@@ -236,11 +250,16 @@ class StableIdDB(object):
                 print(f"Load data from {prod_name[0]}")
                 
                 for feature in features:
-                    stable_ids = core_server.get_stable_ids(core, feature)
+                    features = core_server.get_features(core, feature)
                     db_id = self._get_db_id(conn, core, prod_name[0])
                     to_insert = [
-                        {'db_id': db_id, 'feature': feature, 'name': stable_id}
-                        for stable_id in stable_ids]
+                        {
+                            'db_id': db_id,
+                            'feature': feature.feature,
+                            'biotype': feature.biotype,
+                            'name': feature.name
+                        }
+                        for feature in features]
                     conn.execute(insert(StableId), to_insert)
                     conn.commit()
 
@@ -287,7 +306,7 @@ class StableIdDB(object):
             ordered by the stable_id names, then db1 and db2
         """
         
-        query = text("""SELECT db1.db_name, db2.db_name, s1.name
+        query = text("""SELECT db1.db_name, db2.db_name, s1.name,
                    FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
                         db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
                    WHERE s1.name_id != s2.name_id
@@ -361,12 +380,14 @@ class StableIdDB(object):
         """Retrieve all duplicated stable_ids between all features between different core dbs
 
         Returns:
-            A list of dicts with 5 keys: db1, db2, feat1, feat2, name
+            A list of dicts with 5 keys: db1, db2, feat1, feat2, biotype1, biotype2, name
             ordered by the stable_id names, then db1 and db2
         """
         
         query = text("""SELECT db1.db_name, db2.db_name,
-                             s1.feature, s2.feature, s1.name
+                             s1.feature, s2.feature,
+                             s1.biotype, s2.biotype,
+                              s1.name
                    FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
                         db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
                    WHERE s1.name_id != s2.name_id
@@ -379,7 +400,7 @@ class StableIdDB(object):
         no_reverse = {}
         with self.engine.connect() as conn:
             for record in conn.execute(query):
-                (db1, db2, feat1, feat2, name) = record
+                (db1, db2, feat1, feat2, biotype1, biotype2, name) = record
                 
                 db_key1 = f"{db1}_{feat1}"
                 db_key2 = f"{db2}_{feat2}"
@@ -391,7 +412,15 @@ class StableIdDB(object):
                 else:
                     no_reverse[db_key] = 1
                 
-                dup_id = {'db1': db1, 'db2': db2, 'feat1': feat1, 'feat2': feat2, 'name': name}
+                dup_id = {
+                    'db1': db1,
+                    'db2': db2,
+                    'feat1': feat1,
+                    'feat2': feat2,
+                    'biotype1': biotype1,
+                    'biotype2': biotype2,
+                    'name': name
+                }
                 dup_ids.append(dup_id)
         
         return dup_ids
