@@ -346,7 +346,85 @@ class StableIdDB(object):
                 dup_ids.append(dup_id)
         
         return dup_ids
+
+    def get_duplicated_ids_all_features(self) -> list:
+        """Retrieve all duplicated stable_ids between all features between different core dbs
+
+        Returns:
+            A list of dicts with 5 keys: db1, db2, feat1, feat2, name
+            ordered by the stable_id names, then db1 and db2
+        """
         
+        query = text("""SELECT db1.db_name, db2.db_name,
+                             s1.feature, s2.feature, s1.name
+                   FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
+                        db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
+                   WHERE s1.name_id != s2.name_id
+                        AND s1.name = s2.name
+                    ORDER BY s1.name, db1.production_name, db2.production_name,
+                             s1.feature, s2.feature
+                """)
+        
+        dup_ids = []
+        no_reverse = {}
+        with self.engine.connect() as conn:
+            for record in conn.execute(query):
+                (db1, db2, feat1, feat2, name) = record
+                
+                db_key1 = f"{db1}_{feat1}"
+                db_key2 = f"{db2}_{feat2}"
+                db_key_list = [db_key1, db_key2]
+                db_key_list.sort()
+                db_key = "_".join(db_key_list) + f"_{name}"
+                if db_key in no_reverse:
+                    continue
+                else:
+                    no_reverse[db_key] = 1
+                
+                dup_id = {'db1': db1, 'db2': db2, 'feat1': feat1, 'feat2': feat2, 'name': name}
+                dup_ids.append(dup_id)
+        
+        return dup_ids
+        
+    def get_duplicates_summary_all_features(self) -> list:
+        """Show a summary of all duplicates between all features
+
+        Returns:
+            A list of dicts with 5 keys: db1, db2, feature1, feature2, count
+            ordered by db1, db2
+        """
+        
+        query = text("""SELECT db1.db_name, db2.db_name, s1.feature, s2.feature, count(*)
+                   FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
+                        db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
+                   WHERE s1.name_id != s2.name_id
+                        AND s1.name = s2.name
+                    GROUP BY db1.db_id, db2.db_id, s1.feature, s2.feature
+                    ORDER BY db1.production_name, db2.production_name, s1.feature, s2.feature
+                """)
+        
+        dup_ids = []
+        no_reverse = {}
+        with self.engine.connect() as conn:
+            for record in conn.execute(query):
+                (db1, db2, feat1, feat2, count) = record
+                
+                # Make a unique key to avoid having both ways db1 -> db2 and db2 -> db1
+                db_key1 = f"{db1}_{feat1}"
+                db_key2 = f"{db2}_{feat2}"
+                db_key_list = [db_key1, db_key2]
+                db_key_list.sort()
+                db_key = "_".join(db_key_list)
+                if db_key in no_reverse:
+                    continue
+                else:
+                    no_reverse[db_key] = 1
+                
+                dup_id = {'db1': db1, 'db2': db2, 'feat1': feat1, 'feat2': feat2, 'count': count}
+                dup_ids.append(dup_id)
+        
+        return dup_ids
+
 
 def main():
     # Parse command line arguments
@@ -367,8 +445,12 @@ def main():
     parser.add_argument('--build', type=int, help='Filter addition by build number')
     parser.add_argument('--summary', action='store_true',
                         help='Get a summary of the duplicates')
+    parser.add_argument('--all_summary', action='store_true',
+                        help='Get a summary of the duplicates for all features')
     parser.add_argument('--list_duplicates', action='store_true',
                         help='Show a complete list of duplicated ids')
+    parser.add_argument('--all_list_duplicates', action='store_true',
+                        help='Show a complete list of duplicated ids between all features')
 
     parser.add_argument('--prefix', type=str, help='Optional prefix to filter cores to use')
     args = parser.parse_args()
@@ -405,6 +487,15 @@ def main():
         for dup in dup_ids:
             print(f"{dup['db1']}\t{dup['db2']}\t{dup['name']}")
     
+    # Print out all the duplicated stable_ids, and between which pairs of cores and all features
+    elif args.all_list_duplicates:
+        iddb.connect()
+        dup_ids = iddb.get_duplicated_ids_all_features()
+
+        print("#db1\tdb2\tfeat1\tfeat2\tname")
+        for dup in dup_ids:
+            print(f"{dup['db1']}\t{dup['db2']}\t{dup['feat1']}\t{dup['feat2']}\t{dup['name']}")
+    
     # Print out a summary count of duplicates between pairs of cores
     elif args.summary:
         iddb.connect()
@@ -413,6 +504,15 @@ def main():
         print("#db1\tdb2\tcount")
         for dup in dup_ids:
             print(f"{dup['db1']}\t{dup['db2']}\t{dup['count']}")
+
+    # Print out a summary count of duplicates between pairs of cores for all features
+    elif args.all_summary:
+        iddb.connect()
+        dup_ids = iddb.get_duplicates_summary_all_features()
+
+        print("#db1\tdb2\tfeat1\tfeat2\tcount")
+        for dup in dup_ids:
+            print(f"{dup['db1']}\t{dup['db2']}\t{dup['feat1']}\t{dup['feat2']}\t{dup['count']}")
     else:
         print("No action performed")
 
