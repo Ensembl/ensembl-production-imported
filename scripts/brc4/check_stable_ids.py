@@ -41,6 +41,16 @@ import errno
 from sqlalchemy import Column, Integer, Index, String, ForeignKey, insert, select, text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import create_engine
+from dataclasses import dataclass
+
+
+@dataclass
+class Feature:
+    """Simple feature object"""
+
+    name: str
+    biotype: str
+    feature: str
 
 
 class CoreServer(object):
