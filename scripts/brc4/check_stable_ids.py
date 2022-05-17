@@ -99,7 +99,7 @@ class CoreServer(object):
         for db in cursor:
             if prefix and not db[0].startswith(prefix):
                 continue
-            if build and not f"_core_{build}_" in db[0]:
+            if build and f"_core_{build}_" not in db[0]:
                 continue
             self.cores.append(db[0])
     
@@ -277,7 +277,7 @@ class StableIdDB(object):
             ordered by the stable_id names, then db1 and db2
         """
         
-        query = text("""SELECT db1.production_name, db2.production_name, s1.name
+        query = text("""SELECT db1.db_name, db2.db_name, s1.name
                    FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
                         db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
                    WHERE s1.name_id != s2.name_id
