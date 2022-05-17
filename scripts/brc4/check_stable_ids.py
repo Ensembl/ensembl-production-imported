@@ -465,6 +465,14 @@ class StableIdDB(object):
         return dup_ids
 
 
+def print_values(columns: tuple, objects: list) -> None:
+
+    print("#" + "\t".join(columns))
+    for obj in objects:
+        line_vals = [str(obj[key]) for key in columns]
+        print("\t".join(line_vals))
+
+
 def main():
     # Parse command line arguments
     desc = 'Create a database of stable_ids from a list of cores, and check their uniqueness'
@@ -522,36 +530,32 @@ def main():
         iddb.connect()
         dup_ids = iddb.get_duplicated_ids('gene')
 
-        print("#db1\tdb2\tname")
-        for dup in dup_ids:
-            print(f"{dup['db1']}\t{dup['db2']}\t{dup['name']}")
+        columns = ('db1', 'db2', 'name')
+        print_values(columns, dup_ids)
     
     # Print out all the duplicated stable_ids, and between which pairs of cores and all features
     elif args.all_list_duplicates:
         iddb.connect()
         dup_ids = iddb.get_duplicated_ids_all_features()
 
-        print("#db1\tdb2\tfeat1\tfeat2\tname")
-        for dup in dup_ids:
-            print(f"{dup['db1']}\t{dup['db2']}\t{dup['feat1']}\t{dup['feat2']}\t{dup['name']}")
+        columns = ('db1', 'db2', 'biotype1', 'biotype2', 'feat1', 'feat2', 'name')
+        print_values(columns, dup_ids)
     
     # Print out a summary count of duplicates between pairs of cores
     elif args.summary:
         iddb.connect()
         dup_ids = iddb.get_duplicates_summary('gene')
 
-        print("#db1\tdb2\tcount")
-        for dup in dup_ids:
-            print(f"{dup['db1']}\t{dup['db2']}\t{dup['count']}")
+        columns = ('db1', 'db2', 'count')
+        print_values(columns, dup_ids)
 
     # Print out a summary count of duplicates between pairs of cores for all features
     elif args.all_summary:
         iddb.connect()
         dup_ids = iddb.get_duplicates_summary_all_features()
 
-        print("#db1\tdb2\tfeat1\tfeat2\tcount")
-        for dup in dup_ids:
-            print(f"{dup['db1']}\t{dup['db2']}\t{dup['feat1']}\t{dup['feat2']}\t{dup['count']}")
+        columns = ('db1', 'db2', 'feat1', 'feat2', 'count')
+        print_values(columns, dup_ids)
     else:
         print("No action performed")
 
