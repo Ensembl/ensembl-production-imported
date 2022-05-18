@@ -196,7 +196,7 @@ class StableId(Base):
 class StableIdDB(object):
     """Representation of an SQLite database of stable ids
     """
-    all_features = ('gene', 'transcript', 'translation')
+    all_feature_types = ('gene', 'transcript', 'translation')
     
     def __init__(self, path: str):
         """Init the database object
@@ -233,7 +233,7 @@ class StableIdDB(object):
             self.engine = create_engine(url, echo=False, future=True)
 
     def add_stable_ids(self, core_server: CoreServer,
-                       features: List[Feature] = all_features) -> None:
+                       feature_types: List[str] = all_feature_types) -> None:
         """Get the stable ids for a list of features from the cores in a server and store them in the db
         
         If no features are provided, the features list from all_features is used
@@ -249,8 +249,8 @@ class StableIdDB(object):
                 prod_name = core_server.get_core_metadata(core, 'species.production_name')
                 print(f"Load data from {prod_name[0]}")
                 
-                for feature in features:
-                    features = core_server.get_features(core, feature)
+                for feature_type in feature_types:
+                    features = core_server.get_features(core, feature_type)
                     db_id = self._get_db_id(conn, core, prod_name[0])
                     to_insert = [
                         {
