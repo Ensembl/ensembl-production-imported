@@ -33,7 +33,7 @@ sub param_defaults {
   
   return {
     n_samples => 200000,
-    infer_max => 0.85,  # Above this, infer stranded
+    infer_max => 0.80,  # Above this, infer stranded
     infer_min => 0.65,  # Between this and infer_max, don't infer and use input
     infer_failed_max => 0.25 # Threshold for max failed reads
   };
