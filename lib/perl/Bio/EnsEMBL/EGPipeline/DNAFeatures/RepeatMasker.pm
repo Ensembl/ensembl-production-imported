@@ -35,10 +35,12 @@ sub fetch_runnable {
     %parameters = %{$self->param('parameters_hash')};
   }
   
-  #my $repeatmasker_cache = $self->param('repeatmasker_cache');
-  #if (defined $repeatmasker_cache && -e $repeatmasker_cache) {
-  #  $ENV{'REPEATMASKER_CACHE'} = $repeatmasker_cache;
-  #}
+  # fix to deal with "libexec/RepeatMasker" `$ENV{'HOME'} . "/.RepeatMaskerCache"` issue
+  #   many thanks to James Allen
+  my $repeatmasker_cache = $self->param('repeatmasker_cache');
+  if (defined $repeatmasker_cache && -e $repeatmasker_cache) {
+    $ENV{'HOME'} = $repeatmasker_cache;
+  }
   
   my $runnable = Bio::EnsEMBL::Analysis::Runnable::RepeatMasker->new
   (
