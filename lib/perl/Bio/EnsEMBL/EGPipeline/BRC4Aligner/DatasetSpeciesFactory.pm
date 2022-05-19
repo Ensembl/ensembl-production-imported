@@ -37,6 +37,7 @@ sub run {
   }
   my $data = decode_json($json);
   my %organisms = map { $_->{species} => 1 } @$data;
+  my %prod_names = map { $_->{production_name} => 1 } @$data;
   
   # Get registry species
   my $reg = 'Bio::EnsEMBL::Registry';
@@ -48,15 +49,23 @@ sub run {
     my $ma = $dba->get_adaptor('MetaContainer');
     my ($organism) = @{ $ma->list_value_by_key("BRC4.organism_abbrev") };
     my ($component) = @{ $ma->list_value_by_key("BRC4.component") };
+    my ($prod_name) = $dba->species;
     
     if (defined $organisms{$organism}) {
       my $data = {
-        species => $dba->species,
+        species => $prod_name,
         component => $component,
         organism => $organism
       };
       $self->dataflow_output_id($data, 2);
       delete $organisms{$organism};
+    } elsif (defined $prod_names{$prod_name}) {
+      my $data = {
+        species => $prod_name,
+        organism => $prod_name,
+        component => 'component'
+      };
+      $self->dataflow_output_id($data, 2);
     }
     $dba->dbc->disconnect_if_idle();
   }
