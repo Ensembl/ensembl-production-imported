@@ -30,7 +30,7 @@ sub param_defaults {
   return {
     'threads'   => 4,
     'memory'    => 8000,
-    'clean_up'  => 1,
+    'skip_cleanup'  => 0,
   };
 }
 
@@ -55,7 +55,7 @@ sub run {
   
   my $aligner  = $self->param_required('aligner_object');
   my $sam_file = $self->param_required('sam_file');
-  my $clean_up = $self->param_required('clean_up');
+  my $skip_cleanup = $self->param_required('skip_cleanup');
   my $final_bam_file = $self->param('final_bam_file');
   
   # Can we reuse some files?
@@ -67,7 +67,7 @@ sub run {
   
   # Convert
   my $bam_file = $aligner->sam_to_bam($sam_file, $final_bam_file);
-  unlink $sam_file if $clean_up;
+  unlink $sam_file unless $skip_cleanup;
   $aligner->dummy(0);
   
   my $align_cmds = $aligner->align_cmds;

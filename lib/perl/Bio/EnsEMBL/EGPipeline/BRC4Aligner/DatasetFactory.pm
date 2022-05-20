@@ -79,6 +79,8 @@ sub get_datasets {
   for my $dataset (@$data) {
     if ($dataset->{species} eq $organism) {
       push @datasets, $dataset;
+    } elsif ($dataset->{production_name} eq $organism) {
+      push @datasets, $dataset;
     }
   }
 

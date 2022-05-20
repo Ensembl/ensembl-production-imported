@@ -13,6 +13,7 @@
       "properties": {
         "component" : { "type" : "string" },
         "species" : { "type" : "string" },
+        "production_name" : { "type" : "string" },
         "name" : { "type" : "string" },
 
         "runs" : {
@@ -20,9 +21,15 @@
           "items" :  { "$ref" : "#/definitions/sample_info" }
         }
       },
+      "oneOf": [
+        {
+          "required": ["component", "species"]
+        },
+        {
+          "required": ["production_name"]
+        }
+      ],
       "required": [
-        "component",
-        "species",
         "name",
         "runs"
         ]

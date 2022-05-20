@@ -15,6 +15,554 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+=head1 NAME
+
+SRA Alignment BRC4 conf. A pipeline that aligns reads against genomic
+sequences extracted from EnsEMBL core databases.
+
+=head1 SYNOPSIS
+
+  init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::SRAAlignment_BRC4_conf \
+      --host $HOST --port $PORT --user $USER --pass $PASS \
+      --hive_force_init 1 \
+      --reg_conf $REG_FILE \
+      --pipeline_dir temp/rnaseq \
+      --datasets_file $DATASETS \
+      --results_dir $OUTPUT \
+      ${OTHER_OPTIONS}
+
+Where:
+
+=over
+
+=item B<--host, --port, --user, --pass>
+
+Connection details to the MySQL server where the eHive database will be created
+
+=item B<REG_FILE>
+
+An Ensembl registry file, pointing to the core databases to use
+
+=item B<DATASETS>
+
+A json representing the datasets to align (following the format from schema/brc4_rnaseq_schema.json)
+
+=item B<OUTPUT>
+
+The directory where the alignment files will be stored
+
+=item B<OTHER_OPTIONS>
+
+See list of options below
+
+=back
+
+=head1 DESCRIPTION
+
+Perform short read aligments, primarily RNA-Seq (but also supports DNA-Seq).
+Cf the L<"IN-DEPTH OVERVIEW"> below for more details.
+
+=head2 PARAMETERS
+
+=over
+
+=item B<--pipeline_name>
+
+Name of the hive pipeline.
+
+Default: sra_alignment_brc4_{ensembl_release}
+
+=item B<--results_dir>
+
+Directory where the final alignments are stored.
+
+Mandatory.
+
+=item B<--pipeline_dir>
+
+Temp directory.
+
+Mandatory.
+
+=item B<--index_dir>
+
+Temp directory where the genomes files are extracted.
+
+Default: {pipeline_dir}/index
+
+=item B<--datasets_file>
+
+List of datasets following the schema in brc4_rnaseq_schema.json
+
+Mandatory.
+
+=item B<--dna_seq>
+
+Run the pipeline for DNA-Seq instead of RNA-Seq short reads.
+
+Default: 0
+
+=item B<--skip_cleanup>
+
+Do not remove intermediate files from the results dir (that includes the bam files).
+
+0, or 1 if using `--dna_seq`
+
+=item B<--fallback_ncbi>
+
+If download from ENA fails, try to download from SRA.
+
+Default: 0
+
+=item B<--force_ncbi>
+
+Force download data from SRA instead of ENA.
+
+Default: 0
+
+=item B<--sra_dir>
+
+Where to find fastq-dump (in case it is not in your path).
+
+=item B<--redo_htseqcount>
+
+Special pipeline path, where no alignment is done, but a previous alignment is reused to recount
+features coverage (`--alignments_dir` becomes necessary).
+
+Default: 0
+
+=item B<--alignments_dir>
+
+Where to find previous alignments.
+
+Mandatory if using --redo_htseqcount
+
+=item B<--infer_metadata>
+
+Automatically infer the reads metadata:
+
+=over
+
+=item * single/paired-end
+
+=item * stranded/unstranded
+
+=item * and in which direction.
+
+=back
+
+Otherwise, use the values from the `datasets_file`
+
+Default: 1
+
+=back
+
+=head2 RARE PARAMETERS
+
+=over
+
+=item B<-trim_reads>
+
+Trim reads before doing any alignment.
+
+Default: 0
+
+=item B<-trimmomatic_bin>
+
+Trimmomatic path if using `--trim_reads`.
+
+=item B<-trim_adapters_pe>
+
+Paired-end adapter path if using `--trim_reads`.
+
+=item B<-trim_adapters_se>
+
+Single-end adapter path if using `--trim_reads`
+
+=item B<--threads>
+
+Number of threads to use for various programs.
+
+Default: 4
+
+=item B<--samtobam_memory>
+
+Memory to use for the conversion/sorting SAM -> BAM (in MB).
+
+Default: 16,000
+
+=item B<--repeat_masking>
+
+What masking to use when extracting the genomes sequences.
+
+Default: soft
+
+=item B<--max_intron>
+
+Whether to compute the max intron from the current gene models.
+
+Default: 1
+
+=back
+
+=head1 IN-DEPTH OVERVIEW
+
+=over
+
+=item 1) The pipeline first extracts genome data from the cores
+
+=item 2) Then it retrieves the runs data from SRA for every sample
+
+=item 3) Pre-alignment, each sample data may be trimmed, and their strandness is inferred
+
+=item 4) The inferences are checked over the whole of each dataset
+
+=item 5) Each sample is then aligned against its reference sequence, and converted into a bam file
+
+=item 6) Various post-alignment steps are performed
+
+=back
+
+=head2 1) GENOME DATA PREPARATION
+
+=over
+
+=item * Extract the DNA sequence from the core into a fasta file
+
+=item * Index the fasta file for hisat2 with hisat2-build (without splice sites or exons files)
+
+=item * Extract the gene models from the core in a gtf format (for htseq-count)
+
+=item * Extract the gene models from the core in a bed format (for strand inference)
+
+=back
+
+=head2 2) RNA-SEQ DATA RETRIEVAL
+
+For each run, download the fastq data files from ENA using its SRA accession.
+
+All following processes are performed for each run.
+
+=head2 3) PRE-ALIGNMENT PROCESSES
+
+=head3 B<Trimming>
+
+If the run has a flag 'trim_reads' set to true, then fastq files are trimmed using trimmomatic
+using the following parameters:
+
+    ILLUMINACLIP:$adapters:2:30:10
+    LEADING:3
+    TRAILING:3
+    SLIDINGWINDOW:4:15
+    MINLEN:20
+
+Where $adapters is the path to the adapters directory from trimmomatic. There is one directory for
+paired-end, and one for single-end reads (the paired/single information must be provided in the
+json dataset).
+
+=head3 B<Strandness inference>
+
+To ensure that the aligner uses the correct strand information, an additional step to infer the 
+strandness of the data is necessary.
+
+Steps:
+
+=over
+
+=item 1) Create a subset of reads files with 20,000 reads
+
+=item 2) Align those files (without strandness) with hisat2
+
+=item 3) Run infer_experiment.py on the alignment file
+
+=back
+
+The inference compares how the reads are aligned compared to the known gene models:
+
+=over
+
+=item * If most reads expected to be forward are forward (and vice versa):
+
+then the data is deemed as stranded in the forward direction.
+
+=item * If most reads expected to be forward are reversed (and vice versa):
+
+then the data is deemed as stranded in the reverse direction.
+
+=item * If the reads are equally in both directions:
+
+then the data is deemed unstranded.
+
+=back
+
+A cut-off at 85% of aligned reads is applied to discriminate between stranded data:
+if the ratio is below this value, then the run is deemed unstranded.
+
+
+Following hisat2 notation:
+
+=over
+
+=item * If the data is stranded forward and single-ended, its strandness is stored as "F"
+
+=item * If the data is stranded reversed and single-ended, its strandness is stored as "R"
+
+=item * If the data is stranded forward and paired-ended, its strandness is stored as "FR"
+
+=item * If the data is stranded reversed and paired-ended, its strandness is stored as "RF"
+
+=back
+
+If the strandness or the pair/single-end values differ from those provided in the dataset json file,
+then the difference is noted in the log file with a WARNING.
+The infer_experiment output is also stored in this file.
+
+Note that If the values differ, the pipeline continues running using the values inferred.
+
+=head2 4) ALIGNMENT PARAMETERS CONSENSUS FROM INFERENCES
+
+In order to avoid having datasets with mixed parameters, this step checks all samples inferences
+and proposes a consensus.
+
+If a single sample doesn't follow the general consensus, then the runnable Aggregate will fail.
+
+In this case, there are several possibilities:
+
+=over
+
+=item Mixed paired-end/single-end
+
+If this is expected, simply rerun the failing job by adding the following parameter and value:
+
+  ignore_single_paired = 1
+
+=item Force a consensus
+
+If for example there are mixed stranded/unstranded samples in a dataset, you can force all the
+alignments to be unstranded by adding the proposed consensus (output by the failing job), with the
+values replaced, with the following parameter:
+
+  force_aligner_metadata = {consensus}
+
+=back
+
+=head2 5) ALIGNMENT
+
+Using hisat2 with the following parameters:
+
+  --max-intronlen $max_intron_length # (see below for the value)
+  --rna-strandness $strandness # (if stranded, the value is either "F", "R", "FR", or "RF")
+
+The --max-intronlen parameter is computed from the gene set data in the core database,
+as the maximum of:
+
+  int(1.5 * $max_intron_length)
+
+where $max_intron is the longest intron in the gene set
+
+Hisat2 generates an unsorted sam file.
+
+=head2 Temporary Bam files generation
+
+From the file generated by Hisat2, there are two additional conversion steps:
+
+Main bam: sorting by position + conversion to bam file
+
+Name sorted bam: sorting by read name + filter out unaligned reads + conversion to bam file
+
+The first file is temporary and is deleted as the end of the pipeline.
+
+The second file can be conserved and reused for htseq-recount.
+
+The process also generates additional temporary bam files, extracted from the main bam:
+
+=over
+
+=item One for unique reads
+
+=item One for non-unique reads
+
+=back
+
+If the data is stranded, then each unique/non-unique bam file is also split into:
+
+=over
+
+=item Forward stranded reads
+
+=item Reverse stranded reads
+
+=back
+
+So if the data is stranded, 4 files are generated. If it is unstranded, 2 files are generated.
+
+=head2 6) POST-ALIGNMENT PROCESSING
+
+=head3 B<Bam stats>
+
+Samtools stats are run on the main bam file, as well as all final split bam files.
+
+The following values are computed:
+
+=over
+
+=item * coverage (computed with bedtools genomecov)
+
+=item * mapped (from samtools stats "reads_mapped" / "raw total sequences")
+
+=item * number_reads_mapped (from samtools stats "reads mapped")
+
+=item * average_reads_length (from samtools stats "average length")
+
+=item * number_pairs_mapped (if paired, from samtools stats "reads properly paired")
+
+=back
+
+Note that for the split bam files, the "mapped" number ratio is over the
+main bam "raw total sequences".
+
+=head3 B<Create BedGraph>
+
+For each split bam file, the pipeline creates a coverage file in BedGraph format, using:
+
+  bamutils tobedgraph # (with stranded parameters --plus or --minus if stranded)
+  bedSort
+
+=head3 B<Extract junctions>
+
+From the main bam file, the pipeline extracts all the splice junctions into a tabulated text file.
+
+The pipeline extracts the junctions as follow:
+
+=over
+
+=item * For each read aligned with "N"s in its cigar string
+
+=item * Get the strand direction from the XS tag
+
+=item * Get the uniqueness from the NH tag
+
+=back
+
+Create a splice junction for each group of Ns found in the cigar string, with the coordinates,
+strand and uniqueness.
+
+=head3 B<HTSeq-count>
+
+From the bam file sorted by name, the pipeline runs HTSeq-count:
+
+=over
+
+=item * Once using unique reads
+
+=item * Once using all reads
+
+Note that this file is named "nonunique" because the parameter used is "--nonunique all"
+instead of "--nonunique none")
+
+=item * If the reads are stranded in the forward direction, use --stranded=yes
+
+=item * If the reads are stranded in the reverse direction, use --stranded=reverse
+
+=item * If the reads are not stranded, use --stranded=no
+
+=item * With parameter --order=name
+
+=item * With parameter --type=exon --idattr=gene_id
+
+=item * With parameter --mode union
+
+=item * With the gtf file
+
+=back
+
+This is done for each strand, so there will be 4 HTSeq-count files for stranded data,
+and 2 for unstranded data.
+
+=head2 Finalisation
+
+Once all files are generated for a run, the pipeline writes two metadata files:
+
+A commands file with the list of commands run (hisat2, etc.)
+
+A metadata file in json that contains in particular the strandness and paired/single end metadata.
+This is important for the ulterior htseq-count runs.
+
+
+At the end of the pipeline, each run contains all its data files in a directory using its run name
+defined in the dataset file (note that the name can be any SRA accession like SRX...,
+this works as long as there is only one read per accession).
+
+Each run directory contains the following files:
+
+=over
+
+=item * mappingStats.txt
+
+=item * metadata.json
+
+=item * log.txt
+
+=item * junctions.tab
+
+=item * commands.json
+
+=item * 2 or 4 htseq-count files
+
+=item * 2 or 4 bed files
+
+=back
+
+EBI conserves the final name sorted bam file, but this file is not transferred to UPenn
+
+Each run directory is in a dataset directory.
+
+Each dataset directory is stored in a genome directory using the organism_abbrev for this genome.
+
+Each genome directory is stored in a component directory (ToxoDB, VectorBase, etc.).
+
+=head1 ALTERNATE ROUTE: DNA-SEQ
+
+It is possible to use this same pipeline to process DNA-Seq datasets.
+
+The main differences are that the post-alignment step only produces a wig file, and keep the
+produced bam.
+
+To use this route, simply add the following parameter:
+
+  --dnaseq 1
+
+=head1 ALTERNATE ROUTE: HTSEQ-COUNT RECOUNT
+
+If you have already aligned a dataset, and the corresponding genome has had a gene set update, then
+you can rerun only the recount part of the pipeline. To do so, use the following parameters:
+
+  init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::SRAAlignment_BRC4_conf \
+  --host $HOST --port $PORT --user $USER --pass $PASS \
+  --pipeline_name rnaseq_recount \
+  --pipeline_dir temp/rnaseq_recount \
+  --reg_conf $REGISTRY \
+  --results_dir $OUTPUT \
+  --datasets_file $DATASETS \
+  --redo_htseqcount 1 \
+  --alignments_dir $ALIGNMENTS_DIR
+
+Note the addition of 2 parameters:
+
+=over
+
+=item --redo_htseqcount
+
+To activate the HTSeq recount route.
+
+=item --alignments_dir
+
+This is the location of the already aligned datasets (the bam file must be in there, as well as
+the metadata files)  
+
+=back
+
+
 =cut
 
 package Bio::EnsEMBL::EGPipeline::PipeConfig::SRAAlignment_BRC4_conf;
@@ -48,13 +596,6 @@ sub default_options {
     # Datasets to align
     datasets_file => $self->o('datasets_file'),
     datasets_json_schema => catfile($package_dir, '../BRC4Aligner/brc4_rnaseq_schema.json'),
-
-    # Species factory
-    species => [],
-    antispecies => [],
-    division => [],
-    run_all => 0,
-    meta_filters => {},
     
     # BEHAVIOUR
     # Use DNA-Seq specific parameters
@@ -67,9 +608,6 @@ sub default_options {
     sra_dir => undef,
     # Force using NCBI SRA instead of ENA
     force_ncbi => 0,
-    
-    # Clean up temp files at the end (split bam etc.)
-    clean_up      => 1,
     
     # If there is already an alignment for a sample, redo its htseq-count only
     # (do nothing otherwise)
@@ -917,7 +1455,7 @@ sub pipeline_analyses {
       -parameters        => {
         samtools_dir   => $self->o('samtools_dir'),
         memory         => $self->o('samtobam_memory'),
-        clean_up       => $self->o('clean_up'),
+        skip_cleanup   => $self->o('skip_cleanup'),
         final_bam_file => '#sample_bam_file#',
         threads       => $self->o('threads'),
       },

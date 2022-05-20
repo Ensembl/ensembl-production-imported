@@ -33,6 +33,15 @@ sub run {
 
   my $align_meta = $self->param_required('aggregated_aligner_metadata');
   
+  # Retrieve the inferred is_paired value, if it was ignored by the aggregator
+  if (not defined $align_meta->{is_paired}) {
+    my $all_metadata = $self->param('aligner_metadata_hash');
+    
+    if ($all_metadata->{$sample_name}) {
+      $align_meta->{is_paired} = $all_metadata->{$sample_name}->{is_paired};
+    }
+  }
+  
   my ($file1, $file2);
   if ($align_meta->{is_paired}) {
     $file1 = catfile($work_dir, $sample_name . "_all_1.fastq.gz");

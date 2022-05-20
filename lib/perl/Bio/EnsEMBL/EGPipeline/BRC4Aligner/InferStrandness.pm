@@ -32,7 +32,10 @@ sub param_defaults {
   my ($self) = @_;
   
   return {
-    n_samples => 200000
+    n_samples => 200000,
+    infer_max => 0.80,  # Above this, infer stranded
+    infer_min => 0.65,  # Between this and infer_max, don't infer and use input
+    infer_failed_max => 0.25 # Threshold for max failed reads
   };
 }
 
@@ -53,7 +56,7 @@ sub run {
   my $res_dir = $self->param_required('results_dir');
   my $log_file = catdir($res_dir, 'log.txt');
   
-  my ($strandness, $is_paired, $no_reads, $output) = get_strandness($bed_file, $sam_file, $n_samples, $input_is_stranded);
+  my ($strandness, $is_paired, $no_reads, $output) = $self->get_strandness($bed_file, $sam_file, $n_samples, $input_is_stranded);
 
   my $is_stranded = 0;
   my $strand_direction = "";
@@ -124,7 +127,7 @@ sub run {
 }
 
 sub get_strandness {
-  my ($bed_file, $sam_file, $n_samples, $input_is_stranded) = @_;
+  my ($self, $bed_file, $sam_file, $n_samples, $input_is_stranded) = @_;
 
   # Default empty = unstranded
   my $strandness = '';
@@ -150,7 +153,7 @@ sub get_strandness {
       die("Inference failed ($exit): $stderr");
     } else {
       my $output = "$stdout\n$stderr";
-      my ($strandness, $is_paired) = parse_inference($stdout, $stderr, $input_is_stranded);
+      my ($strandness, $is_paired) = $self->parse_inference($stdout, $stderr, $input_is_stranded);
       my $no_reads = 0;
       if ($stderr =~ /Total (\d+) usable reads/) {
         $no_reads = $1;
@@ -171,7 +174,7 @@ sub cleanup_file {
 }
 
 sub parse_inference {
-  my ($text, $err, $input_is_stranded) = @_;
+  my ($self, $text, $err, $input_is_stranded) = @_;
 
   my $is_paired;
   my %strand = (
@@ -222,9 +225,9 @@ sub parse_inference {
   my $strandness = '';
 
   my $aligned = (1 - $stats{failed});
-  my $max = $aligned * 0.85; # Anything above 85% is considered stranded
-  my $min_ambiguous = 0.65;
-  my $max_failed = 0.25;
+  my $max_failed = $self->param('infer_failed_max');
+  my $max_ambiguous = $aligned * $self->param('infer_max'); # Anything above is considered stranded
+  my $min_ambiguous = $aligned * $self->param('infer_min');
   
   # Too much failed: can't infer strandness
   if ($stats{failed} > $max_failed) {
@@ -235,7 +238,7 @@ sub parse_inference {
     $strandness = $is_paired ? 'FR' : 'F';
     
     # Not enough power to infer: use input
-    if ($stats{ forward } < $max and not $input_is_stranded) {
+    if ($stats{ forward } < $max_ambiguous and not $input_is_stranded) {
       $strandness = '';
     }
 
@@ -244,7 +247,7 @@ sub parse_inference {
     $strandness = $is_paired ? 'RF' : 'R';
 
     # Not enough power to infer: use input
-    if ($stats{ reverse } < $max and not $input_is_stranded) {
+    if ($stats{ reverse } < $max_ambiguous and not $input_is_stranded) {
       $strandness = '';
     }
   }
