@@ -41,8 +41,7 @@ sub fetch_input {
 sub run {
   my ($self) = @_;
   
-  
-  my $force_metadata = $self->param('force_metadata');
+  my $force_metadata = $self->param('force_aligner_metadata');
   
   my $consensus_metadata;
   if ($force_metadata) {
