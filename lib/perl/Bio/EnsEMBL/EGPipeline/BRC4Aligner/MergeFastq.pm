@@ -29,13 +29,15 @@ sub run {
   my ($self) = @_;
   
   my $work_dir = $self->param_required('work_dir');
+  my $dataset_name = $self->param_required("study_name");
   my $sample_name = $self->param_required("sample_name");
   my $seq_files_1 = $self->param("run_seq_files_1");
   my $seq_files_2 = $self->param("run_seq_files_2");
   
   die "No seq_file 1 defined" if not defined $seq_files_1;
   
-  my ($file1, $file2) = $self->merge_fastq($seq_files_1, $seq_files_2, $work_dir, $sample_name);
+  my $full_sample_name = $dataset_name . "_" . $sample_name;
+  my ($file1, $file2) = $self->merge_fastq($seq_files_1, $seq_files_2, $work_dir, $full_sample_name);
   
   my $merged_data = {
     sample_seq_file_1 => $file1,
