@@ -32,10 +32,11 @@ sub param_defaults {
   my ($self) = @_;
   
   return {
+    use_input_if_ambiguous => 0,
     n_samples => 200000,
     infer_max => 0.80,  # Above this, infer stranded
     infer_min => 0.65,  # Between this and infer_max, don't infer and use input
-    infer_failed_max => 0.25 # Threshold for max failed reads
+    infer_failed_max => 0.5 # Threshold for max failed reads
   };
 }
 
@@ -146,6 +147,8 @@ sub get_strandness {
       system( $cmd );
     };
 
+    die("No inference output: $stderr") if not $stdout;
+
     if ($exit != 0) {
       if ($stderr =~ /Total 0 usable reads were sampled/) {
         return undef, undef, 1;
@@ -163,7 +166,6 @@ sub get_strandness {
   } catch {
     # Nothing could be determined? Return nothing but continue
     die("Inference failed with command:\n$cmd\nOutput: $_");
-    return;
   };
 }
 
@@ -211,7 +213,7 @@ sub parse_inference {
   $stats{failed} //= 0;
 
   if (not defined $is_paired) {
-    die("Could not determine the library: single or paired-end");
+    die("Could not determine the library: single or paired-end from:\n$text");
   }
 
   if (not $stats{ forward }) {
@@ -237,9 +239,13 @@ sub parse_inference {
   } elsif ($stats{ forward } > $min_ambiguous) {
     $strandness = $is_paired ? 'FR' : 'F';
     
-    # Not enough power to infer: use input
+    # Not enough power to infer: die or use input
     if ($stats{ forward } < $max_ambiguous and not $input_is_stranded) {
-      $strandness = '';
+      if ($self->param('use_input_if_ambiguous')) {
+        $strandness = '';
+      } else {
+        die("Ambiguous strand inference: $stats{ forward } < $max_ambiguous:\n$text");
+      }
     }
 
   # Stranded reverse
@@ -248,7 +254,11 @@ sub parse_inference {
 
     # Not enough power to infer: use input
     if ($stats{ reverse } < $max_ambiguous and not $input_is_stranded) {
-      $strandness = '';
+      if ($self->param('use_input_if_ambiguous')) {
+        $strandness = '';
+      } else {
+        die("Ambiguous strand inference: $stats{ forward } < $max_ambiguous:\n$text");
+      }
     }
   }
 
