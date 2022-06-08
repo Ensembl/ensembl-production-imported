@@ -29,7 +29,9 @@ sub run {
   my ($self) = @_;
   
   my $work_dir = $self->param_required('work_dir');
+  my $dataset_name = $self->param_required("study_name");
   my $sample_name = $self->param_required("sample_name");
+  my $full_sample_name = $dataset_name . "_" . $sample_name;
 
   my $align_meta = $self->param_required('aggregated_aligner_metadata');
   
@@ -44,10 +46,10 @@ sub run {
   
   my ($file1, $file2);
   if ($align_meta->{is_paired}) {
-    $file1 = catfile($work_dir, $sample_name . "_all_1.fastq.gz");
-    $file2 = catfile($work_dir, $sample_name . "_all_2.fastq.gz");
+    $file1 = catfile($work_dir, $full_sample_name . "_all_1.fastq.gz");
+    $file2 = catfile($work_dir, $full_sample_name . "_all_2.fastq.gz");
   } else {
-    $file1 = catfile($work_dir, $sample_name . "_all.fastq.gz");
+    $file1 = catfile($work_dir, $full_sample_name . "_all.fastq.gz");
   }
   
   my $sample_data = {

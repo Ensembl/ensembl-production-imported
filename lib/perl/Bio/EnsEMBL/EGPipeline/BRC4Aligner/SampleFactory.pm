@@ -63,6 +63,7 @@ sub run {
     # Sample data
     my $sample_name = $sample->{name} // $sample->{accessions}->[0];
     die "Missing sample name for $dataset->{name}" if not $sample_name;
+
     if (exists $unique_sample{$sample_name}) {
       die("There are several samples with the name $sample_name in the dataset $dataset->{name}");
     } else {
@@ -132,7 +133,8 @@ sub run {
       
       # Also check that the sample file (might have a different name) doesn't already exist
       my $sample_dl_dir = $self->param_required('species_work_dir');
-      my ($seq1, $seq2) = $self->has_sample_files($sample_dl_dir, $sample_name);
+      my $sample_full_name = $dataset->{name} . "_" . $sample_name;
+      my ($seq1, $seq2) = $self->has_sample_files($sample_dl_dir, $sample_full_name);
       
       if ($seq1) {
         # No need to redownload the files
