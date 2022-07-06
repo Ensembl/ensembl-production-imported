@@ -850,8 +850,28 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -flow_into         => [
        'GenesCheck',
-        WHEN('not -s #genome_file#', 'Dump_genome'),
+        WHEN('not -f #genome_file# . ".indexed"', 'Dump_and_index'),
       ],
+    },
+
+    {
+      -logic_name        => 'Dump_and_index',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -flow_into         => {
+        '1->A' => 'Dump_genome',
+        'A->1' => 'Finished_dump',
+      },
+    },
+
+    {
+      -logic_name        => 'Finished_dump',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::SystemCmd',
+      -parameters => {
+        cmd => 'touch #genome_file#.indexed',
+      },
+      -rc_name           => 'normal',
+      -max_retry_count => 0,
     },
 
     {

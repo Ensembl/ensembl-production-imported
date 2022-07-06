@@ -55,13 +55,19 @@ sub fetch_input {
   my $dnaseq        = $self->param('dnaseq');
   my $aligner_metadata = $self->param_required('aligner_metadata');
   my $strandness    = $aligner_metadata->{strandness};
+  my $no_spliced    = $self->param('no_spliced');
 
   # DNA-Seq special changes
   $strandness = undef if $dnaseq;
-  my $no_spliced = $dnaseq ? 1 : 0;
+  if ($dnaseq) {
+    $no_spliced = 1;
+  }
   my $number_primary = $dnaseq ? 1 : undef;
-  
-  my $max_intron_length = $self->max_intron_length() if $max_intron;
+
+  my $max_intron_length;
+  if (not $no_spliced and $max_intron) {
+    $max_intron_length = $self->max_intron_length();
+  }
   
   eval "require $aligner_class";
   

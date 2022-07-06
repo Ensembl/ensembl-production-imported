@@ -35,7 +35,7 @@ sub param_defaults {
     use_input_if_ambiguous => 0,
     n_samples => 200000,
     infer_max => 0.80,  # Above this, infer stranded
-    infer_min => 0.65,  # Between this and infer_max, don't infer and use input
+    infer_min => 0.65,  # Between this and infer_max, don't infer
     infer_failed_max => 0.5 # Threshold for max failed reads
   };
 }
@@ -257,7 +257,7 @@ sub parse_inference {
       if ($self->param('use_input_if_ambiguous')) {
         $strandness = '';
       } else {
-        die("Ambiguous strand inference: $stats{ forward } < $max_ambiguous:\n$text");
+        die("Ambiguous strand inference: $stats{ reverse } < $max_ambiguous:\n$text");
       }
     }
   }

@@ -1,2 +1,4 @@
 jsonschema
 unidecode
+RSeQC
+HTSeq
