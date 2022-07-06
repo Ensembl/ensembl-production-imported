@@ -88,6 +88,7 @@ sub run {
       study_name => $dataset->{name},
       accessions => \@run_ids,
       trim_reads => $sample->{trim_reads} ? 1 : 0,
+      no_spliced => $dataset->{no_spliced} ? 1 : 0,
       sample_name => $sample_name,
       sample_dir => $sample_dir,
       sample_bam_file => $sample_bam_file,

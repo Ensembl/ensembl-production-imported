@@ -15,6 +15,7 @@
         "species" : { "type" : "string" },
         "production_name" : { "type" : "string" },
         "name" : { "type" : "string" },
+        "no_spliced" : { "type" : "boolean" },
 
         "runs" : {
           "type" : "array",
