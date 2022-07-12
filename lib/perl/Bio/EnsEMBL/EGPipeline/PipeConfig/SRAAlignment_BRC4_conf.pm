@@ -102,6 +102,12 @@ Run the pipeline for DNA-Seq instead of RNA-Seq short reads.
 
 Default: 0
 
++=item B<--global_bw>
++
++A global BigWig file will be created alongside the analysis.
++
++Default: 0
+
 =item B<--skip_cleanup>
 
 Do not remove intermediate files from the results dir (that includes the bam files).
@@ -262,7 +268,7 @@ json dataset).
 
 =head3 B<Strandness inference>
 
-To ensure that the aligner uses the correct strand information, an additional step to infer the 
+To ensure that the aligner uses the correct strand information, an additional step to infer the
 strandness of the data is necessary.
 
 Steps:
@@ -558,7 +564,7 @@ To activate the HTSeq recount route.
 =item --alignments_dir
 
 This is the location of the already aligned datasets (the bam file must be in there, as well as
-the metadata files)  
+the metadata files)
 
 =back
 
@@ -596,25 +602,28 @@ sub default_options {
     # Datasets to align
     datasets_file => $self->o('datasets_file'),
     datasets_json_schema => catfile($package_dir, '../BRC4Aligner/brc4_rnaseq_schema.json'),
-    
+
     # BEHAVIOUR
     # Use DNA-Seq specific parameters
     # In that case, do not remove bam files
     dnaseq => 0,
     skip_cleanup => $self->o('dnaseq'),
-    
+
+    # Create a global main BigWig file
+    global_bw => 0,
+
     # Download via SRA from NCBI if ENA fails (fallback)
     fallback_ncbi => 0,
     sra_dir => undef,
     # Force using NCBI SRA instead of ENA
     force_ncbi => 0,
-    
+
     # If there is already an alignment for a sample, redo its htseq-count only
     # (do nothing otherwise)
     redo_htseqcount => 0,
     features => ['exon'],
     alignments_dir => undef,
-    
+
     # Use input metadata, instead of inferring them (pair/strand)
     infer_metadata => 1,
 
@@ -631,10 +640,10 @@ sub default_options {
     trimmomatic_bin => undef,
     trim_adapters_pe => undef,
     trim_adapters_se => undef,
-    
+
     # Path to hisat2 binaries
     hisat2_dir    => undef,
-    
+
     # If a directory is not specified then the version in the
     # Ensembl software environment will be used.
     samtools_dir  => undef,
@@ -645,7 +654,7 @@ sub default_options {
 
     ###########################################################################
     # PARAMETERS unlikely to be changed
-    
+
     # Dump genome: repeatmasking
     repeat_masking     => 'soft',
     repeat_logic_names => [],
@@ -664,7 +673,7 @@ sub beekeeper_extra_cmdline_options {
     $self->SUPER::beekeeper_extra_cmdline_options,
     "-reg_conf ".$self->o('registry')
   );
-  
+
   return $options;
 }
 
@@ -678,7 +687,7 @@ sub hive_meta_table {
 
 sub pipeline_create_commands {
   my ($self) = @_;
-  
+
   # To store alignment commands
   my $align_cmds_table =
     'CREATE TABLE align_cmds ('.
@@ -702,6 +711,7 @@ sub pipeline_wide_parameters {
     'infer_metadata' => $self->o('infer_metadata'),
     'dnaseq'      => $self->o('dnaseq'),
     'force_ncbi'      => $self->o('force_ncbi'),
+    'global_bw'       => $self->o('global_bw'),
   };
 }
 
@@ -1355,7 +1365,7 @@ sub pipeline_analyses {
         1 => '?accu_name=aligner_metadata&accu_input_variable=input_metadata',
       },
     },
-    
+
     # Subset alignment to infer strand-specificity
     {
       -logic_name        => 'SubsetSequence',
@@ -1563,9 +1573,21 @@ sub pipeline_analyses {
       -analysis_capacity => 10,
       -max_retry_count => 0,
       -flow_into         => {
-        2 => 'Split_unique',
+        2 => ['Split_unique',
+          WHEN("#global_bw#", 'Main_BigWig')],
         3 => '?accu_name=bam_stats&accu_address=[]',
       },
+    },
+
+    {
+      -logic_name        => 'Main_BigWig',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::CreateBigWig',
+      -parameters        => {
+        bam_file  => '#output_bam_file#',
+      },
+      -rc_name           => '16GB',
+      -analysis_capacity => 10,
+      -max_retry_count => 0,
     },
 
     {
