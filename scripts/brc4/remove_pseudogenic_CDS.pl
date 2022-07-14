@@ -63,47 +63,42 @@ sub check_pseudoCDS {
   $logger->info("Database:\t$dbname");
   $logger->info("Species:\t$species");
   
-  my $count_ps = @{$tra->fetch_all_by_biotype('pseudogene')};
+  my $count_ps = @{$ga->fetch_all_by_biotype('pseudogene')};
+  my $count_pst = @{$tra->fetch_all_by_biotype('pseudogene')};
   my $count_pscds = 0;
   my $count_pscds_seq = 0;
-  GENE: for my $tr (@{$tra->fetch_all_by_biotype('pseudogene_with_CDS')}) {
+
+  GENE: for my $gene (@{$ga->fetch_all_by_biotype('pseudogene_with_CDS')}) {
     $count_pscds++;
+
+    for my $tr (@{$gene->get_all_Transcripts()}) {
+      my $translation = $tr->translation;
+      my $tr_biotype = $tr->biotype;
     
-    my $translation = $tr->translation;
-    
-    if ($translation) {
-      $count_pscds_seq++;
-      
+      if ($translation or $tr_biotype eq 'pseudogene_with_CDS') {
+        $count_pscds_seq++;
+        
+        # Update the transcript biotype + remove its translation
+        if ($update) {
+          $logger->info("UPDATE transcript " . $tr->stable_id);
+          $tla->remove($translation);
+          $tr->biotype('pseudogene');
+          $tra->update($tr);
+        }
+      }
+      # Update the gene biotype
       if ($update) {
-        $logger->info("UPDATE " . $tr->stable_id);
-        $tla->remove($translation);
-        $tr->biotype('pseudogene');
-        $tra->update($tr);
-        update_gene($ga, $tr);
+        $logger->info("UPDATE gene " . $gene->stable_id);
+        $gene->biotype('pseudogene');
+        $ga->update($gene);
       }
     }
   }
   $tra->dbc->disconnect_if_idle();
   $logger->info("Pseudogene\t$count_ps");
   $logger->info("Pseudogene_with_CDS\t$count_pscds");
+  $logger->info("Pseudogenic transcript\t$count_pst");
   $logger->info("With a translation\t$count_pscds_seq");
-}
-
-sub update_gene {
-  my ($ga, $transcript) = @_;
-  
-  # Make sure all transcripts are pseudogenes to update
-  my $gene = $transcript->get_Gene;
-  return if $gene->biotype eq 'pseudogene';
-  
-  for my $tr (@{$gene->get_all_Transcripts()}) {
-    if ($tr->biotype ne 'pseudogene') {
-      return;
-    }
-  }
-  
-  $gene->biotype('pseudogene');
-  $ga->update($gene);
 }
 
 ###############################################################################
