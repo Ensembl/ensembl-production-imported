@@ -63,42 +63,59 @@ sub check_pseudoCDS {
   $logger->info("Database:\t$dbname");
   $logger->info("Species:\t$species");
   
-  my $count_ps = @{$ga->fetch_all_by_biotype('pseudogene')};
-  my $count_pst = @{$tra->fetch_all_by_biotype('pseudogene')};
-  my $count_pscds = 0;
-  my $count_pscds_seq = 0;
+  # We're looking at all pseudogenes/+with_CDS
+  # as well as protein_coding genes, in case they contain both protein_coding and
+  # pseudogenic transcripts
+  my $all_genes = get_genes($tra);
+  my $count_pst = 0;
 
-  GENE: for my $gene (@{$ga->fetch_all_by_biotype('pseudogene_with_CDS')}) {
-    $count_pscds++;
+  GENE: for my $gene (@$all_genes) {
+    my $not_pseudo = 0;
 
     for my $tr (@{$gene->get_all_Transcripts()}) {
       my $translation = $tr->translation;
       my $tr_biotype = $tr->biotype;
-    
-      if ($translation or $tr_biotype eq 'pseudogene_with_CDS') {
-        $count_pscds_seq++;
+
+      # Only consider transcripts that are exactly pseudogene_with_CDS,
+      # even if the gene is something else
+      if ($tr_biotype eq 'pseudogene_with_CDS') {
+        $count_pst++;
         
-        # Update the transcript biotype + remove its translation
+        # Update the transcript biotype to pseudogene + remove its translation
         if ($update) {
           $logger->info("UPDATE transcript " . $tr->stable_id);
           $tla->remove($translation);
           $tr->biotype('pseudogene');
           $tra->update($tr);
         }
-      }
-      # Update the gene biotype
-      if ($update) {
-        $logger->info("UPDATE gene " . $gene->stable_id);
-        $gene->biotype('pseudogene');
-        $ga->update($gene);
+      # Note if the gene contains transcripts that are not pseudogenic
+      } else {
+        $not_pseudo++;
       }
     }
+
+    # Update the gene biotype to pseudogene too, but only if all transcripts are pseudogenic
+    my $all_pseudo = not $not_pseudo;
+    if ($update and $all_pseudo) {
+      $logger->info("UPDATE gene " . $gene->stable_id);
+      $gene->biotype('pseudogene');
+      $ga->update($gene);
+    }
   }
-  $tra->dbc->disconnect_if_idle();
-  $logger->info("Pseudogene\t$count_ps");
-  $logger->info("Pseudogene_with_CDS\t$count_pscds");
-  $logger->info("Pseudogenic transcript\t$count_pst");
-  $logger->info("With a translation\t$count_pscds_seq");
+  $ga->dbc->disconnect_if_idle();
+  $logger->info("Genes with pseudogene_with_CDS transcripts\t" . scalar(@$all_genes));
+  $logger->info("Pseudogenic transcript with CDS\t$count_pst");
+}
+
+sub get_genes {
+  my ($tra) = @_;
+
+  # Get the genes that contain at least one transcript with biotype pseudogene_with_CDS
+  my @genes;
+  for my $tr (@{$tra->fetch_all_by_biotype('pseudogene_with_CDS')}) {
+    push @genes, $tr->get_Gene();
+  }
+  return \@genes;
 }
 
 ###############################################################################
