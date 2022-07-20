@@ -83,21 +83,23 @@ sub check_pseudoCDS {
         
         # Update the transcript biotype to pseudogene + remove its translation
         if ($update) {
-          $logger->info("UPDATE transcript " . $tr->stable_id);
+          $logger->debug("UPDATE transcript " . $tr->stable_id);
           $tla->remove($translation);
           $tr->biotype('pseudogene');
           $tra->update($tr);
         }
       # Note if the gene contains transcripts that are not pseudogenic
       } else {
-        $not_pseudo++;
+        if ($tr_biotype ne 'pseudogene') {
+          $not_pseudo++;
+        }
       }
     }
 
     # Update the gene biotype to pseudogene too, but only if all transcripts are pseudogenic
     my $all_pseudo = not $not_pseudo;
     if ($update and $all_pseudo) {
-      $logger->info("UPDATE gene " . $gene->stable_id);
+      $logger->debug("UPDATE gene " . $gene->stable_id);
       $gene->biotype('pseudogene');
       $ga->update($gene);
     }
