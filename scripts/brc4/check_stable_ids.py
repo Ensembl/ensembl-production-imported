@@ -306,7 +306,7 @@ class StableIdDB(object):
             ordered by the stable_id names, then db1 and db2
         """
         
-        query = text("""SELECT db1.db_name, db2.db_name, s1.name,
+        query = text("""SELECT db1.db_name, db2.db_name, s1.name
                    FROM db db1 LEFT JOIN stable_id s1 ON db1.db_id=s1.db_id,
                         db db2 LEFT JOIN stable_id s2 ON db2.db_id=s2.db_id
                    WHERE s1.name_id != s2.name_id
