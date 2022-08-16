@@ -31,19 +31,43 @@ $registry->load_all($reg_path);
 
 my %old_data;
 for my $feat (@features) {
-  $old_data{$feat} = get_old_data($registry, $species, $feat);
-  print STDERR scalar(keys $old_data{$feat}) . " ${feat}s from old database\n";
+  $old_data{$feat} = get_feat_data($registry, $species, $feat);
+  print STDERR scalar(keys %{$old_data{$feat}}) . " ${feat}s from old database\n";
 }
 
 # Reload registry, this time for new database
 $reg_path = $opt{new_registry};
 $registry->load_all($reg_path);
 
+my %new_data;
+for my $feat (@features) {
+  $new_data{$feat} = get_feat_data($registry, $species, $feat);
+  print STDERR scalar(keys %{$new_data{$feat}}) . " ${feat}s from new database\n";
+}
+
+# Transfer descriptions
 if ($opt{descriptions}) {
   say STDERR "Gene descriptions transfer:";
   update_descriptions($registry, $species, $old_data{gene}, $opt{write});
 }
 
+if ($opt{events}) {
+  # Get events from features differences
+  my ($old_ids, $new_ids) = diff_events($old_data{gene}, $new_data{gene});
+
+  # Load all events from the file
+  my $del_events = load_deletes($opt{deletes}, $old_ids);
+  my $file_events = load_events($opt{events}, $old_ids, $new_ids);
+
+  my %events = (%$del_events, %$file_events);
+
+  for my $event_type (sort keys %events) {
+    my @feat_events = @{$events{$event_type}};
+    say("Event: $event_type = " . scalar(@feat_events));
+  }
+}
+
+# Transfer versions
 if ($opt{versions}) {
   say STDERR "Gene versions transfer:";
   # Update the version for the features we want to transfer and update
@@ -74,7 +98,139 @@ if ($opt{versions}) {
 }
 
 ###############################################################################
-sub get_old_data {
+sub load_deletes {
+  my ($deletes_file, $old_ids) = @_;
+
+  if (not $deletes_file) {
+    return {};
+  }
+
+  my %events = (
+    deleted => [],
+  );
+  open(my $deletes_fh, "<", $deletes_file);
+  while (my $line = readline($deletes_fh)) {
+    chomp $line;
+    my $id = $line;
+
+    if ($old_ids->{$id}) {
+      push @{$events{deleted}}, {from => [$id], to => []};
+      delete $old_ids->{$id};
+    } else {
+      say("Warning: '$id' in the events file, but not deleted in the new core");
+    }
+  }
+
+  return \%events;
+}
+
+sub load_events {
+  my ($events_file, $old_ids, $new_ids) = @_;
+
+  if (not $events_file) {
+    return {};
+  }
+
+  my %events = (
+    change => [],
+    new => [],
+    split => [],
+    merge => [],
+  );
+  my %merge_to = ();
+  my %split_from = ();
+  open(my $events_fh, "<", $events_file);
+  while (my $line = readline($events_fh)) {
+    chomp $line;
+    my ($id1, $event_name, $id2) = split("\t", $line);
+
+    # New gene
+    if ($id1 and not $id2) {
+      push @{$events{new}}, {from => [], to => [$id1]};
+      if ($new_ids->{$id1}) {
+        delete $new_ids->{$id1};
+      }
+    # Changed gene
+    } elsif ($id1 eq $id2) {
+      push @{$events{change}}, {from => [$id1], to => [$id1]};
+    # Merge
+    } elsif ($event_name eq 'merge_gene') {
+      if (not $merge_to{$id1}) {
+        $merge_to{$id1} = [];
+      }
+      push @{$merge_to{$id1}}, $id2;
+    # Split
+    } elsif ($event_name eq 'split_gene') {
+      if (not $split_from{$id2}) {
+        $split_from{$id2} = [];
+      }
+      push @{$split_from{$id2}}, $id1;
+    }
+    else {
+      say "Unsupported event '$event_name'? $line";
+    }
+  }
+
+  while (my ($merge_to_id, $merge_from) = each %merge_to) {
+    push @{$events{merge}}, {from => $merge_from, to => [$merge_to_id]};
+
+    if ($new_ids->{$merge_to_id}) {
+      delete $new_ids->{$merge_to_id};
+    }
+    for my $merge_from_id (@$merge_from) {
+      if ($old_ids->{$merge_from_id}) {
+        delete $old_ids->{$merge_from_id};
+      }
+    }
+  }
+  while (my ($split_from_id, $split_to) = each %split_from) {
+    push @{$events{split}}, {from => [$split_from_id], to => $split_to};
+
+    if ($old_ids->{$split_from_id}) {
+      delete $old_ids->{$split_from_id};
+    }
+    for my $split_to_id (@$split_to) {
+      if ($new_ids->{$split_to_id}) {
+        delete $new_ids->{$split_to_id};
+      }
+    }
+  }
+
+  if (%$new_ids) {
+    say(scalar(%$new_ids) . " new ids not in the event file: " . join("; ", sort keys %$new_ids));
+  }
+
+  if (%$old_ids) {
+    say(scalar(%$old_ids) . " old ids not in the event file: " . join("; ", sort keys %$old_ids));
+  }
+
+  close($events_fh);
+
+  return \%events;
+}
+
+sub diff_events {
+  my ($old, $new) = @_;
+
+  my %events = (
+    new => [],
+    deleted => [],
+  );
+
+  my %old_ids = map { $_ => 1 } keys %$old;
+  my %new_ids = map { $_ => 1 } keys %$new;
+
+  for my $old_id (keys %old_ids) {
+    if ($new_ids{$old_id}) {
+      delete $old_ids{$old_id};
+      delete $new_ids{$old_id};
+    }
+  }
+
+  return \%old_ids, \%new_ids;
+}
+
+sub get_feat_data {
   my ($registry, $species, $feature) = @_;
   
   my %feats;
@@ -192,7 +348,11 @@ sub usage {
     --species <str>   : production_name of one species
 
     --descriptions    : Transfer the gene descriptions
+
+    Use either of those:
     --versions        : Transfer the gene versions, and init the others
+    --events <path>   : Path to an events file, to update the history and versions
+    --deletes <path>  : Path to a list of deleted genes (to use with the events file)
     
     --write           : Do the actual changes (default is no changes to the database)
     
@@ -212,6 +372,8 @@ sub opt_check {
     "species=s",
     "descriptions",
     "versions",
+    "events=s",
+    "deletes=s",
     "write",
     "help",
     "verbose",
