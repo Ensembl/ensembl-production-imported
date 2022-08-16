@@ -65,6 +65,10 @@ if ($opt{events}) {
     my @feat_events = @{$events{$event_type}};
     say("Event: $event_type = " . scalar(@feat_events));
   }
+
+  my $ga = $registry->get_adaptor($species, "core", 'gene');
+  my $dbc = $ga->dbc;
+  add_events(\%events, $old_data{gene}, $dbc, $opt{write});
 }
 
 # Transfer versions
@@ -117,7 +121,7 @@ sub load_deletes {
       push @{$events{deleted}}, {from => [$id], to => []};
       delete $old_ids->{$id};
     } else {
-      say("Warning: '$id' in the events file, but not deleted in the new core");
+      say("Warning: '$id' in the deletes file, but not deleted in the new core");
     }
   }
 
@@ -330,6 +334,72 @@ sub update_descriptions {
   print STDERR "$empty_count genes without description remain\n";
   print STDERR "$empty_count new genes, without description\n";
   print STDERR "(Use --write to update the descriptions in the database)\n" if $update_count > 0 and not $update;
+}
+
+sub add_events {
+  my ($events, $data, $dbc, $write) = @_;
+
+  my $feat = 'gene';
+  my $metadata = {};
+  my $mapping_id = add_mapping_session($dbc, $metadata);
+
+  for my $event_name (keys %$events) {
+    say "Storing events $event_name...";
+    my @events = @{$events->{$event_name}};
+    for my $event (@events) {
+      my @from = @{$event->{from}};
+      my @to = @{$event->{to}};
+
+      if ($event_name eq 'new') {
+        insert_event($dbc, $write, [$mapping_id, $feat, undef, undef, $to[0], 1]);
+      }
+      elsif ($event_name eq 'deleted') {
+        my $id = $from[0];
+        my $version = $data->{$id}->{version};
+        insert_event($dbc, $write, [$mapping_id, $feat, $id, $version, undef, undef]);
+      }
+      elsif ($event_name eq 'change') {
+        my $id = $from[0];
+        my $old_version = $data->{$id}->{version};
+        my $new_version = $old_version + 1;
+        insert_event($dbc, $write, [$mapping_id, $feat, $id, $old_version, $id, $new_version]);
+      }
+      elsif ($event_name eq 'split') {
+        my $id = $from[0];
+        my $old_version = $data->{$id}->{version};
+        {
+          my @values = ($mapping_id, $feat, $id, $old_version, undef, undef);
+          insert_event($dbc, $write, [$mapping_id, $feat, $id, $old_version, undef, undef]);
+        }
+        for my $split_id (@to) {
+          my @values = ($mapping_id, $feat, $id, $old_version, $split_id, 1);
+          insert_event($dbc, $write, [$mapping_id, $feat, $id, $old_version, $split_id, 1]);
+        }
+      }
+      elsif ($event_name eq 'merge') {
+        my $id = $to[0];
+        for my $merge_id (@from) {
+          my $old_version = $data->{$merge_id}->{version};
+          insert_event($dbc, $write, [$mapping_id, $feat, $merge_id, $old_version, $id, 1]);
+          insert_event($dbc, $write, [$mapping_id, $feat, $merge_id, $old_version, undef, undef]);
+        }
+      }
+    }
+  }
+}
+
+sub insert_event {
+  my ($dbc, $write, $values) = @_;
+  my $sql = "INSERT INTO stable_id_event(mapping_session_id, old_stable_id, old_version, new_stable_id, new_name, type) VALUES(?,?,?,?,?,?)";
+  my $sth = $dbc->prepare($sql);
+  say("Insert values: " . join(", ", map { $_ // 'undef' } @$values));
+
+}
+
+sub add_mapping_session {
+  my ($dbc, $metadata) = @_;
+  # TODO
+  return 1;
 }
 
 ###############################################################################
