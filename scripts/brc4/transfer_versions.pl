@@ -495,14 +495,22 @@ sub usage {
     --new_registry <path> : Ensembl registry
     --species <str>   : production_name of one species
 
-    --update_descriptions    : Transfer the gene descriptions
+    You can do 2 things:
+    - Update the history
+    - Transfer the descriptions and version
+    (you can do both at the same time)
 
-    Use either of those:
-    --update_versions        : Transfer the gene versions, and init the others
-    or
+    History (use both events and deletes at the same time to make them part of the same session):
     --events <path>   : Path to an events file, to update the history and versions
     --deletes <path>  : Path to a list of deleted genes (to use with the events file)
+
+    NB: only run the history update once (otherwise you will have duplicates).
     
+    Transfer:
+    --update_descriptions : Transfer the gene descriptions
+    --update_versions     : Transfer and increment the gene versions, and init the others
+    
+    Use this to make actual changes:
     --write           : Do the actual changes (default is no changes to the database)
     
     --help            : show this help message
