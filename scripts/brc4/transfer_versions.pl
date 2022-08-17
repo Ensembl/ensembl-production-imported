@@ -28,26 +28,30 @@ my @features = qw(gene);
 my $registry = 'Bio::EnsEMBL::Registry';
 my $reg_path = $opt{old_registry};
 $registry->load_all($reg_path);
+my $ma = $registry->get_adaptor($species, "core", 'MetaContainer');
 
+my $old_metadata = get_meta($ma);
 my %old_data;
 for my $feat (@features) {
   $old_data{$feat} = get_feat_data($registry, $species, $feat);
-  print STDERR scalar(keys %{$old_data{$feat}}) . " ${feat}s from old database\n";
+  $logger->info(scalar(keys %{$old_data{$feat}}) . " ${feat}s from old database");
 }
 
 # Reload registry, this time for new database
 $reg_path = $opt{new_registry};
 $registry->load_all($reg_path);
+$ma = $registry->get_adaptor($species, "core", 'MetaContainer');
+my $new_metadata = get_meta($ma);
 
 my %new_data;
 for my $feat (@features) {
   $new_data{$feat} = get_feat_data($registry, $species, $feat);
-  print STDERR scalar(keys %{$new_data{$feat}}) . " ${feat}s from new database\n";
+  $logger->info(scalar(keys %{$new_data{$feat}}) . " ${feat}s from new database");
 }
 
 # Transfer descriptions
-if ($opt{descriptions}) {
-  say STDERR "Gene descriptions transfer:";
+if ($opt{update_descriptions}) {
+  $logger->info("Gene descriptions transfer:");
   update_descriptions($registry, $species, $old_data{gene}, $opt{write});
 }
 
@@ -63,17 +67,27 @@ if ($opt{events}) {
 
   for my $event_type (sort keys %events) {
     my @feat_events = @{$events{$event_type}};
-    say("Event: $event_type = " . scalar(@feat_events));
+    $logger->info("Event: $event_type = " . scalar(@feat_events));
   }
+
+  # Compile metadata for mapping
+  my $metadata = {
+    old_db_name => $old_metadata->{db_name},
+    new_db_name => $new_metadata->{db_name},
+    old_release => $old_metadata->{release},
+    new_release => $new_metadata->{release},
+    old_assembly => $old_metadata->{assembly},
+    new_assembly => $new_metadata->{assembly},
+  };
 
   my $ga = $registry->get_adaptor($species, "core", 'gene');
   my $dbc = $ga->dbc;
-  add_events(\%events, $old_data{gene}, $dbc, $opt{write});
+  add_events(\%events, $old_data{gene}, $dbc, $metadata, $opt{write});
 }
 
 # Transfer versions
-if ($opt{versions}) {
-  say STDERR "Gene versions transfer:";
+if ($opt{update_versions}) {
+  $logger->info("Gene versions transfer:");
   # Update the version for the features we want to transfer and update
   for my $feat (@features) {
     update_versions($registry, $species, $feat, $old_data{$feat}, $opt{write});
@@ -81,7 +95,7 @@ if ($opt{versions}) {
 
   # Blanket version replacement for transcripts, translations, exons
   if ($opt{write}) {
-    say STDERR "Transcripts, translations and exons version update";
+    $logger->info("Transcripts, translations and exons version update");
     my $ga = $registry->get_adaptor($species, "core", 'gene');
     my $dbc = $ga->dbc;
 
@@ -97,7 +111,7 @@ if ($opt{versions}) {
     my $exon_query = "UPDATE exon SET version = 1";
     $dbc->do($exon_query);
   } else {
-    say STDERR "Transcripts, translations and exons init versions were not updated (use --write to do so)";
+    $logger->info("Transcripts, translations and exons init versions were not updated (use --write to do so)");
   }
 }
 
@@ -121,7 +135,7 @@ sub load_deletes {
       push @{$events{deleted}}, {from => [$id], to => []};
       delete $old_ids->{$id};
     } else {
-      say("Warning: '$id' in the deletes file, but not deleted in the new core");
+      $logger->warn("Warning: '$id' in the deletes file, but not deleted in the new core");
     }
   }
 
@@ -171,7 +185,7 @@ sub load_events {
       push @{$split_from{$id2}}, $id1;
     }
     else {
-      say "Unsupported event '$event_name'? $line";
+      $logger->warn("Unsupported event '$event_name'? $line");
     }
   }
 
@@ -201,11 +215,11 @@ sub load_events {
   }
 
   if (%$new_ids) {
-    say(scalar(%$new_ids) . " new ids not in the event file: " . join("; ", sort keys %$new_ids));
+    $logger->warn(scalar(%$new_ids) . " new ids not in the event file: " . join("; ", sort keys %$new_ids));
   }
 
   if (%$old_ids) {
-    say(scalar(%$old_ids) . " old ids not in the event file: " . join("; ", sort keys %$old_ids));
+    $logger->warn(scalar(%$old_ids) . " old ids not in the event file: " . join("; ", sort keys %$old_ids));
   }
 
   close($events_fh);
@@ -276,10 +290,10 @@ sub update_versions {
 
       if (defined $old_version) {
         $new_version = $old_version + 1;
-        say STDERR "Updated $feature $id must be upgrade from $old_version to $new_version" if $opt{verbose};
+        $logger->debug("Updated $feature $id must be upgraded from $old_version to $new_version");
         $update_count++;
       } else {
-        say STDERR "New $feature $id must be initialized to 1" if $opt{verbose};
+        $logger->debug("New $feature $id must be initialized to 1");
         $new_count++;
       }
 
@@ -290,9 +304,9 @@ sub update_versions {
     }
   }
   
-  print STDERR "$update_count $feature version updated\n";
-  print STDERR "$new_count $feature version to be initialized\n";
-  print STDERR "(Use --write to make the changes to the database)\n" if $update_count + $new_count > 0 and not $update;
+  $logger->info("$update_count $feature version updated");
+  $logger->info("$new_count $feature version to be initialized");
+  $logger->info("(Use --write to make the changes to the database))") if $update_count + $new_count > 0 and not $update;
 }
 
 sub update_descriptions {
@@ -317,7 +331,7 @@ sub update_descriptions {
 
       if (defined $old_description) {
         my $new_description = $old_description;
-        say STDERR "Transfer gene $id description: $new_description" if $opt{verbose};
+        $logger->info("Transfer gene $id description: $new_description");
         $update_count++;
 
         if ($update) {
@@ -337,14 +351,13 @@ sub update_descriptions {
 }
 
 sub add_events {
-  my ($events, $data, $dbc, $write) = @_;
+  my ($events, $data, $dbc, $metadata, $write) = @_;
 
   my $feat = 'gene';
-  my $metadata = {};
-  my $mapping_id = add_mapping_session($dbc, $metadata);
+  my $mapping_id = add_mapping_session($dbc, $metadata, $write);
 
   for my $event_name (keys %$events) {
-    say "Storing events $event_name...";
+    $logger->info($write ? "Storing events $event_name..." : "Fake storing events $event_name...");
     my @events = @{$events->{$event_name}};
     for my $event (@events) {
       my @from = @{$event->{from}};
@@ -383,6 +396,8 @@ sub add_events {
           insert_event($dbc, $write, [$mapping_id, $feat, $merge_id, $old_version, $id, 1]);
           insert_event($dbc, $write, [$mapping_id, $feat, $merge_id, $old_version, undef, undef]);
         }
+      } else {
+        $logger->warn("Unsupported event: $event_name");
       }
     }
   }
@@ -390,16 +405,79 @@ sub add_events {
 
 sub insert_event {
   my ($dbc, $write, $values) = @_;
-  my $sql = "INSERT INTO stable_id_event(mapping_session_id, old_stable_id, old_version, new_stable_id, new_name, type) VALUES(?,?,?,?,?,?)";
+  my $sql = "INSERT INTO stable_id_event(mapping_session_id, type, old_stable_id, old_version, new_stable_id, new_version) VALUES(?,?,?,?,?,?)";
   my $sth = $dbc->prepare($sql);
-  say("Insert values: " . join(", ", map { $_ // 'undef' } @$values));
+  my $msg = "Insert values: " . join(", ", map { $_ // 'undef' } @$values);
+  if ($write) {
+    $logger->debug($msg);
+    $sth->execute(@$values);
+  } else {
+    $logger->debug("Fake $msg");
+  }
+}
 
+sub get_meta {
+  my ($ma) = @_;
+
+  # Get production name
+  my $prod_name = get_meta_value($ma, 'species.production_name');
+
+  # Get db name
+  my $db_name = $ma->dbc->dbname;
+
+  # Get db release
+  my $release = 0;
+  if ($db_name =~ /_core_(\d+)_\d+_\d+$/) {
+    $release = $1;
+  } else {
+    die("Can't get release from db name: $db_name");
+  }
+
+  # Remove prefix if any
+  if ($db_name =~ /^.+_(${prod_name}.+$)/) {
+    $db_name = $1;
+  }
+
+  # Get db assembly
+  my $assembly = get_meta_value($ma, 'genebuild.version');
+
+  my %meta = (
+    db_name => $db_name,
+    assembly => $assembly,
+    release => $release
+  );
+
+  return \%meta;  
+}
+
+sub get_meta_value {
+  my ($ma, $key) = @_;
+
+  my ($value) = @{ $ma->list_value_by_key($key) };
+
+  return $value;
 }
 
 sub add_mapping_session {
-  my ($dbc, $metadata) = @_;
-  # TODO
-  return 1;
+  my ($dbc, $meta, $write) = @_;
+
+  my $mapping_id = 1;
+  if ($write) {
+    $logger->info("Storing new mapping session...");
+    my @fields = qw(old_db_name new_db_name old_release new_release old_assembly new_assembly);
+    my $sql = "INSERT INTO mapping_session(".join(", ", @fields).", created) VALUES(?,?,?,?,?,?,NOW())";
+    my $sth = $dbc->prepare($sql);
+    my @values = map { $meta->{$_} } @fields;
+    $sth->execute(@values);
+    my $dbh = $dbc->db_handle();
+    $mapping_id = $dbh->last_insert_id;
+  } else {
+    $logger->info("Fake storing new mapping session (set to 1).");
+    use Data::Dumper;
+    $logger->debug(Dumper($meta));
+  }
+
+  return $mapping_id;
 }
 
 ###############################################################################
@@ -417,10 +495,11 @@ sub usage {
     --new_registry <path> : Ensembl registry
     --species <str>   : production_name of one species
 
-    --descriptions    : Transfer the gene descriptions
+    --update_descriptions    : Transfer the gene descriptions
 
     Use either of those:
-    --versions        : Transfer the gene versions, and init the others
+    --update_versions        : Transfer the gene versions, and init the others
+    or
     --events <path>   : Path to an events file, to update the history and versions
     --deletes <path>  : Path to a list of deleted genes (to use with the events file)
     
@@ -440,8 +519,8 @@ sub opt_check {
     "old_registry=s",
     "new_registry=s",
     "species=s",
-    "descriptions",
-    "versions",
+    "update_descriptions",
+    "update_versions",
     "events=s",
     "deletes=s",
     "write",
