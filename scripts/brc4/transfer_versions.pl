@@ -13,6 +13,7 @@ my $logger = get_logger();
 use Bio::EnsEMBL::Registry;
 use Try::Tiny;
 use File::Path qw(make_path);
+use List::MoreUtils qw(uniq);
 
 ###############################################################################
 # MAIN
@@ -185,6 +186,16 @@ sub load_events {
     else {
       $logger->warn("Unsupported event '$event_name'? $line");
     }
+  }
+
+  # Ensure all event ids are unique in their groups
+  for my $merge_id (keys %merge_to) {
+    my @ids = uniq @{ $merge_to{$merge_id} };
+    $merge_to{$merge_id} = \@ids;
+  }
+  for my $split_id (keys %split_from) {
+    my @ids = uniq @{ $split_from{$split_id} };
+    $split_from{$split_id} = \@ids;
   }
 
   # Check for merge and splits involving the same ids (multi event)
@@ -406,7 +417,7 @@ sub update_descriptions {
 
       if (defined $old_description) {
         my $new_description = $old_description;
-        $logger->info("Transfer gene $id description: $new_description");
+        $logger->debug("Transfer gene $id description: $new_description");
         $update_count++;
 
         if ($update) {
