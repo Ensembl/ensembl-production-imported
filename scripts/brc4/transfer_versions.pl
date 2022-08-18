@@ -171,17 +171,15 @@ sub load_events {
     # Changed gene
     } elsif ($id1 eq $id2) {
       push @{$events{change}}, {from => [$id1], to => [$id1]};
-    # Merge
-    } elsif ($event_name eq 'merge_gene') {
+    # Merge or split
+    } elsif ($event_name eq 'merge_gene' or $event_name eq 'split_gene') {
       if (not $merge_to{$id1}) {
         $merge_to{$id1} = [];
       }
-      push @{$merge_to{$id1}}, $id2;
-    # Split
-    } elsif ($event_name eq 'split_gene') {
       if (not $split_from{$id2}) {
         $split_from{$id2} = [];
       }
+      push @{$merge_to{$id1}}, $id2;
       push @{$split_from{$id2}}, $id1;
     }
     else {
@@ -189,30 +187,25 @@ sub load_events {
     }
   }
 
-  while (my ($merge_to_id, $merge_from) = each %merge_to) {
-    push @{$events{merge}}, {from => $merge_from, to => [$merge_to_id]};
+  # Check for merge and splits involving the same ids (multi event)
+  my $multi_events = check_multi_events(\%split_from, \%merge_to);
 
-    if ($new_ids->{$merge_to_id}) {
-      delete $new_ids->{$merge_to_id};
-    }
-    for my $merge_from_id (@$merge_from) {
-      if ($old_ids->{$merge_from_id}) {
-        delete $old_ids->{$merge_from_id};
+  for my $event_name (keys %$multi_events) {
+    my @named_events = @{ $multi_events->{$event_name} };
+    for my $named_event (@named_events) {
+      for my $from_id (@{ $named_event->{from} }) {
+        if ($old_ids->{$from_id}) {
+          delete $old_ids->{$from_id};
+        }
+      }
+      for my $to_id (@{ $named_event->{to} }) {
+        if ($new_ids->{$to_id}) {
+          delete $new_ids->{$to_id};
+        }
       }
     }
   }
-  while (my ($split_from_id, $split_to) = each %split_from) {
-    push @{$events{split}}, {from => [$split_from_id], to => $split_to};
-
-    if ($old_ids->{$split_from_id}) {
-      delete $old_ids->{$split_from_id};
-    }
-    for my $split_to_id (@$split_to) {
-      if ($new_ids->{$split_to_id}) {
-        delete $new_ids->{$split_to_id};
-      }
-    }
-  }
+  %events = (%events, %$multi_events);
 
   if (%$new_ids) {
     $logger->warn(scalar(%$new_ids) . " new ids not in the event file: " . join("; ", sort keys %$new_ids));
@@ -226,6 +219,88 @@ sub load_events {
 
   return \%events;
 }
+
+sub check_multi_events {
+  my ( $from, $to ) = @_;
+
+  my %events = (
+    merge => [],
+    split => [],
+    multi => [],
+  );
+  for my $from_id ( sort keys %$from ) {
+    next if not $from->{$from_id};
+    my @to_ids = @{ $from->{$from_id} };
+    my %group  = ( from => [$from_id], to => [@to_ids] );
+
+    my $extended = 1;
+    while ($extended) {
+      $extended = 0;
+      my %from_ids = map { $_ => 1 } @{$group{from}};
+      my %to_ids = map { $_ => 1 } @{$group{to}};
+
+      # Expand the group in the to ids
+      for my $to_id (sort keys %to_ids) {
+        if ( exists $to->{$to_id} ) {
+          my @to_from_ids = @{ $to->{$to_id} };
+
+          # Add to the from list?
+          my @new_from_ids;
+          for my $to_from_id (@to_from_ids) {
+            if (not $from_ids{$to_from_id}) {
+              push @new_from_ids, $to_from_id;
+            }
+          }
+          if (@new_from_ids) {
+            push @{ $group{from} }, @new_from_ids;
+            $extended = 1;
+          }
+        }
+      }
+      # Expand the group in the from ids
+      for my $from_id (sort keys %from_ids) {
+        if ( exists $from->{$from_id} ) {
+          my @from_to_ids = @{ $from->{$from_id} };
+
+          # Add to the to list?
+          my @new_to_ids;
+          for my $from_to_id (@from_to_ids) {
+            if (not $to_ids{$from_to_id}) {
+              push @new_to_ids, $from_to_id;
+            }
+          }
+          if (@new_to_ids) {
+            push @{ $group{to} }, @new_to_ids;
+            $extended = 1;
+          }
+        }
+      }
+    }
+
+    # We have a group! Clean up and save it
+    for my $from_id (@{ $group{from} }) {
+      delete $from->{$from_id};
+    }
+    for my $to_id (@{ $group{to} }) {
+      delete $to->{$to_id};
+    }
+    
+    # Save the group, guess the event name
+    if (@{ $group{from} } > 1) {
+      if (@{ $group{to} } > 1) {
+        push @{$events{multi}}, \%group;
+      } else {
+        push @{$events{merge}}, \%group;
+      }
+    } else {
+      push @{$events{split}}, \%group;
+    }
+  }
+
+  return \%events;
+}
+
+
 
 sub diff_events {
   my ($old, $new) = @_;
@@ -344,10 +419,10 @@ sub update_descriptions {
     }
   }
   
-  print STDERR "$update_count gene descriptions transferred\n";
-  print STDERR "$empty_count genes without description remain\n";
-  print STDERR "$empty_count new genes, without description\n";
-  print STDERR "(Use --write to update the descriptions in the database)\n" if $update_count > 0 and not $update;
+  $logger->info("$update_count gene descriptions transferred");
+  $logger->info("$empty_count genes without description remain");
+  $logger->info("$empty_count new genes, without description");
+  $logger->info("(Use --write to update the descriptions in the database)") if $update_count > 0 and not $update;
 }
 
 sub add_events {
@@ -357,8 +432,11 @@ sub add_events {
   my $mapping_id = add_mapping_session($dbc, $metadata, $write);
 
   for my $event_name (keys %$events) {
-    $logger->info($write ? "Storing events $event_name..." : "Fake storing events $event_name...");
     my @events = @{$events->{$event_name}};
+    my $nevents = scalar @events;
+    my $msg = "Storing $nevents events $event_name...";
+    $msg = "Fake $msg" unless $write;
+    $logger->info($msg);
     for my $event (@events) {
       my @from = @{$event->{from}};
       my @to = @{$event->{to}};
@@ -377,23 +455,12 @@ sub add_events {
         my $new_version = $old_version + 1;
         insert_event($dbc, $write, [$mapping_id, $feat, $id, $old_version, $id, $new_version]);
       }
-      elsif ($event_name eq 'split') {
-        my $id = $from[0];
-        my $old_version = $data->{$id}->{version};
-        {
-          my @values = ($mapping_id, $feat, $id, $old_version, undef, undef);
-          insert_event($dbc, $write, [$mapping_id, $feat, $id, $old_version, undef, undef]);
-        }
-        for my $split_id (@to) {
-          my @values = ($mapping_id, $feat, $id, $old_version, $split_id, 1);
-          insert_event($dbc, $write, [$mapping_id, $feat, $id, $old_version, $split_id, 1]);
-        }
-      }
-      elsif ($event_name eq 'merge') {
-        my $id = $to[0];
+      elsif ($event_name eq 'split' or $event_name eq 'merge' or $event_name eq 'multi') {
         for my $merge_id (@from) {
           my $old_version = $data->{$merge_id}->{version};
-          insert_event($dbc, $write, [$mapping_id, $feat, $merge_id, $old_version, $id, 1]);
+          for my $split_id (@to) {
+            insert_event($dbc, $write, [$mapping_id, $feat, $merge_id, $old_version, $split_id, 1]);
+          }
           insert_event($dbc, $write, [$mapping_id, $feat, $merge_id, $old_version, undef, undef]);
         }
       } else {
