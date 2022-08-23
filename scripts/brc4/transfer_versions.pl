@@ -341,7 +341,7 @@ sub get_feat_data {
   my $fa = $registry->get_adaptor($species, "core", $feature);
   for my $feat (@{$fa->fetch_all}) {
     my $id = $feat->stable_id;
-    my $version = $feat->version;
+    my $version = $feat->version // 1;
     my $description;
     if ($feature eq 'gene') {
       $description = $feat->description;
@@ -457,18 +457,18 @@ sub add_events {
       }
       elsif ($event_name eq 'deleted') {
         my $id = $from[0];
-        my $version = $data->{$id}->{version};
+        my $version = $data->{$id}->{version} // 1;
         insert_event($dbc, $write, [$mapping_id, $feat, $id, $version, undef, undef]);
       }
       elsif ($event_name eq 'change') {
         my $id = $from[0];
-        my $old_version = $data->{$id}->{version};
+        my $old_version = $data->{$id}->{version} // 1;
         my $new_version = $old_version + 1;
         insert_event($dbc, $write, [$mapping_id, $feat, $id, $old_version, $id, $new_version]);
       }
       elsif ($event_name eq 'split' or $event_name eq 'merge' or $event_name eq 'multi') {
         for my $merge_id (@from) {
-          my $old_version = $data->{$merge_id}->{version};
+          my $old_version = $data->{$merge_id}->{version} // 1;
           for my $split_id (@to) {
             insert_event($dbc, $write, [$mapping_id, $feat, $merge_id, $old_version, $split_id, 1]);
           }
