@@ -51,7 +51,7 @@ for my $feat (@features) {
 }
 
 # Transfer descriptions
-if ($opt{update_descriptions}) {
+if ($opt{descriptions}) {
   $logger->info("Gene descriptions transfer:");
   update_descriptions($registry, $species, $old_data{gene}, $opt{write});
 }
@@ -87,7 +87,7 @@ if ($opt{events}) {
 }
 
 # Transfer versions
-if ($opt{update_versions}) {
+if ($opt{versions}) {
   $logger->info("Gene versions transfer:");
   # Update the version for the features we want to transfer and update
   for my $feat (@features) {
@@ -585,8 +585,8 @@ sub usage {
     NB: only run the history update once (otherwise you will have duplicates).
     
     Transfer:
-    --update_descriptions : Transfer the gene descriptions
-    --update_versions     : Transfer and increment the gene versions, and init the others
+    --descriptions : Transfer the gene descriptions
+    --versions     : Transfer and increment the gene versions, and init the others
     
     Use this to make actual changes:
     --write           : Do the actual changes (default is no changes to the database)
@@ -605,8 +605,8 @@ sub opt_check {
     "old_registry=s",
     "new_registry=s",
     "species=s",
-    "update_descriptions",
-    "update_versions",
+    "descriptions",
+    "versions",
     "events=s",
     "deletes=s",
     "write",
