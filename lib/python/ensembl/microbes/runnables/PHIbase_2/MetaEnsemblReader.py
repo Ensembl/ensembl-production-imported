@@ -47,33 +47,68 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         self.check_param('doi')
 
     def run(self):
-        self.warning("EntryLine run")
-	
-        patho_taxon_id = int(self.param('patho_species_taxon_id'))
+        self.warning("/n EntryLine run")
+        phi_id = self.param('PHI_id')
+        #First, try to map the strain taxonomy ID
         try:
-            patho_division, patho_db_name = self.get_meta_ensembl_info(patho_taxon_id)
-            patho_species_name = self.get_species_name(patho_taxon_id)
-        except Exception as e:
-            print (e)
             patho_taxon_id = int(self.param('patho_species_strain'))
             patho_division, patho_db_name = self.get_meta_ensembl_info(patho_taxon_id)
             patho_species_name = self.get_species_name(patho_taxon_id)
-       	
+            patho_production_name = self.get_production_name('taxonomy_id',patho_taxon_id)
+        except Exception as e:
+            print ("PATHO strain taxonomy ID error (will not cause the job to fail): " + str(e))
+            #if strain taxonomy has failed, try the species_taxon_id
+            try:
+                patho_taxon_id = int(self.param('patho_species_taxon_id'))
+                print ("Trying patho_species_taxon_id: "+ str(patho_taxon_id))
+                patho_division, patho_db_name = self.get_meta_ensembl_info(patho_taxon_id)
+                patho_species_name = self.get_species_name(patho_taxon_id)
+                patho_production_name = self.get_production_name('species_taxonomy_id',patho_taxon_id)
+            except Exception as e:
+                print(e)
+                if patho_taxon_id is None:
+                    patho_taxon_id = "EMPTY"
+                err_msg = "Entry: " + phi_id + " has no identifiable PATHO taxonomy (" + str(patho_taxon_id) + ")"
+                self.param('failed_job',err_msg)
+                return 0, 0
+
         self.param("patho_division",patho_division)
        	self.param("patho_dbname",patho_db_name)
        	self.param("patho_species_name",patho_species_name)
-        
-        host_taxon_id = int(self.param('host_species_taxon_id'))
-        host_division, host_db_name = self.get_meta_ensembl_info(host_taxon_id)
-       	host_species_name = self.get_species_name(host_taxon_id)
-        
-        
+        self.param("patho_production_name",patho_production_name)
+
+
+      #Same for Host
+        try:
+            host_taxon_id = int(self.param('host_species_strain'))
+            host_division, host_db_name = self.get_meta_ensembl_info(host_taxon_id)
+            host_species_name = self.get_species_name(host_taxon_id)
+            host_production_name = self.get_production_name('taxonomy_id',host_taxon_id)
+        except Exception as e:
+            print ("HOST strain taxonomy ID error (will not cause the job to fail): " + str(e))
+            #if strain taxonomy has failed, try the species_taxon_id
+            try:
+                host_taxon_id = int(self.param('host_species_taxon_id'))
+                print ("Trying host_species_taxon_id: "+ str(host_taxon_id))
+                host_division, host_db_name = self.get_meta_ensembl_info(host_taxon_id)
+                host_species_name = self.get_species_name(host_taxon_id)
+                host_production_name = self.get_production_name('species_taxonomy_id',host_taxon_id)
+            except Exception as e:
+                print(e)
+                if host_taxon_id is None:
+                    host_taxon_id = "EMPTY"
+                err_msg = "Entry: " + phi_id + " has no identifiable HOST taxonomy (" + str(host_taxon_id) + ")" 
+                self.param('failed_job',err_msg)
+                return 0, 0
+
         self.param("host_division",host_division)
        	self.param("host_dbname",host_db_name)
+        self.param("host_production_name",host_production_name)
        	self.param("host_species_name",host_species_name)
 
     def get_meta_ensembl_info(self, species_tax_id):
-        div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE short_name != 'EV' AND species_taxonomy_id=%d"
+        phi_id = self.param('PHI_id')
+        div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE species_taxonomy_id=%d"
         self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
         self.cur = self.db.cursor()
         try:
@@ -88,32 +123,27 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         
         division = None
         if self.cur.rowcount == 1:
-        #everything is ok, only 1 division here
             division = self.cur.fetchone()[0]
-        else:
+        elif self.cur.rowcount == 2:
             for row in self.cur:
-                if row[0] != 'EV':
-                    if division == None:
-                        division = row[0]
-                    else:
-                        # Species has more than one division
-                        # remove the check for tax 559515 (uncommented for development only)
-                        if species_tax_id == 559515:
-                            division='EPr'
-                        else:
-                            print ("Division not recognised:" + str(division))
-                            raise ValueError(f"Species with tax_id {species_tax_id} has more than one division")
+                if division == None and row[0] != 'EV':
+                    division = row[0]
+        
+        if division == None:
+            return 0, 0
 
         if division == 'EF':
             division='fungi'
+        elif division == 'EV':
+            division='vertebrates'
         elif division == 'EPl':
             division='plants'
         elif division == 'EPr':
             division='protists'
         elif division == 'EB':
             division='bacteria'
-        else:
-            raise ValueError(f"Weird... That division is not supposed to be here for tax_id {species_tax_id}")
+        elif division == 'EM':
+            division='metazoa'
 
         core_db_name = None
         core_db_name_sql = "select gd.dbname from organism o join genome g using(organism_id) join genome_database gd using(genome_id) where o.species_taxonomy_id=%d and gd.type='core' and g.data_release_id=(select dr.data_release_id from data_release dr where is_current=1)"
@@ -139,7 +169,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
     def get_species_name(self, taxon_id):
         species_name = None
         sql="SELECT name FROM ncbi_taxa_name WHERE taxon_id=%d AND name_class='scientific name'"
-        
+        print ("*** species_name SQL: " + sql + " taxon_id=" + str(taxon_id))
         self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ncbi_taxonomy',port=self.param('meta_port'))
         self.cur = self.db.cursor()
         try:
@@ -157,6 +187,28 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         print("species_name:" + species_name)
         return species_name
 
+
+    def get_production_name(self, taxon_level_field,taxon_id):
+        production_name = None
+        sql="SELECT name FROM organism WHERE %s=%d"
+        print ("*** production_name SQL: " + sql + " taxon_id=" + str(taxon_id) + " taxon_level_field=" + str(taxon_level_field))
+        self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
+        self.cur = self.db.cursor()
+        try:
+            self.cur.execute(sql % (taxon_level_field, taxon_id))
+            self.db.commit()
+        except pymysql.Error as e:
+            try:
+                print ("Mysql Error:- "+str(e))
+            except IndexError:
+                print ("Mysql Error:- "+str(e))
+                self.connection_close()
+        for row in self.cur:
+            production_name = row[0]
+        self.db.close()
+        print("production_name:" + production_name)
+        return production_name
+
     def build_output_hash(self):
        lines_list = []
        entry_line_dict = {
@@ -164,6 +216,8 @@ class MetaEnsemblReader(eHive.BaseRunnable):
            "host_division": self.param("host_division"),
            "patho_species_name": self.param("patho_species_name"),
            "host_species_name": self.param("host_species_name"),
+           "patho_production_name": self.param("patho_production_name"),
+           "host_production_name": self.param("host_production_name"),
            "patho_core_dbname": self.param("patho_dbname"),
            "host_core_dbname": self.param("host_dbname"),
        }
@@ -171,6 +225,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
        return lines_list
 
     def write_output(self):
+        phi_id = self.param('PHI_id')
         if self.param('failed_job') == '':
             entries_list = self.build_output_hash()
             for entry in entries_list:
