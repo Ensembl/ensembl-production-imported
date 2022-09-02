@@ -95,10 +95,10 @@ class DBwriter(eHive.BaseRunnable):
         host_structure = self.param('host_molecular_structure')
         patho_type = self.param("patho_interactor_type")
         patho_curie = self.param("patho_curie")
-        patho_names = self.param("patho_other_names")
+        patho_names = self.param("patho_ensembl_id")
         host_type = self.param("host_interactor_type")
         host_curie = self.param("host_curie")
-        host_names = self.param("host_other_names")
+        host_names = self.param("host_ensembl_id")
         doi = self.param("doi")
         print(f" PHI_id = {phi_id} :: patho_species_name {patho_species_name} :: host_species_name {host_species_name} :: source_db_label {source_db_label}")
         
