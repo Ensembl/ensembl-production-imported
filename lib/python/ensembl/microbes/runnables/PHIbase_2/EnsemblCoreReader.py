@@ -42,8 +42,11 @@ class EnsemblCoreReader(eHive.BaseRunnable):
 
     def fetch_input(self):
         self.param('failed_job', '')
-        phi_id = self.param_required('PHI_id')
+        source_db = self.param("source_db_label")
         
+        if "PHI-base" in source_db:
+            phi_id = self.param_required('PHI_id')
+
         self.check_param('patho_division')
         self.check_param('host_division')
         self.check_param('patho_species_name')
@@ -52,43 +55,43 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         self.check_param('host_species_taxon_id')
         self.check_param('patho_core_dbname')
         self.check_param('host_core_dbname')
-        self.check_param('patho_other_names')
-        self.check_param('host_other_names')
     
     def run(self):
         self.warning("EnsemblCoreReader run")
         self.get_values()
 
-    def get_values(self):
-        
-        phi_id = self.param('PHI_id')
+    def get_values(self):     
         patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
-        patho_division = self.param_required("patho_division")
-        patho_other_names = self.param_required('patho_other_names')
+        patho_division = self.param_required('patho_division')
         host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
-        host_division = self.param_required("host_division")
-        host_other_names = self.param_required('host_other_names')
+        host_division = self.param_required('host_division')
         
-        patho_ensembl_gene_stable_id = self.get_ensembl_id(patho_other_names, patho_species_taxon_id, patho_division)
-        host_ensembl_gene_stable_id = self.get_ensembl_id(host_other_names, host_species_taxon_id, host_division)
+       
+        try:
+            patho_ensembl_gene_stable_id = self.param('patho_ensembl_id')
+        except Exception :
+            patho_ensembl_gene_stable_id = self.get_ensembl_id(patho_species_taxon_id, self.param("patho_uniprot_id"), self.param("patho_production_name"))
+
+        try:    
+            host_ensembl_gene_stable_id = self.param('host_ensembl_id')
+        except Exception:
+            try:
+                host_uniprot_id = self.param("host_uniprot_id")
+                host_ensembl_gene_stable_id = self.get_ensembl_id(host_species_taxon_id, host_uniprot_id, self.param("host_production_name"))
+            except Exception:
+                host_ensembl_gene_stable_id = "UNDETERMINED"
 
         self.param("patho_ensembl_gene_stable_id",patho_ensembl_gene_stable_id)
         self.param("host_ensembl_gene_stable_id",host_ensembl_gene_stable_id)
-        
+    
 
-    def get_ensembl_id(self,alt_names, tax_id ,division):
-        result = None
-        reported = False
-        alt_names = alt_names.split(';')
-        for an in alt_names:
-            if "Ensembl:" in an:
-                result = an.strip().replace("Ensembl:",'').strip()                
-                print ('Ensembl_id:' + result)
-                reported = True
-                
-        if not reported:
-            print ("Ensembl_id non reported.This gene needs a name in Ensembl: " + alt_names)
-        return result
+    def get_ensembl_id(self, tax_id, uniprot_id, species_production_name):
+        print("... species_prod_name" + species_production_name)
+        url = "https://rest.ensembl.org/xrefs/symbol/" + species_production_name + "/" + uniprot_id + "?external_db=UNIPROT;content-type=application/json"
+        print("**-** url" + url)
+        response = requests.get(url)
+        print("** response" + str(response))
+
 
     def get_ensembl_gene_value(self, session, stable_id, species_id):
         try:
