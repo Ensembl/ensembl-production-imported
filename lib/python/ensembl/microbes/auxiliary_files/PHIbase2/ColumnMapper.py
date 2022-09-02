@@ -18,53 +18,53 @@ class ColumnMapper():
     ontology_description = ""
     keys_descriptions = {}
     keys_rows = {}
+    litterature_source = ""
 
     def __init__(self, source_db):
         self.__dict__ = self.get_dictionary(source_db)
 
 
-    def get_dictionary(self, d):
+    def get_dictionary(self, db_dict):
         mapped_dict = {}
-        if (d == 'PHI-base'):
+        file_rows = {}
+
+        if 'combined_PHIbase' in db_dict:
             file_rows = {
-                    "patho_uniprot_id": 2,
-                    "patho_sequence": 5,
-                    "patho_interactor_name": 8,
-                    "patho_other_names": 4,
-                    "patho_species_taxon_id": 15,
-                    "patho_species_strain": 17,
-                    "host_uniprot_id": 47,
-                    "host_interactor_name": 46,
-                    "host_other_names": 47,
-                    "host_species_taxon_id": 21,
-                    "interaction_phenotype": 50,
-                    "litterature_id": 56,
-                    "litterature_source": 57,
-                    "doi": 58,
-                    "pathogen_mutant_phenotype": 32,
-                    "source_db_label": d,
+                    "patho_uniprot_id": 1,
+                    "patho_sequence": 24,
+                    "patho_ensembl_id": 2,
+                    "patho_species_taxon_id": 3,
+                    "patho_species_strain": 5,
+                    "host_uniprot_id": 9,
+                    "host_species_taxon_id": 11,
+                    "host_species_strain": 13,
+                    "host_sequence": 25,
+		    "host_ensembl_id": 10,
+                    "litterature_id": 22,
+                    "source_db_label": db_dict,
                     }
 
             ColumnMapper.ontology_description = "Expertly curated molecular and biological information on genes proven to affect the outcome of pathogen-host interactions"
 
             ColumnMapper.keys_descriptions = {
-                    "interaction_phenotype": "interaction phenotype/ disease outcome",
-                    "disease_name": "name of disease",
-                    "patho_protein_modification": "protein modification in the pathogen interactor",
-                    "host_protein_modification": "protein modification in the host interactor",
-                    "experimental_evidence": "experimental evidence",
-                    "transient_assay_exp_ev": "transient experimental evidence",
-                    "host_response_to_pathogen": "host response to the pathogen",
+                    "Interaction phenotype": "Interaction phenotype/ disease outcome",
+                    "Disease name": "Name of disease",
+                    "Pathogen protein modification:": "Protein modification in the pathogen interactor",
+                    "Host protein modification": "Protein modification in the host interactor",
+                    "Experimental evidence": "Experimental evidence",
+                    #"Transient assay experimental evidence": "Detailed experimental evidence",
+                    "Interaction type": "Type of interaction",
+                    "PHI-base high level term": "High level phenotype category used by PHI-base to characterise the mutant",
                     }
 
             ColumnMapper.keys_rows = {
-                    "interaction_phenotype": 50,
-                    "disease_name": 19,
-                    "patho_protein_modification": 10,
-                    "host_protein_modification": 48,
-                    "experimental_evidence": 52,
-                    "transient_assay_exp_ev": 53,
-                    "host_response_to_pathogen": 51,
+                    "Interaction phenotype": 17,
+                    "Disease name": 20,
+                    "Pathogen protein modification": 8,
+                    "Host protein modification": 16,
+                    "Experimental evidence": 20,
+                    "Interaction type": 21,
+                    "PHI-base high level term": 23,
                     }
-
+            ColumnMapper.litterature_source = "PMID"
         return file_rows
