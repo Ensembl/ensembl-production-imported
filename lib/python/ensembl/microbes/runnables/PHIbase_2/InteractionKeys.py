@@ -55,22 +55,19 @@ class InteractionKeys(eHive.BaseRunnable):
         p2p_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
         
         engine = db.create_engine(p2p_db_url)
-        Session = sessionmaker(bind=engine)
+        Session = sessionmaker(bind=engine, autoflush=False)
         session = Session()
         
         source_db = self.param('source_db')
         cm = col_map.ColumnMapper(source_db)
         key_dict = cm.keys_descriptions
-        
         key_list = []
         for k_name in key_dict:
-            print(f"Added key {k_name}")
             key_value = self.get_key_value(session, k_name, key_dict[k_name])
             session.add(key_value)
             key_list.append(k_name)
 
         self.param('key_list', key_list)
-
         try:
             session.commit()
         except pymysql.err.IntegrityError as e:
@@ -116,7 +113,6 @@ class InteractionKeys(eHive.BaseRunnable):
             for mk_name in key_list:
                 stmt = db.delete(meta_key).where(meta_key.c.name == mk_name)
                 connection.execute(stmt)
-                print(f"Keys CLEANED: {mk_name}")
 
     def add_stored_value(self, table,  id_value):
         new_values = self.param('entries_to_delete')
