@@ -33,8 +33,10 @@ use JSON;
 sub fetch_input {
   my ($self) = @_;
   
-  my $component = $self->param_required("component");
-  my $organism = $self->param_required("organism");
+  my $component = $self->param("component");
+  my $organism = $self->param("organism");
+  $component = 'component' if not $component;
+  $organism = $self->param("species") if not $organism;
   my $dataset = $self->param_required("study_name");
   my $sample = $self->param_required("sample_name");
   

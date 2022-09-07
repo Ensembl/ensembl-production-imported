@@ -956,7 +956,19 @@ sub pipeline_analyses {
       },
       -rc_name           => 'normal',
       -max_retry_count => 0,
+      -flow_into => 'gtf_to_featurelength',
     },
+    {
+      -logic_name        => 'gtf_to_featurelength',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::GTF_to_featurelength',
+      -rc_name           => 'normal',
+      -max_retry_count => 0,
+      -parameters        => {
+        gtf_file          => '#genome_gtf_file#',
+        fl_file          => '#genome_fl_file#',
+      },
+    },
+
 
     {
       -logic_name        => 'Dump_genome',
@@ -1200,7 +1212,8 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into         => {
-        2 => 'HtseqCount_redo',
+        '2->A' => ['HtseqCount_redo'],
+        'A->1' => ['SumHtseqFiles_redo'],
       },
     },
 
@@ -1212,6 +1225,31 @@ sub pipeline_analyses {
         results_dir    => '#sample_dir#',
       },
       -rc_name           => 'normal',
+      -analysis_capacity => 25,
+      -max_retry_count => 0,
+      -flow_into      => {
+          3 => '?accu_name=case&accu_address=[]',
+      },
+    },
+
+        {
+      -logic_name        => 'SumHtseqFiles_redo',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SumHtseqFiles',
+      -rc_name           => 'normal',
+      -analysis_capacity => 25,
+      -max_retry_count => 0,
+      -flow_into      => {
+          2 => 'CalculateTPM_redo',
+      },
+    },
+
+    {
+      -logic_name        => 'CalculateTPM_redo',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::CalculateTPM',
+      -rc_name           => 'normal',
+      -parameters        => {
+        fl_file          => '#genome_fl_file#',
+      },
       -analysis_capacity => 25,
       -max_retry_count => 0,
     },
@@ -1617,7 +1655,8 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into         => {
-        2 => 'HtseqCount',
+        '2->A' => ['HtseqCount'],
+        'A->1' => ['SumHtseqFiles'],
       },
     },
 
@@ -1630,6 +1669,31 @@ sub pipeline_analyses {
         results_dir    => '#sample_dir#',
       },
       -rc_name           => 'normal',
+      -analysis_capacity => 25,
+      -max_retry_count => 0,
+      -flow_into      => {
+          3 => '?accu_name=case&accu_address=[]',
+      },
+    },
+
+    {
+      -logic_name        => 'SumHtseqFiles',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::SumHtseqFiles',
+      -rc_name           => 'normal',
+      -analysis_capacity => 25,
+      -max_retry_count => 0,
+      -flow_into      => {
+          2 => 'CalculateTPM',
+      },
+    },
+
+    {
+      -logic_name        => 'CalculateTPM',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::CalculateTPM',
+      -rc_name           => 'normal',
+      -parameters        => {
+        fl_file          => '#genome_fl_file#',
+      },
       -analysis_capacity => 25,
       -max_retry_count => 0,
     },
