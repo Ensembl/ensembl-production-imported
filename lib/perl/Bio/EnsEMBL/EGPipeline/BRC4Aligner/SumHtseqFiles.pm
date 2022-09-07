@@ -23,7 +23,6 @@ use warnings;
 
 use base ('Bio::EnsEMBL::EGPipeline::BRC4Aligner::Base');
 
-use Data::Dumper qw(Dumper);
 use File::Basename qw(dirname);
 use File::Spec::Functions qw(catdir catfile);
 
