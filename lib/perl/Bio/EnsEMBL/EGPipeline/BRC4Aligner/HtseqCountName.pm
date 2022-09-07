@@ -101,12 +101,26 @@ sub run {
   my $cmd = $self->run_htseq_count($bam, $gtf, $htseq_file, $params);
   
   $self->param("cmd", $cmd);
+  $self->param("htseq_file", $htseq_file);
+  $self->param("strand", $strand);
+  $self->param("feature", $feature);
+  $self->param("number", $number);
 }
 
 sub write_output {
   my ($self) = @_;
   
   my $cmd = $self->param("cmd");
+  my $htseq_file = $self->param("htseq_file");
+  my $strand = $self->param("strand");
+  my $feature = $self->param("feature");
+  my $number = $self->param("number");
+
+  my %case =  ( "htseq_file" => $htseq_file,
+      "strand"               => $strand,
+      "feature"              => $feature,
+      "number"               => $number,
+  );
   
   my $version = $self->get_htseq_version();
 
@@ -118,6 +132,7 @@ sub write_output {
   $self->store_align_cmds($align_cmds);
   
   $self->dataflow_output_id({ cmds => $cmd },  2);
+  $self->dataflow_output_id({ case => \%case },  3);
 }
 
 sub get_htseq_version {

@@ -37,17 +37,18 @@ sub write_output {
   my $pipeline_dir = $self->param_required('pipeline_dir');
 
   my %genome_metadata = (
-    species => $species,
+      species             => $species,
 
-    species_results_dir => catdir($results_dir, $component, $organism),
+      species_results_dir => catdir($results_dir, $component, $organism),
 
-    species_work_dir => catdir($pipeline_dir, $species),
-    genome_dir => $genome_dir,
-    genome_file => catdir($genome_dir, $species . ".fa"),
-    length_file => catdir($genome_dir, $species . ".fa.lengths.txt"),
-    genome_bed_file => catdir($genome_dir, $species . ".bed"),
-    genome_gff_file => catdir($genome_dir, $species . ".gff"),
-    genome_gtf_file => catdir($genome_dir, $species . ".gtf"),
+      species_work_dir    => catdir($pipeline_dir, $species),
+      genome_dir          => $genome_dir,
+      genome_file         => catdir($genome_dir, $species . ".fa"),
+      length_file         => catdir($genome_dir, $species . ".fa.lengths.txt"),
+      genome_bed_file     => catdir($genome_dir, $species . ".bed"),
+      genome_gff_file     => catdir($genome_dir, $species . ".gff"),
+      genome_gtf_file     => catdir($genome_dir, $species . ".gtf"),
+      genome_fl_file      => catdir($genome_dir, $species . ".feature_length_per_gene.tsv"),
   );
 
   $self->dataflow_output_id(\%genome_metadata, 1);
