@@ -22,15 +22,6 @@ use strict;
 use warnings;
 use base ('Bio::EnsEMBL::EGPipeline::BRC4Aligner::Base');
 
-sub param_defaults {
-  my ($self) = @_;
-
-  return {
-    # Features on which to count the read
-    features => 'exon',
-  };
-
-}
 
 sub run {
   my ($self) = @_;
