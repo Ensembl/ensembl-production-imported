@@ -18,7 +18,6 @@ limitations under the License.
 =cut
 
 package Bio::EnsEMBL::EGPipeline::BRC4Aligner::CalculateTPM;
-use Data::Dumper qw(Dumper);
 use strict;
 use warnings;
 use base ('Bio::EnsEMBL::EGPipeline::BRC4Aligner::Base');
