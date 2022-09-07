@@ -27,14 +27,6 @@ use File::Basename qw(dirname);
 use File::Spec::Functions qw(catdir catfile);
 
 
-sub param_defaults {
-  my ($self) = @_;
-
-  return {
-    # Features on which to count the read
-    features => 'exon',
-  };
-}
 
 sub run {
   my ($self) = @_;
