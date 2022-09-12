@@ -49,49 +49,100 @@ class EnsemblCoreReader(eHive.BaseRunnable):
 
         self.check_param('patho_division')
         self.check_param('host_division')
-        self.check_param('patho_species_name')
         self.check_param('patho_species_taxon_id')
-        self.check_param('host_species_name')
         self.check_param('host_species_taxon_id')
-        self.check_param('patho_core_dbname')
-        self.check_param('host_core_dbname')
+        self.check_param('patho_dbnames_set')
+        self.check_param('host_dbnames_set')
     
     def run(self):
-        self.warning("EnsemblCoreReader run")
         self.get_values()
 
     def get_values(self):     
-        patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
-        patho_division = self.param_required('patho_division')
-        host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
-        host_division = self.param_required('host_division')
         
-       
+        patho_strain_taxon_id = self.get_strain_taxon('patho_species_strain')
+        patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
+        patho_taxon_ref = self.param('patho_taxon_ref')
+        patho_uniprot_id = self.param('patho_uniprot_id')
+
+        host_strain_taxon_id = self.get_strain_taxon('host_species_strain')
+        host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
+        host_taxon_ref = self.param('host_taxon_ref')
+
+        patho_staging_url = self.get_staging_url('patho_division') 
+        self.set_server_params('staging',patho_staging_url)
+        patho_ensembl_gene_stable_id = ''
+        patho_production_name = ''
         try:
-            patho_ensembl_gene_stable_id = self.param('patho_ensembl_id')
-        except Exception :
-            patho_ensembl_gene_stable_id = self.get_ensembl_id(patho_species_taxon_id, self.param("patho_uniprot_id"), self.param("patho_production_name"))
-
-        try:    
-            host_ensembl_gene_stable_id = self.param('host_ensembl_id')
+            patho_ensembl_gene_stable_id = self.param_required('patho_ensembl_id')
         except Exception:
-            try:
-                host_uniprot_id = self.param("host_uniprot_id")
-                host_ensembl_gene_stable_id = self.get_ensembl_id(host_species_taxon_id, host_uniprot_id, self.param("host_production_name"))
-            except Exception:
-                host_ensembl_gene_stable_id = "UNDETERMINED"
+            patho_dbnames_list = self.get_names_list('patho_dbnames_set')
+            taxon_id = self.get_taxon_id(patho_taxon_ref,patho_strain_taxon_id,patho_species_taxon_id)
 
-        self.param("patho_ensembl_gene_stable_id",patho_ensembl_gene_stable_id)
-        self.param("host_ensembl_gene_stable_id",host_ensembl_gene_stable_id)
+            for dbname in patho_dbnames_list:
+                if patho_ensembl_gene_stable_id == '':
+                    dbname = dbname.strip()
+                    print("patho db:" + dbname + ":")
+                    patho_production_names_list = self.get_production_names_list(taxon_id,dbname)
+                    patho_ensembl_gene_stable_id, patho_production_name = self.get_ensembl_id(taxon_id, patho_uniprot_id, patho_production_names_list)
+        
+        host_staging_url = self.get_staging_url('host_division')
+        self.set_server_params('staging', host_staging_url)
+        host_ensembl_gene_stable_id = ''
+        host_production_name = ''
+        try:    
+            host_ensembl_gene_stable_id = self.param_required('host_ensembl_id')
+        except Exception:
+            print("no initial host ensembl id" )
+            host_dbnames_list = self.get_names_list('host_dbnames_set')
+            print("hostDB names:" + str(host_dbnames_list))
+            try:
+                host_uniprot_id = self.param('host_uniprot_id')
+                taxon_id = self.get_taxon_id(host_taxon_ref,host_strain_taxon_id,host_species_taxon_id)
+                for dbname in host_dbnames_list:
+                    if not host_ensembl_gene_stable_id:
+                        dbname = dbname.strip()
+                        print("host db:" + dbname + ":")
+                        host_production_names_list = self.get_production_names_list(taxon_id,dbname)
+                        host_ensembl_gene_stable_id, host_production_name = self.get_ensembl_id(taxon_id, host_uniprot_id, host_production_names_list)
+                if not host_ensembl_gene_stable_id:
+                    host_ensembl_gene_stable_id = "UNDETERMINED"
+                    print("host_ensembl_gene_stable_id = UNDETERMINED")
+            except Exception as e:
+                print(e)
+                host_ensembl_gene_stable_id = "UNDETERMINED"
+                print("host_ensembl_gene_stable_id = UNDETERMINED")
+
+        if patho_ensembl_gene_stable_id == '':
+            error_msg = self.param('PHI_id') + " entry fail. Couldn't map UniProt " + patho_uniprot_id + " to any Ensembl gene"
+            self.param('failed_job', error_msg)
+            print(error_msg)
+        else:
+            print("** " + patho_uniprot_id + " mapped to " + patho_ensembl_gene_stable_id + " **") 
+            self.param("patho_ensembl_id",patho_ensembl_gene_stable_id)
+            self.param("patho_species_name",patho_production_name)
+        
+        if host_ensembl_gene_stable_id != "UNDETERMINED":
+            self.param("host_species_production_name",host_production_name)
+        self.param("host_ensembl_id",host_ensembl_gene_stable_id)
     
 
-    def get_ensembl_id(self, tax_id, uniprot_id, species_production_name):
-        print("... species_prod_name" + species_production_name)
-        url = "https://rest.ensembl.org/xrefs/symbol/" + species_production_name + "/" + uniprot_id + "?external_db=UNIPROT;content-type=application/json"
-        print("**-** url" + url)
-        response = requests.get(url)
-        print("** response" + str(response))
-
+    def get_ensembl_id(self, tax_id, uniprot_id, species_production_names_list):
+        #returns ensembl_id and its associated species_production_name only if a block with type 'gene' is found; 0 elsewhere
+        
+        for sp_prod_name in species_production_names_list:
+            print("... species_prod_name:" + sp_prod_name + " uniprot_id:" + uniprot_id)
+            url = "https://rest.ensembl.org/xrefs/symbol/" + sp_prod_name + "/" + uniprot_id + "?external_db=UNIPROT;content-type=application/json"
+            response = requests.get(url)
+            #print ("** response:" + str(response.json()))
+            unpacked_response = response.json()
+            try:
+                for p in unpacked_response:
+                    if p['type'] == 'gene':
+                        print(p['id'])
+                        return p['id'], sp_prod_name
+            except Exception as e:
+                print("Error in response: " + str(response) + "::: " + str(e))
+        return '',''
 
     def get_ensembl_gene_value(self, session, stable_id, species_id):
         try:
@@ -102,13 +153,99 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             ensembl_gene_value = interaction_db_models.EnsemblGene(ensembl_stable_id=stable_id, species_id=species_id,import_time_stamp=db.sql.functions.now())
         return ensembl_gene_value
 
+    def get_production_names_list(self, taxon_id,dbname):
+        
+        if taxon_id is None: 
+            return 0 
+        
+        production_names_list = [] 
+        sql="SELECT DISTINCT meta_value FROM meta m1 WHERE m1.meta_key='species.production_name' AND m1.species_id IN (SELECT species_id FROM meta m2 WHERE m2.meta_key like '%%taxonomy_id' and meta_value=%d);" 
+        self.db = pymysql.connect(host=self.param('st_host'),user=self.param('st_user'),db=dbname,port=self.param('st_port')) 
+        self.cur = self.db.cursor() 
+        
+        try: 
+            self.cur.execute(sql % (taxon_id)) 
+            self.db.commit() 
+        except pymysql.Error as e: 
+            try: 
+                print ("Mysql Error:- "+str(e)) 
+            except IndexError: 
+                print ("Mysql Error:- "+str(e)) 
+                self.connection_close() 
+        
+        for row in self.cur: 
+            production_names_list.append(row[0])
+        self.db.close() 
+        return production_names_list 
+
+    def get_names_list(self, dbname_set):
+        dbname_set_string = self.param(dbname_set)
+        unbracket_dbname_set_string = dbname_set_string[1:-1]
+        db_names_list = unbracket_dbname_set_string.replace("'", "").split(',')
+        return db_names_list
+
+    def get_staging_url(self, division_arg):
+        division = self.param(division_arg)
+        staging_url = ''
+        if division == 'vertebrates':
+            staging_url = self.param('vertebrate_url')
+        elif division == 'bacteria':
+            staging_url = self.param('bacteria_url')
+        else:
+            staging_url = self.param('non_vertebrate_url')
+        return staging_url
+
+    def set_server_params(self,server, url):
+        jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
+        (user,pwd,host,port,db) = re.compile(jdbc_pattern).findall(url)[0]
+        if server == 'staging':
+            self.param('st_user',user)   
+            self.param('st_host',host)   
+            self.param('st_port',int(port))
+        elif server == 'meta_ensembl':
+            self.param('meta_user',user)
+            self.param('meta_host',host)
+            self.param('meta_port',int(port))
+
+    def get_strain_taxon(self, species_strain):
+        try:
+            sp_strain = int(self.param(species_strain))
+        except Exception as e:  
+            sp_strain = int()
+        return sp_strain
+
+    def get_taxon_id(self, taxon_ref,strain_taxon_id,species_taxon_id):
+        print("taxon_ref:" + taxon_ref + " strain_taxon_id:" + str(strain_taxon_id) + " species_taxon_id:" + str(species_taxon_id))
+        if taxon_ref == 'taxonomy_id':
+            return strain_taxon_id
+        elif taxon_ref == 'species_taxonomy_id':
+            return species_taxon_id
+
+
+    def update_uniprot(self,uniprot_id):
+        try:
+            print ("host uniprot:" + self.param(uniprot_id))
+            return self.param(uniprot_id)
+        except: 
+            return "UNDETERMINED"
+
+    def update_host_species_name(self, matched_production_name, reported_name):
+        try:
+            print("mached_species_name:" + self.param(matched_production_name) + ":")
+            return self.param(matched_production_name)
+        except:
+            return self.param(reported_name)
 
     def build_output_hash(self):
         lines_list = []
         entry_line_dict = {
-                "patho_ensembl_gene_stable_id": self.param("patho_ensembl_gene_stable_id"),
-                "host_ensembl_gene_stable_id": self.param("host_ensembl_gene_stable_id"),
+                "patho_ensembl_id": self.param("patho_ensembl_id"),
+                "patho_production_name": self.param("patho_species_name"),
+                "host_ensembl_id": self.param("host_ensembl_id"),
+                "host_uniprot_id": self.update_uniprot("host_uniprot_id"),
+                "host_production_name": self.update_host_species_name("host_species_production_name","host_species_name"),
                 }
+
         lines_list.append(entry_line_dict)
         return lines_list
 
@@ -117,9 +254,11 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             entries_list = self.build_output_hash()
             for entry in entries_list:
                 self.dataflow(entry, 1)
+            print("-----------------------   CoreReader " + self.param('PHI_id') + "  ----------------------------")
         else:
-            print(f"{phi_id} written to FailedJob")
+            print(self.param('PHI_id') + " written to FailedJob")
             self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
+            print("*******************       FAILED JOB  " + self.param('PHI_id') + " ***************************")
     
     def check_param(self, param):
         try:
