@@ -140,7 +140,7 @@ class OntologiesLoader(eHive.BaseRunnable):
                 if term_id is not None:
                     obo_dict[term_id] = term_name
         of.close()
-        print(f"obo dict: {obo_dict}")
+        #print(f"obo dict: {obo_dict}")
         return obo_dict
 
     def clean_entry(self, engine):

@@ -59,19 +59,19 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('patho_species_taxon_id')
         self.check_param('patho_species_name')
         self.check_param('patho_division')
-        self.check_param('patho_ensembl_gene_stable_id')
-        self.check_param('patho_molecula_structure')
+        self.check_param('patho_ensembl_id')
+        self.check_param('patho_molecular_structure')
 
         self.check_param('host_species_taxon_id')
         self.check_param('host_species_name')
         self.check_param('host_division')
-        self.check_param('host_ensembl_gene_stable_id')
+        self.check_param('host_ensembl_id')
         self.check_param('host_molecular_structure')
         self.check_param('doi')
     
     def run(self):
         self.param('entries_to_delete',{})
-        self.warning("DBWriter run")
+        self.warning("DBWriter ----------------------------------------------------")
         self.insert_new_value()
 
     def insert_new_value(self):
@@ -89,8 +89,8 @@ class DBwriter(eHive.BaseRunnable):
         host_species_name = self.param('host_species_name')
         host_division = self.param('host_division')
         source_db_label = self.param('source_db_label')
-        patho_ensembl_gene_stable_id = self.param('patho_ensembl_gene_stable_id')
-        host_ensembl_gene_stable_id = self.param('host_ensembl_gene_stable_id')
+        patho_ensembl_gene_stable_id = self.param('patho_ensembl_id')
+        host_ensembl_gene_stable_id = self.param('host_ensembl_id')
         patho_structure = self.param('patho_molecular_structure')
         host_structure = self.param('host_molecular_structure')
         patho_type = self.param("patho_interactor_type")
@@ -327,7 +327,7 @@ class DBwriter(eHive.BaseRunnable):
         except MultipleResultsFound:
             print(f"ERROR: Multiple results found for species: {species_id} - gene stable_id {stable_id}")
         except NoResultFound:
-            ensembl_gene_value = interaction_db_models.EnsemblGene(ensembl_stable_id=stable_id, species_id=species_id,import_time_stamp=db.sql.functions.now())
+            ensembl_gene_value = interaction_db_models.EnsemblGene(ensembl_stable_id=stable_id, species_id=species_id,import_timestamp=db.sql.functions.now())
             if 'EnsemblGene' in self.param('entries_to_delete'):
                 added_values_list = self.param('entries_to_delete')['EnsemblGene']
                 added_values_list.append(stable_id)

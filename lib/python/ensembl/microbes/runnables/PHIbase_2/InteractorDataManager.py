@@ -26,9 +26,9 @@ class InteractorDataManager(eHive.BaseRunnable):
         self.warning("Fetch InteractorDataManager")
         self.param('failed_job', '')
         phi_id = self.param_required('PHI_id')
-        self.check_param('patho_ensembl_gene_stable_id')
+        self.check_param('patho_ensembl_id')
         self.check_param('patho_molecular_structure')
-        self.check_param('host_ensembl_gene_stable_id')
+        self.check_param('host_ensembl_id')
         self.check_param('host_molecular_structure')   
 
     def run(self):
@@ -49,7 +49,7 @@ class InteractorDataManager(eHive.BaseRunnable):
     def get_interactor_type(self):
         #TODO Properly implement this for non PHI-base interactors
         source_db = self.param('source_db_label')
-        if  source_db == 'PHI-base':
+        if  source_db == 'combined_PHIbase':
             return 'protein'
         else:
             raise ValueError ("Unkonwn interactor type")
