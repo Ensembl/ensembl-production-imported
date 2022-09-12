@@ -35,9 +35,11 @@ class ColumnMapper():
                     "patho_ensembl_id": 2,
                     "patho_species_taxon_id": 3,
                     "patho_species_strain": 5,
+                    "patho_species_name": 4,
                     "host_uniprot_id": 9,
                     "host_species_taxon_id": 11,
                     "host_species_strain": 13,
+                    "host_species_name": 12,
                     "host_sequence": 25,
 		    "host_ensembl_id": 10,
                     "litterature_id": 22,
@@ -52,9 +54,10 @@ class ColumnMapper():
                     "Pathogen protein modification:": "Protein modification in the pathogen interactor",
                     "Host protein modification": "Protein modification in the host interactor",
                     "Experimental evidence": "Experimental evidence",
-                    #"Transient assay experimental evidence": "Detailed experimental evidence",
                     "Interaction type": "Type of interaction",
                     "PHI-base high level term": "High level phenotype category used by PHI-base to characterise the mutant",
+                    "Pathogen experimental strain": "Pathogen strain in which the interaction was observed",
+                    "Host experimental strain": "Host strain in which the interaction was observed", 
                     }
 
             ColumnMapper.keys_rows = {
@@ -65,6 +68,8 @@ class ColumnMapper():
                     "Experimental evidence": 20,
                     "Interaction type": 21,
                     "PHI-base high level term": 23,
+                    "Pathogen experimental strain":6,
+                    "Host experimental strain":14,
                     }
             ColumnMapper.litterature_source = "PMID"
         return file_rows
