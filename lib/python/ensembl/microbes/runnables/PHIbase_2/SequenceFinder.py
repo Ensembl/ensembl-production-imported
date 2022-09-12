@@ -16,6 +16,7 @@ import os
 import subprocess
 import eHive
 import requests
+import hashlib
 
 class SequenceFinder(eHive.BaseRunnable):
     """Finds the molecular structure of the interactor"""
@@ -27,8 +28,8 @@ class SequenceFinder(eHive.BaseRunnable):
         self.warning("Fetch Sequence Finder")
         self.param('failed_job', '')
         phi_id = self.param('PHI_id')
-        self.check_param("patho_ensembl_gene_stable_id")
-        self.check_param("host_ensembl_gene_stable_id")
+        self.check_param("patho_ensembl_id")
+        self.check_param("host_ensembl_id")
         self.check_param("patho_uniprot_id")
         self.check_param("host_uniprot_id")
 
@@ -38,17 +39,24 @@ class SequenceFinder(eHive.BaseRunnable):
 
     def get_values(self):
         phi_id = self.param('PHI_id')
-        patho_ensembl_gene_stable_id = self.param("patho_ensembl_gene_stable_id")
-        host_ensembl_gene_stable_id = self.param("host_ensembl_gene_stable_id")
+        patho_ensembl_gene_stable_id = self.param("patho_ensembl_id")
+        host_ensembl_gene_stable_id = self.param("host_ensembl_id")
         patho_uniprot_id = self.param("patho_uniprot_id")
-        host_uniprot_id = self.param("host_uniprot_id")
 
         patho_molecular_structure = self.get_molecular_structure(patho_uniprot_id, patho_ensembl_gene_stable_id)
-        host_molecular_structure = self.get_molecular_structure(host_uniprot_id, host_ensembl_gene_stable_id)
+        host_ensembl_gene_stable_id = self.param('host_ensembl_id')
+        if host_ensembl_gene_stable_id == "UNDETERMINED":
+            host_molecular_structure = "UNDETERMINED"
+        else:
+            host_uniprot_id = self.param(host_uniprot_id)
+            host_molecular_structure = self.get_molecular_structure(host_uniprot_id, host_ensembl_gene_stable_id)
         self.param("patho_molecular_structure",patho_molecular_structure)
         self.param("host_molecular_structure",host_molecular_structure)
 
     def get_molecular_structure(self, uniprot_id, ensembl_gene_id):
+        #TO DO: Either redefine with a checksum value of the sequence or remove the sequence completely (we probably don't need it)
+        uniprot_seq = 'TO_BE_DEFINED'
+        '''
         uniprot_seq = self.get_uniprot_sequence(uniprot_id)
         ensembl_seqs = self.get_ensembl_sequences(ensembl_gene_id)
         phi_id = self.param('PHI_id')
@@ -59,6 +67,7 @@ class SequenceFinder(eHive.BaseRunnable):
                 print(f" {phi_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
         except AssertionError:
             print(f" {phi_id} NO SEQUENCE MATCH for uniprot accession {uniprot_id} and ensembl_accession {ensembl_gene_id}")
+        '''
         return uniprot_seq
 
     def check_equals(self, uniprot_seq, ensembl_seqs):
@@ -87,6 +96,10 @@ class SequenceFinder(eHive.BaseRunnable):
             if dc_l.startswith("<AAseq>"):
                 ensembl_seq_list.append(dc_l.replace("<AAseq>",''))
         return ensembl_seq_list
+
+    def create_digest(input_string):
+        digest = hashlib.sha256(str(input_string).encode('utf-8')).hexdigest()
+        return digest
 
     def build_output_hash(self):
         lines_list = []
