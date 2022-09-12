@@ -102,7 +102,7 @@ class EnsemblGene(Base):
     ensembl_gene_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     species_id = Column(INTEGER(11), ForeignKey("species.species_id"), nullable=False, index=True)
     ensembl_stable_id = Column(String(255))
-    import_time_stamp = Column(TIMESTAMP, nullable=False)
+    import_timestamp = Column(TIMESTAMP, nullable=False)
 
     predicted_interactors = relationship("PredictedInteractor", back_populates="ensembl_genes")
     curated_interactors = relationship("CuratedInteractor", back_populates="ensembl_genes")
@@ -111,11 +111,11 @@ class EnsemblGene(Base):
     def __repr__(self):
         try:
             eg_id = self.gene_id
-            return "<EnsemblGene(gene_id='%d', ensembl_stable_id='%s', species_id='%d', import_time_stamp='%s')>" % (
-                eg_id, self.ensembl_stable_id, self.species_id, str(self.import_time_stamp))
+            return "<EnsemblGene(gene_id='%d', ensembl_stable_id='%s', species_id='%d', import_timestamp='%s')>" % (
+                eg_id, self.ensembl_stable_id, self.species_id, str(self.import_timestamp))
         except NameError:
-            return "<EnsemblGene(gene_id=Null-until-stored, ensembl_stable_id='%s', species_id='%d', import_time_stamp='%s')>" % (
-                self.ensembl_stable_id, self.species_id, str(self.import_time_stamp))
+            return "<EnsemblGene(gene_id=Null-until-stored, ensembl_stable_id='%s', species_id='%d', import_timestamp='%s')>" % (
+                self.ensembl_stable_id, self.species_id, str(self.import_timestamp))
 
 class Interaction(Base):
     __tablename__ = 'interaction'
