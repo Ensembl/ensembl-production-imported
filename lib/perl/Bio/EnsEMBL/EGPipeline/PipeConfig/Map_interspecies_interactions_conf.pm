@@ -143,7 +143,7 @@ sub pipeline_analyses {
 		       column_names => 1,
                       },
       -flow_into    => {
-			2 => {'meta_ensembl_reader' => INPUT_PLUS() },
+			2 => 'meta_ensembl_reader',
 		       },
     },
     { 
@@ -151,7 +151,7 @@ sub pipeline_analyses {
       -module     => 'ensembl.microbes.runnables.PHIbase_2.MetaEnsemblReader',
       -language   => 'python3',
       -flow_into    => {
-                        1 => WHEN ("#failed_job# eq '' " => { 'ensembl_core_reader' => INPUT_PLUS() }),
+	                1 => WHEN ("#failed_job# eq '' " => 'ensembl_core_reader'),
                         -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
 			},
     },
@@ -160,7 +160,7 @@ sub pipeline_analyses {
        -module     => 'ensembl.microbes.runnables.PHIbase_2.EnsemblCoreReader',
        -language   => 'python3',
        -flow_into    => {
-                        1 => WHEN ("#failed_job# eq '' " => { 'sequence_finder' => INPUT_PLUS() }),
+	                1 => WHEN ("#failed_job# eq '' " => 'sequence_finder'),
 			-3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
 		        },
     },
@@ -176,15 +176,6 @@ sub pipeline_analyses {
     {
       -logic_name => 'interactor_data_manager',
       -module     => 'ensembl.microbes.runnables.PHIbase_2.InteractorDataManager',
-      -language   => 'python3',
-      -flow_into    => {
-                        -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
-                         1 => WHEN ("#failed_job# eq '' " => { 'interaction_table' => INPUT_PLUS() }),
-                        },
-    },
-    {
-      -logic_name => 'interaction_table',
-      -module     => 'ensembl.microbes.runnables.PHIbase_2.InteractionTable',
       -language   => 'python3',
       -flow_into    => {
                         -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
