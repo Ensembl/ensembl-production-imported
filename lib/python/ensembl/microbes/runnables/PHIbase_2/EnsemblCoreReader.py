@@ -53,7 +53,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         self.check_param('host_species_taxon_id')
         self.check_param('patho_dbnames_set')
         self.check_param('host_dbnames_set')
-    
+
     def run(self):
         self.get_values()
 
@@ -82,7 +82,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                 if patho_ensembl_gene_stable_id == '':
                     dbname = dbname.strip()
                     print("patho db:" + dbname + ":")
-                    patho_production_names_list = self.get_production_names_list(taxon_id,dbname)
+                    patho_production_names_list = self.get_production_names_list(taxon_id,dbname, patho_staging_url)
                     patho_ensembl_gene_stable_id, patho_production_name = self.get_ensembl_id(taxon_id, patho_uniprot_id, patho_production_names_list)
         
         host_staging_url = self.get_staging_url('host_division')
@@ -102,15 +102,15 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                     if not host_ensembl_gene_stable_id:
                         dbname = dbname.strip()
                         print("host db:" + dbname + ":")
-                        host_production_names_list = self.get_production_names_list(taxon_id,dbname)
+                        host_production_names_list = self.get_production_names_list(taxon_id,dbname,host_staging_url)
                         host_ensembl_gene_stable_id, host_production_name = self.get_ensembl_id(taxon_id, host_uniprot_id, host_production_names_list)
                 if not host_ensembl_gene_stable_id:
-                    host_ensembl_gene_stable_id = "UNDETERMINED"
-                    print("host_ensembl_gene_stable_id = UNDETERMINED")
+                    host_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') 
+                    print("host_ensembl_gene_stable_id = " + host_ensembl_gene_stable_id)
             except Exception as e:
                 print(e)
-                host_ensembl_gene_stable_id = "UNDETERMINED"
-                print("host_ensembl_gene_stable_id = UNDETERMINED")
+                host_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id')
+                print("host_ensembl_gene_stable_id = " + host_ensembl_gene_stable_id)
 
         if patho_ensembl_gene_stable_id == '':
             error_msg = self.param('PHI_id') + " entry fail. Couldn't map UniProt " + patho_uniprot_id + " to any Ensembl gene"
@@ -121,7 +121,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             self.param("patho_ensembl_id",patho_ensembl_gene_stable_id)
             self.param("patho_species_name",patho_production_name)
         
-        if host_ensembl_gene_stable_id != "UNDETERMINED":
+        if "UNDETERMINED" not in host_ensembl_gene_stable_id: #Unfortunate double negation. Enters only  if the stable_id is defined
             self.param("host_species_production_name",host_production_name)
         self.param("host_ensembl_id",host_ensembl_gene_stable_id)
     
@@ -153,14 +153,23 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             ensembl_gene_value = interaction_db_models.EnsemblGene(ensembl_stable_id=stable_id, species_id=species_id,import_time_stamp=db.sql.functions.now())
         return ensembl_gene_value
 
-    def get_production_names_list(self, taxon_id,dbname):
+    def get_production_names_list(self, taxon_id,dbname,staging_url):
         
         if taxon_id is None: 
             return 0 
         
         production_names_list = [] 
         sql="SELECT DISTINCT meta_value FROM meta m1 WHERE m1.meta_key='species.production_name' AND m1.species_id IN (SELECT species_id FROM meta m2 WHERE m2.meta_key like '%%taxonomy_id' and meta_value=%d);" 
-        self.db = pymysql.connect(host=self.param('st_host'),user=self.param('st_user'),db=dbname,port=self.param('st_port')) 
+        try:
+            self.db = pymysql.connect(host=self.param('st_host'),user=self.param('st_user'),db=dbname,port=self.param('st_port')) 
+        except pymysql.Error as e:
+            #Deals with the cases of model organism DB (ie.-S.cerevisiae) which have a copy of a non vertebrate DB in the vertebrates server. 
+            #After trying the new connection it reverts to the previous setting.            
+            vertebrates_url = self.param("vertebrate_url")
+            self.set_server_params('staging', vertebrates_url)
+            self.db = pymysql.connect(host=self.param('st_host'),user=self.param('st_user'),db=dbname,port=self.param('st_port'))
+            self.set_server_params('staging', staging_url)
+
         self.cur = self.db.cursor() 
         
         try: 
