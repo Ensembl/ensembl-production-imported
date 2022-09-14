@@ -83,10 +83,10 @@ class DBwriter(eHive.BaseRunnable):
 
         phi_id = self.param('PHI_id')
         patho_species_taxon_id = int(self.param('patho_species_taxon_id'))
-        patho_species_name = self.param('patho_species_name')
+        patho_species_name = self.param('patho_production_name')
         patho_division = self.param('patho_division')
         host_species_taxon_id = int(self.param('host_species_taxon_id'))
-        host_species_name = self.param('host_species_name')
+        host_species_name = self.param('host_production_name')
         host_division = self.param('host_division')
         source_db_label = self.param('source_db_label')
         patho_ensembl_gene_stable_id = self.param('patho_ensembl_id')
