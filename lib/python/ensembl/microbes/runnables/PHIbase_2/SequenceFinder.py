@@ -48,7 +48,7 @@ class SequenceFinder(eHive.BaseRunnable):
         if host_ensembl_gene_stable_id == "UNDETERMINED":
             host_molecular_structure = "UNDETERMINED"
         else:
-            host_uniprot_id = self.param(host_uniprot_id)
+            host_uniprot_id = self.param("host_uniprot_id")
             host_molecular_structure = self.get_molecular_structure(host_uniprot_id, host_ensembl_gene_stable_id)
         self.param("patho_molecular_structure",patho_molecular_structure)
         self.param("host_molecular_structure",host_molecular_structure)

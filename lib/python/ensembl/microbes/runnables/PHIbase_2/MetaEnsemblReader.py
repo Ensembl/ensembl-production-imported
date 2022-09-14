@@ -49,7 +49,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
 
     def run(self):
         if self.param('failed_job') == '':
-            self.warning("\n EntryLine run")
+            #self.warning("\n EntryLine run")
             phi_id = self.param('PHI_id')
         
             species_strain = self.get_strain_taxon('patho_species_strain')
@@ -97,31 +97,6 @@ class MetaEnsemblReader(eHive.BaseRunnable):
 
         return division, db_set, used_taxon_ref
 
-
-    def get_names(self, tax_id, taxon_level_field):
-        #TO DO: USe curl instead of meta_ensembl sql call. url example: https://rest.ensembl.org/info/genomes/taxonomy/#tax_id#
-        url = "https://rest.ensembl.org/info/genomes/taxonomy/" + str(tax_id) + "?content-type=application/json"
-        species_name = "" 
-        production_name = ""
-
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            jsonResponse = response.json()
-            print("** REQUEST: " + url )
-            for dict_resp in jsonResponse:
-                species_name = dict_resp["scientific_name"]
-                production_name = dict_resp["name"]
-                print("   species_name: " + species_name)
-                print("   production_name: " + production_name)
-        except HTTPError as http_err:
-            species_name = self.get_species_name(tax_id)
-            production_name = self.get_production_name(taxon_level_field,tax_id)
-        except Exception as err:
-            print(f'Error occurred in get_names() curl: {err}')
-        
-        return species_name, production_name
-
     def get_meta_ensembl_info(self, tax_id):
         phi_id = self.param('PHI_id')
         div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE species_taxonomy_id=%d"
@@ -137,35 +112,25 @@ class MetaEnsemblReader(eHive.BaseRunnable):
                 print ("Mysql Error:- "+str(e))
                 self.connection_close()
         
-        division = None
+        short_div= None
         if self.cur.rowcount == 1:
-            division = self.cur.fetchone()[0]
+            short_div = self.cur.fetchone()[0]
         elif self.cur.rowcount == 2:
             for row in self.cur:
-                if division == None and row[0] != 'EV':
-                    division = row[0]
+                if short_div == None and row[0] != 'EV':
+                    short_div = row[0]
         
-        if division == None:
+        if short_div == None:
             return 0, 0
-
-        if division == 'EF':
-            division='fungi'
-        elif division == 'EV':
-            division='vertebrates'
-        elif division == 'EPl':
-            division='plants'
-        elif division == 'EPr':
-            division='protists'
-        elif division == 'EB':
-            division='bacteria'
-        elif division == 'EM':
-            division='metazoa'
-        print("Division:" + str(division) + ":") 
+        division = self.get_division(short_div)
+        #print("Division:" + str(division) + ":") 
+        
         core_db_name = None
         core_db_name_sql = "select gd.dbname from organism o join genome g using(organism_id) join genome_database gd using(genome_id) where o.species_taxonomy_id=%d and gd.type='core' and g.data_release_id=(select MAX(dr.data_release_id) from data_release dr where is_current=1)"
-        
+        #core_db_name_sql = "select gd.dbname from organism o  join genome g using(organism_id) join genome_database gd using(genome_id) join division d on g.division_id=d.division_id where d.short_name=%s and o.species_taxonomy_id=%d and gd.type='core' and g.data_release_id=(select MAX(dr.data_release_id) from data_release dr where is_current=1)"
         try:
-            self.cur.execute( core_db_name_sql % tax_id)
+            self.cur.execute( core_db_name_sql %  tax_id) 
+            #self.cur.execute( core_db_name_sql % (short_div,tax_id))
             self.db.commit()
         except pymysql.Error as e:
             try:
@@ -183,57 +148,29 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         #print (core_db_set)  
         return division, core_db_set
     
-    def get_species_name(self, taxon_id):
-        species_name = None
-        sql="SELECT name FROM ncbi_taxa_name WHERE taxon_id=%d AND name_class='scientific name'"
-        #print ("*** species_name SQL: " + sql + " taxon_id=" + str(taxon_id))
-        self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ncbi_taxonomy',port=self.param('meta_port'))
-        self.cur = self.db.cursor()
-        try:
-            self.cur.execute(sql % taxon_id)
-            self.db.commit()
-        except pymysql.Error as e:
-            try:
-                print ("Mysql Error:- "+str(e))
-            except IndexError:
-                print ("Mysql Error:- "+str(e))
-                self.connection_close()
-        for row in self.cur:
-            species_name = row[0]
-        self.db.close()
-        print("species_name:" + species_name)
-        return species_name
+    def get_division(self,short_name):
+        if short_name == None:
+            return 0
+
+        if short_name == 'EF':
+            return 'fungi'
+        elif short_name == 'EV':
+            return 'vertebrates'
+        elif short_name == 'EPl':
+            return 'plants'
+        elif short_name == 'EPr':
+            return 'protists'
+        elif short_name == 'EB':
+            return 'bacteria'
+        elif short_name == 'EM':
+            return 'metazoa'
 
     def get_strain_taxon(self, species_strain):
         try: 
             species_strain = int(self.param(species_strain)) 
         except Exception as e:   
             species_strain = int() 
-        return species_strain 
-
-    def get_production_name(self, taxon_level_field,taxon_id):
-        if taxon_id is None:
-            return 0
-
-        production_name = None
-        sql="SELECT name FROM organism WHERE %s=%d"
-        #print ("*** production_name SQL: " + sql + " taxon_id=" + str(taxon_id) + " taxon_level_field=" + str(taxon_level_field))
-        self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
-        self.cur = self.db.cursor()
-        try:
-            self.cur.execute(sql % (taxon_level_field, taxon_id))
-            self.db.commit()
-        except pymysql.Error as e:
-            try:
-                print ("Mysql Error:- "+str(e))
-            except IndexError:
-                print ("Mysql Error:- "+str(e))
-                self.connection_close()
-        for row in self.cur:
-            production_name = row[0]
-        self.db.close()
-        print("production_name:" + str(production_name))
-        return production_name
+        return species_strain
 
     def build_output_hash(self):
        lines_list = []
@@ -273,6 +210,10 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             if "dbnames_set" in param and not test_param:
                 raise Exception('dbnames_set is empty')
         except:
-            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB "
+            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB. "
+            if param == "patho_dbnames_set":
+                error_msg = error_msg + "Could not map " + self.param('patho_species_name') + " species_taxon(" + str(self.param('patho_species_taxon_id')) + ") to Ensembl"
+            if param == "host_dbnames_set":
+                error_msg = error_msg + "Could not map " + self.param('host_species_name') + " species_taxon(" + str(self.param('host_species_taxon_id')) + ") to Ensembl"    
             self.param('failed_job', error_msg)
             print(error_msg)
