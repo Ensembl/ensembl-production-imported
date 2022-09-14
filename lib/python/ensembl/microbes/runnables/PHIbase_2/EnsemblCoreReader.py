@@ -105,11 +105,11 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                         host_production_names_list = self.get_production_names_list(taxon_id,dbname,host_staging_url)
                         host_ensembl_gene_stable_id, host_production_name = self.get_ensembl_id(taxon_id, host_uniprot_id, host_production_names_list)
                 if not host_ensembl_gene_stable_id:
-                    host_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') 
+                    host_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("host_species_name")
                     print("host_ensembl_gene_stable_id = " + host_ensembl_gene_stable_id)
             except Exception as e:
                 print(e)
-                host_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id')
+                host_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("host_species_name")
                 print("host_ensembl_gene_stable_id = " + host_ensembl_gene_stable_id)
 
         if patho_ensembl_gene_stable_id == '':
