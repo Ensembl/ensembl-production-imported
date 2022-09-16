@@ -6,7 +6,9 @@ import requests
 
 pymysql.install_as_MySQLdb()
 
-#INPUT: tax_id, uniprot_id, staging_url
+# DUMMY SAMPLE CODE TO OPTIMISE THE QUERYING THROUGH THE ENSEMBL REST API CALLED IN get_ensembl_id()
+#INPUT: tax_id, uniprot_id
+
 
 dbnames_list = self.get_meta_ensembl_dbnames(tax_id)
 
@@ -15,6 +17,10 @@ for dbname in dbnames_list:
     ensembl_gene_stable_id, patho_production_name = self.get_ensembl_id(taxon_id, patho_uniprot_id, production_names_list)
 
 
+
+#This is the method that hits the REST API server and ultimately needs optimisation
+# Iterates over a list of production names to check if it has a given UniProt accession.
+# If found, it returns the corresponding ensembl_id and the production_name that matched the query
 def get_ensembl_id(self, tax_id, uniprot_id, species_production_names_list):
     for sp_prod_name in species_production_names_list:
         url = "https://rest.ensembl.org/xrefs/symbol/" + sp_prod_name + "/" + uniprot_id + "?external_db=UNIPROT;content-type=application/json"
@@ -27,8 +33,9 @@ def get_ensembl_id(self, tax_id, uniprot_id, species_production_names_list):
         except Exception as e:
             print(e)
     return '',''
-        
-        
+  
+
+#Preparatory method to obtain the list of all DBs (core and collections) that contain a given species_taxon_id (sql call) 
 def get_meta_ensembl_dbnames(self,tax_id):        
     core_db_name = None
     core_db_name_sql = "SELECT gd.dbname FROM organism o JOIN genome g USING(organism_id) JOIN genome_database gd USING(genome_id) WHERE o.species_taxonomy_id=%d AND gd.type='core' AND g.data_release_id=(SELECT MAX(dr.data_release_id) FROM data_release dr WHERE is_current=1)"
@@ -43,8 +50,10 @@ def get_meta_ensembl_dbnames(self,tax_id):
 
         self.db.close()
         return list(core_db_set) #returns set as a list
-    
-    
+  
+
+# Preparatory method to get the production names in a particular Ensembl core/collection DB
+# This action is performed in loop over a list of DBs that contain at least one genome of a particular species_taxon_id
 def get_production_names_list(self, taxon_id,dbname,staging_url):
     production_names_list = [] 
     sql="SELECT DISTINCT meta_value FROM meta m1 WHERE m1.meta_key='species.production_name' AND m1.species_id IN (SELECT species_id FROM meta m2 WHERE m2.meta_key like '%%taxonomy_id' and meta_value=%d);" 
