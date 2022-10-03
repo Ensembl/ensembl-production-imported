@@ -45,7 +45,7 @@ class InteractionTable(eHive.BaseRunnable):
     def get_interactor_type(self):
         #TODO Properly implement this for non PHI-base interactors
         source_db = self.param('source_db_label')
-        if  source_db == 'PHI-base':
+        if  source_db == 'combined_PHI-base':
             return 'protein'
         else:
             raise ValueError ("Unkonwn interactor type")
