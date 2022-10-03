@@ -45,6 +45,8 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         phi_id = self.param_required('PHI_id')
         self.check_param('patho_species_taxon_id')
         self.check_param('host_species_taxon_id')
+        self.check_param('patho_species_name')
+        self.check_param('host_species_name')
         self.check_param('doi')
 
     def run(self):
@@ -186,6 +188,8 @@ class MetaEnsemblReader(eHive.BaseRunnable):
        return lines_list
 
     def write_output(self):
+        self.check_param('patho_species_taxon_id')
+        self.check_param('host_species_taxon_id')
         self.check_param("patho_division")
         self.check_param("host_division")
         self.check_param("patho_dbnames_set")
@@ -211,9 +215,15 @@ class MetaEnsemblReader(eHive.BaseRunnable):
                 raise Exception('dbnames_set is empty')
         except:
             error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB. "
-            if param == "patho_dbnames_set":
-                error_msg = error_msg + "Could not map " + self.param('patho_species_name') + " species_taxon(" + str(self.param('patho_species_taxon_id')) + ") to Ensembl"
-            if param == "host_dbnames_set":
-                error_msg = error_msg + "Could not map " + self.param('host_species_name') + " species_taxon(" + str(self.param('host_species_taxon_id')) + ") to Ensembl"    
+            if param in ('patho_species_name','host_species_name','patho_species_taxon_id', 'host_species_taxon_id'):
+                error_msg = error_msg +" Main identifier missing."
+            else:                
+                try:
+                    if param == "patho_dbnames_set":
+                        error_msg = error_msg + "Could not map " + self.param('patho_species_name') + " species_taxon(" + str(self.param('patho_species_taxon_id')) + ") to Ensembl"
+                    if param == "host_dbnames_set":
+                        error_msg = error_msg + "Could not map " + self.param('host_species_name') + " species_taxon(" + str(self.param('host_species_taxon_id')) + ") to Ensembl"    
+                except:
+                    error_msg = error_msg + " Main identifier missing."
             self.param('failed_job', error_msg)
             print(error_msg)
