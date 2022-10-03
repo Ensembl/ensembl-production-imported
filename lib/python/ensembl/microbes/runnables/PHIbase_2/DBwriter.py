@@ -56,6 +56,8 @@ class DBwriter(eHive.BaseRunnable):
         self.param('p2p_db',i_db)
            
         self.check_param('source_db_label')
+        self.check_param('doi')
+
         self.check_param('patho_species_taxon_id')
         self.check_param('patho_species_name')
         self.check_param('patho_division')
@@ -67,8 +69,8 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('host_division')
         self.check_param('host_ensembl_id')
         self.check_param('host_molecular_structure')
-        self.check_param('doi')
-    
+        
+
     def run(self):
         self.param('entries_to_delete',{})
         self.warning("DBWriter ----------------------------------------------------")
@@ -83,10 +85,10 @@ class DBwriter(eHive.BaseRunnable):
 
         phi_id = self.param('PHI_id')
         patho_species_taxon_id = int(self.param('patho_species_taxon_id'))
-        patho_species_name = self.param('patho_production_name')
+        patho_species_name = self.param('patho_species_name')
         patho_division = self.param('patho_division')
         host_species_taxon_id = int(self.param('host_species_taxon_id'))
-        host_species_name = self.param('host_production_name')
+        host_species_name = self.param('host_species_name')
         host_division = self.param('host_division')
         source_db_label = self.param('source_db_label')
         patho_ensembl_gene_stable_id = self.param('patho_ensembl_id')
@@ -145,14 +147,20 @@ class DBwriter(eHive.BaseRunnable):
             print(e)
             session.rollback()
             self.clean_entry(engine)
+            error_msg = self.param('PHI_id') + " DBWriter fail: " + str(e)
+            self.param('failed_job', error_msg)
         except exc.IntegrityError as e:
             print(e)
             session.rollback()
             self.clean_entry(engine)
+            error_msg = self.param('PHI_id') + " DBWriter fail: " + str(e)
+            self.param('failed_job', error_msg)
         except Exception as e:
             print(e)
             session.rollback()
             self.clean_entry(engine)
+            error_msg = self.param('PHI_id') + " DBWriter fail: " + str(e)
+            self.param('failed_job', error_msg)
 
     def get_meta_key_id(self, session, key_v):
         meta_key_value = None
@@ -351,7 +359,9 @@ class DBwriter(eHive.BaseRunnable):
                 self.add_stored_value('Species', [species_tax_id])   
         return species_value
 
-    #def write_output(self):
+    def write_output(self):
+        if self.param('failed_job') != '':
+            self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
 
     def check_param(self, param):
         try:
