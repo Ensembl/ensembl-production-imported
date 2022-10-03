@@ -231,12 +231,12 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             return species_taxon_id
 
 
-    def update_uniprot(self,uniprot_id):
+    def update_uniprot(self,uniprot_id, species_name):
         try:
             print ("host uniprot:" + self.param(uniprot_id))
             return self.param(uniprot_id)
         except: 
-            return "UNDETERMINED"
+            return "UNDETERMINED"  + "_" + self.param('PHI_id') + "_" + species_name
 
     def update_host_species_name(self, matched_production_name, reported_name):
         try:
@@ -251,7 +251,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                 "patho_ensembl_id": self.param("patho_ensembl_id"),
                 "patho_production_name": self.param("patho_species_name"),
                 "host_ensembl_id": self.param("host_ensembl_id"),
-                "host_uniprot_id": self.update_uniprot("host_uniprot_id"),
+                "host_uniprot_id": self.update_uniprot("host_uniprot_id", self.param("host_species_name")),
                 "host_production_name": self.update_host_species_name("host_species_production_name","host_species_name"),
                 }
 
