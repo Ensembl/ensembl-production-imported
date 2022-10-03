@@ -191,6 +191,9 @@ sub pipeline_analyses {
       -logic_name => 'db_writer',
       -module     => 'ensembl.microbes.runnables.PHIbase_2.DBwriter',
       -language   => 'python3',
+      -flow_into    => {
+                        -3 => WHEN ("#failed_job# ne '' "  => ['failed_entries']),
+                        },
     }
   ];
 }
