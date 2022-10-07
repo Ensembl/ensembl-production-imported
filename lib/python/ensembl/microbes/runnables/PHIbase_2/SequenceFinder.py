@@ -28,10 +28,10 @@ class SequenceFinder(eHive.BaseRunnable):
         self.warning("Fetch Sequence Finder")
         self.param('failed_job', '')
         phi_id = self.param('PHI_id')
-        self.check_param("patho_ensembl_id")
-        self.check_param("host_ensembl_id")
-        self.check_param("patho_uniprot_id")
-        self.check_param("host_uniprot_id")
+        self.check_param("interactor_A_ensembl_id")
+        self.check_param("interactor_B_ensembl_id")
+        self.check_param("interactor_A_uniprot_id")
+        self.check_param("interactor_B_uniprot_id")
 
     def run(self):
         self.warning("Sequence finder run")
@@ -39,19 +39,19 @@ class SequenceFinder(eHive.BaseRunnable):
 
     def get_values(self):
         phi_id = self.param('PHI_id')
-        patho_ensembl_gene_stable_id = self.param("patho_ensembl_id")
-        host_ensembl_gene_stable_id = self.param("host_ensembl_id")
-        patho_uniprot_id = self.param("patho_uniprot_id")
+        interactor_A_ensembl_gene_stable_id = self.param("interactor_A_ensembl_id")
+        interactor_B_ensembl_gene_stable_id = self.param("interactor_B_ensembl_id")
+        interactor_A_uniprot_id = self.param("interactor_A_uniprot_id")
 
-        patho_molecular_structure = self.get_molecular_structure(patho_uniprot_id, patho_ensembl_gene_stable_id)
-        host_ensembl_gene_stable_id = self.param('host_ensembl_id')
-        if host_ensembl_gene_stable_id == "UNDETERMINED":
-            host_molecular_structure = "UNDETERMINED"
+        interactor_A_molecular_structure = self.get_molecular_structure(interactor_A_uniprot_id, interactor_A_ensembl_gene_stable_id)
+        interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
+        if interactor_B_ensembl_gene_stable_id == "UNDETERMINED":
+            interactor_B_molecular_structure = "UNDETERMINED"
         else:
-            host_uniprot_id = self.param("host_uniprot_id")
-            host_molecular_structure = self.get_molecular_structure(host_uniprot_id, host_ensembl_gene_stable_id)
-        self.param("patho_molecular_structure",patho_molecular_structure)
-        self.param("host_molecular_structure",host_molecular_structure)
+            interactor_B_uniprot_id = self.param("interactor_B_uniprot_id")
+            interactor_B_molecular_structure = self.get_molecular_structure(interactor_B_uniprot_id, interactor_B_ensembl_gene_stable_id)
+        self.param("interactor_A_molecular_structure",interactor_A_molecular_structure)
+        self.param("interactor_B_molecular_structure",interactor_B_molecular_structure)
 
     def get_molecular_structure(self, uniprot_id, ensembl_gene_id):
         #TO DO: Either redefine with a checksum value of the sequence or remove the sequence completely (we probably don't need it)
@@ -104,8 +104,8 @@ class SequenceFinder(eHive.BaseRunnable):
     def build_output_hash(self):
         lines_list = []
         entry_line_dict = {
-                "patho_molecular_structure": self.param("patho_molecular_structure"),
-                "host_molecular_structure": self.param("host_molecular_structure"),
+                "interactor_A_molecular_structure": self.param("interactor_A_molecular_structure"),
+                "interactor_B_molecular_structure": self.param("interactor_B_molecular_structure"),
                 }
         lines_list.append(entry_line_dict)
         return lines_list

@@ -43,10 +43,10 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         self.param('meta_port',int(m_port))
 
         phi_id = self.param_required('PHI_id')
-        self.check_param('patho_species_taxon_id')
-        self.check_param('host_species_taxon_id')
-        self.check_param('patho_species_name')
-        self.check_param('host_species_name')
+        self.check_param('interactor_A_species_taxon_id')
+        self.check_param('interactor_B_species_taxon_id')
+        self.check_param('interactor_A_species_name')
+        self.check_param('interactor_B_species_name')
         self.check_param('doi')
 
     def run(self):
@@ -54,22 +54,22 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             #self.warning("\n EntryLine run")
             phi_id = self.param('PHI_id')
         
-            species_strain = self.get_strain_taxon('patho_species_strain')
-            species_taxon_id = int(self.param('patho_species_taxon_id'))
-            patho_division, patho_db_names_set, patho_taxon_ref = self.get_meta_values(species_taxon_id,species_strain)        
+            species_strain = self.get_strain_taxon('interactor_A_species_strain')
+            species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
+            interactor_A_division, interactor_A_db_names_set, interactor_A_taxon_ref = self.get_meta_values(species_taxon_id,species_strain)        
 
-            self.param("patho_division",patho_division)
-       	    self.param("patho_dbnames_set",patho_db_names_set)
-            self.param("patho_taxon_ref",patho_taxon_ref) 
+            self.param("interactor_A_division",interactor_A_division)
+       	    self.param("interactor_A_dbnames_set",interactor_A_db_names_set)
+            self.param("interactor_A_taxon_ref",interactor_A_taxon_ref) 
         
             # Same for Host 
-            species_strain = self.get_strain_taxon('host_species_strain') 
-            species_taxon_id = int(self.param('host_species_taxon_id'))
-            host_division, host_db_names_set, host_taxon_ref = self.get_meta_values(species_taxon_id, species_strain)
+            species_strain = self.get_strain_taxon('interactor_B_species_strain') 
+            species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
+            interactor_B_division, interactor_B_db_names_set, interactor_B_taxon_ref = self.get_meta_values(species_taxon_id, species_strain)
 
-            self.param("host_division",host_division) 
-            self.param("host_dbnames_set",host_db_names_set)
-            self.param("host_taxon_ref",host_taxon_ref)
+            self.param("interactor_B_division",interactor_B_division) 
+            self.param("interactor_B_dbnames_set",interactor_B_db_names_set)
+            self.param("interactor_B_taxon_ref",interactor_B_taxon_ref)
 
     def get_meta_values(self, species_taxon_id, species_strain):
         division = "" 
@@ -177,23 +177,23 @@ class MetaEnsemblReader(eHive.BaseRunnable):
     def build_output_hash(self):
        lines_list = []
        entry_line_dict = {
-           "patho_division": self.param("patho_division"),
-           "host_division": self.param("host_division"),
-           "patho_dbnames_set": str(self.param("patho_dbnames_set")),
-           "host_dbnames_set": str(self.param("host_dbnames_set")),
-           "patho_taxon_ref": self.param("patho_taxon_ref"),
-           "host_taxon_ref": self.param("host_taxon_ref"),
+           "interactor_A_division": self.param("interactor_A_division"),
+           "interactor_B_division": self.param("interactor_B_division"),
+           "interactor_A_dbnames_set": str(self.param("interactor_A_dbnames_set")),
+           "interactor_B_dbnames_set": str(self.param("interactor_B_dbnames_set")),
+           "interactor_A_taxon_ref": self.param("interactor_A_taxon_ref"),
+           "interactor_B_taxon_ref": self.param("interactor_B_taxon_ref"),
        }
        lines_list.append(entry_line_dict)
        return lines_list
 
     def write_output(self):
-        self.check_param('patho_species_taxon_id')
-        self.check_param('host_species_taxon_id')
-        self.check_param("patho_division")
-        self.check_param("host_division")
-        self.check_param("patho_dbnames_set")
-        self.check_param("host_dbnames_set")
+        self.check_param('interactor_A_species_taxon_id')
+        self.check_param('interactor_B_species_taxon_id')
+        self.check_param("interactor_A_division")
+        self.check_param("interactor_B_division")
+        self.check_param("interactor_A_dbnames_set")
+        self.check_param("interactor_B_dbnames_set")
         phi_id = self.param('PHI_id')
 
         if self.param('failed_job') == '':
@@ -215,14 +215,14 @@ class MetaEnsemblReader(eHive.BaseRunnable):
                 raise Exception('dbnames_set is empty')
         except:
             error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB. "
-            if param in ('patho_species_name','host_species_name','patho_species_taxon_id', 'host_species_taxon_id'):
+            if param in ('interactor_A_species_name','interactor_B_species_name','interactor_A_species_taxon_id', 'interactor_B_species_taxon_id'):
                 error_msg = error_msg +" Main identifier missing."
             else:                
                 try:
-                    if param == "patho_dbnames_set":
-                        error_msg = error_msg + "Could not map " + self.param('patho_species_name') + " species_taxon(" + str(self.param('patho_species_taxon_id')) + ") to Ensembl"
-                    if param == "host_dbnames_set":
-                        error_msg = error_msg + "Could not map " + self.param('host_species_name') + " species_taxon(" + str(self.param('host_species_taxon_id')) + ") to Ensembl"    
+                    if param == "interactor_A_dbnames_set":
+                        error_msg = error_msg + "Could not map " + self.param('interactor_A_species_name') + " species_taxon(" + str(self.param('interactor_A_species_taxon_id')) + ") to Ensembl"
+                    if param == "interactor_B_dbnames_set":
+                        error_msg = error_msg + "Could not map " + self.param('interactor_B_species_name') + " species_taxon(" + str(self.param('interactor_B_species_taxon_id')) + ") to Ensembl"    
                 except:
                     error_msg = error_msg + " Main identifier missing."
             self.param('failed_job', error_msg)

@@ -25,21 +25,21 @@ class InteractionTable(eHive.BaseRunnable):
     def fetch_input(self):
         self.param('failed_job', '')
         phi_id = self.param_required('PHI_id')
-        #self.check_param('patho_ensembl_gene_stable_id')
+        #self.check_param('interactor_A_ensembl_gene_stable_id')
 
     def run(self):
         self.warning("InteractionTable run")
         self.get_interactor_fields()
         
     def get_interactor_fields(self):
-        patho_interactor_type = self.get_interactor_type()
-        host_interactor_type = self.get_interactor_type()
-        patho_curie = 'prot:' + self.param('patho_uniprot_id')
-        host_curie = 'prot:' + self.param('host_uniprot_id')
-        self.param('patho_interactor_type', patho_interactor_type)
-        self.param('host_interactor_type', host_interactor_type)
-        self.param('patho_curie', patho_curie)
-        self.param('host_curie', host_curie)
+        interactor_A_interactor_type = self.get_interactor_type()
+        interactor_B_interactor_type = self.get_interactor_type()
+        interactor_A_curie = 'prot:' + self.param('interactor_A_uniprot_id')
+        interactor_B_curie = 'prot:' + self.param('interactor_B_uniprot_id')
+        self.param('interactor_A_interactor_type', interactor_A_interactor_type)
+        self.param('interactor_B_interactor_type', interactor_B_interactor_type)
+        self.param('interactor_A_curie', interactor_A_curie)
+        self.param('interactor_B_curie', interactor_B_curie)
 
 
     def get_interactor_type(self):
@@ -53,10 +53,10 @@ class InteractionTable(eHive.BaseRunnable):
     def build_output_hash(self):
         lines_list = []
         entry_line_dict = {
-                "patho_interactor_type": self.param("patho_interactor_type"),
-                "host_interactor_type": self.param("host_interactor_type"),
-                "patho_curie": self.param("patho_curie"),
-                "host_curie": self.param("host_curie"),
+                "interactor_A_interactor_type": self.param("interactor_A_interactor_type"),
+                "interactor_B_interactor_type": self.param("interactor_B_interactor_type"),
+                "interactor_A_curie": self.param("interactor_A_curie"),
+                "interactor_B_curie": self.param("interactor_B_curie"),
                 }
         lines_list.append(entry_line_dict)
         return lines_list

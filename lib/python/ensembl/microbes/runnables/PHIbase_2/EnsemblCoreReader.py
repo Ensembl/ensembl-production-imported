@@ -47,83 +47,83 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         if "PHI-base" in source_db:
             phi_id = self.param_required('PHI_id')
 
-        self.check_param('patho_division')
-        self.check_param('host_division')
-        self.check_param('patho_species_taxon_id')
-        self.check_param('host_species_taxon_id')
-        self.check_param('patho_dbnames_set')
-        self.check_param('host_dbnames_set')
+        self.check_param('interactor_A_division')
+        self.check_param('interactor_B_division')
+        self.check_param('interactor_A_species_taxon_id')
+        self.check_param('interactor_B_species_taxon_id')
+        self.check_param('interactor_A_dbnames_set')
+        self.check_param('interactor_B_dbnames_set')
 
     def run(self):
         self.get_values()
 
     def get_values(self):     
         
-        patho_strain_taxon_id = self.get_strain_taxon('patho_species_strain')
-        patho_species_taxon_id = int(self.param_required('patho_species_taxon_id'))
-        patho_taxon_ref = self.param('patho_taxon_ref')
-        patho_uniprot_id = self.param('patho_uniprot_id')
+        interactor_A_strain_taxon_id = self.get_strain_taxon('interactor_A_species_strain')
+        interactor_A_species_taxon_id = int(self.param_required('interactor_A_species_taxon_id'))
+        interactor_A_taxon_ref = self.param('interactor_A_taxon_ref')
+        interactor_A_uniprot_id = self.param('interactor_A_uniprot_id')
 
-        host_strain_taxon_id = self.get_strain_taxon('host_species_strain')
-        host_species_taxon_id = int(self.param_required('host_species_taxon_id'))
-        host_taxon_ref = self.param('host_taxon_ref')
+        interactor_B_strain_taxon_id = self.get_strain_taxon('interactor_B_species_strain')
+        interactor_B_species_taxon_id = int(self.param_required('interactor_B_species_taxon_id'))
+        interactor_B_taxon_ref = self.param('interactor_B_taxon_ref')
 
-        patho_staging_url = self.get_staging_url('patho_division') 
-        self.set_server_params('staging',patho_staging_url)
-        patho_ensembl_gene_stable_id = ''
-        patho_production_name = ''
+        interactor_A_staging_url = self.get_staging_url('interactor_A_division') 
+        self.set_server_params('staging',interactor_A_staging_url)
+        interactor_A_ensembl_gene_stable_id = ''
+        interactor_A_production_name = ''
         try:
-            patho_ensembl_gene_stable_id = self.param_required('patho_ensembl_id')
+            interactor_A_ensembl_gene_stable_id = self.param_required('interactor_A_ensembl_id')
         except Exception:
-            patho_dbnames_list = self.get_names_list('patho_dbnames_set')
-            taxon_id = self.get_taxon_id(patho_taxon_ref,patho_strain_taxon_id,patho_species_taxon_id)
+            interactor_A_dbnames_list = self.get_names_list('interactor_A_dbnames_set')
+            taxon_id = self.get_taxon_id(interactor_A_taxon_ref,interactor_A_strain_taxon_id,interactor_A_species_taxon_id)
 
-            for dbname in patho_dbnames_list:
-                if patho_ensembl_gene_stable_id == '':
+            for dbname in interactor_A_dbnames_list:
+                if interactor_A_ensembl_gene_stable_id == '':
                     dbname = dbname.strip()
-                    print("patho db:" + dbname + ":")
-                    patho_production_names_list = self.get_production_names_list(taxon_id,dbname, patho_staging_url)
-                    patho_ensembl_gene_stable_id, patho_production_name = self.get_ensembl_id(taxon_id, patho_uniprot_id, patho_production_names_list)
+                    print("interactor_A_db:" + dbname + ":")
+                    interactor_A_production_names_list = self.get_production_names_list(taxon_id,dbname, interactor_A_staging_url)
+                    interactor_A_ensembl_gene_stable_id, interactor_A_production_name = self.get_ensembl_id(taxon_id, interactor_A_uniprot_id, interactor_A_production_names_list)
         
-        host_staging_url = self.get_staging_url('host_division')
-        self.set_server_params('staging', host_staging_url)
-        host_ensembl_gene_stable_id = ''
-        host_production_name = ''
+        interactor_B_staging_url = self.get_staging_url('interactor_B_division')
+        self.set_server_params('staging', interactor_B_staging_url)
+        interactor_B_ensembl_gene_stable_id = ''
+        interactor_B_production_name = ''
         try:    
-            host_ensembl_gene_stable_id = self.param_required('host_ensembl_id')
+            interactor_B_ensembl_gene_stable_id = self.param_required('interactor_B_ensembl_id')
         except Exception:
-            print("no initial host ensembl id" )
-            host_dbnames_list = self.get_names_list('host_dbnames_set')
-            print("hostDB names:" + str(host_dbnames_list))
+            print("no initial interactor_B_ensembl_id" )
+            interactor_B_dbnames_list = self.get_names_list('interactor_B_dbnames_set')
+            print("interactor_B_DB names:" + str(interactor_B_dbnames_list))
             try:
-                host_uniprot_id = self.param('host_uniprot_id')
-                taxon_id = self.get_taxon_id(host_taxon_ref,host_strain_taxon_id,host_species_taxon_id)
-                for dbname in host_dbnames_list:
-                    if not host_ensembl_gene_stable_id:
+                interactor_B_uniprot_id = self.param('interactor_B_uniprot_id')
+                taxon_id = self.get_taxon_id(interactor_B_taxon_ref,interactor_B_strain_taxon_id,interactor_B_species_taxon_id)
+                for dbname in interactor_B_dbnames_list:
+                    if not interactor_B_ensembl_gene_stable_id:
                         dbname = dbname.strip()
-                        print("host db:" + dbname + ":")
-                        host_production_names_list = self.get_production_names_list(taxon_id,dbname,host_staging_url)
-                        host_ensembl_gene_stable_id, host_production_name = self.get_ensembl_id(taxon_id, host_uniprot_id, host_production_names_list)
-                if not host_ensembl_gene_stable_id:
-                    host_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("host_species_name")
-                    print("host_ensembl_gene_stable_id = " + host_ensembl_gene_stable_id)
+                        print("interactor_B_db:" + dbname + ":")
+                        interactor_B_production_names_list = self.get_production_names_list(taxon_id,dbname,interactor_B_staging_url)
+                        interactor_B_ensembl_gene_stable_id, interactor_B_production_name = self.get_ensembl_id(taxon_id, interactor_B_uniprot_id, interactor_B_production_names_list)
+                if not interactor_B_ensembl_gene_stable_id:
+                    interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_species_name")
+                    print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
             except Exception as e:
                 print(e)
-                host_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("host_species_name")
-                print("host_ensembl_gene_stable_id = " + host_ensembl_gene_stable_id)
+                interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_species_name")
+                print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
 
-        if patho_ensembl_gene_stable_id == '':
-            error_msg = self.param('PHI_id') + " entry fail. Couldn't map UniProt " + patho_uniprot_id + " to any Ensembl gene"
+        if interactor_A_ensembl_gene_stable_id == '':
+            error_msg = self.param('PHI_id') + " entry fail. Couldn't map UniProt " + interactor_A_uniprot_id + " to any Ensembl gene"
             self.param('failed_job', error_msg)
             print(error_msg)
         else:
-            print("** " + patho_uniprot_id + " mapped to " + patho_ensembl_gene_stable_id + " **") 
-            self.param("patho_ensembl_id",patho_ensembl_gene_stable_id)
-            self.param("patho_species_name",patho_production_name)
+            print("** " + interactor_A_uniprot_id + " mapped to " + interactor_A_ensembl_gene_stable_id + " **") 
+            self.param("interactor_A_ensembl_id",interactor_A_ensembl_gene_stable_id)
+            self.param("interactor_A_species_name",interactor_A_production_name)
         
-        if "UNDETERMINED" not in host_ensembl_gene_stable_id: #Unfortunate double negation. Enters only  if the stable_id is defined
-            self.param("host_species_production_name",host_production_name)
-        self.param("host_ensembl_id",host_ensembl_gene_stable_id)
+        if "UNDETERMINED" not in interactor_B_ensembl_gene_stable_id: #Unfortunate double negation. Enters only  if the stable_id is defined
+            self.param("interactor_B_species_production_name",interactor_B_production_name)
+        self.param("interactor_B_ensembl_id",interactor_B_ensembl_gene_stable_id)
     
 
     def get_ensembl_id(self, tax_id, uniprot_id, species_production_names_list):
@@ -233,12 +233,12 @@ class EnsemblCoreReader(eHive.BaseRunnable):
 
     def update_uniprot(self,uniprot_id, species_name):
         try:
-            print ("host uniprot:" + self.param(uniprot_id))
+            print ("interactor_B_uniprot:" + self.param(uniprot_id))
             return self.param(uniprot_id)
         except: 
             return "UNDETERMINED"  + "_" + self.param('PHI_id') + "_" + species_name
 
-    def update_host_species_name(self, matched_production_name, reported_name):
+    def update_interactor_B_species_name(self, matched_production_name, reported_name):
         try:
             print("mached_species_name:" + self.param(matched_production_name) + ":")
             return self.param(matched_production_name)
@@ -248,11 +248,11 @@ class EnsemblCoreReader(eHive.BaseRunnable):
     def build_output_hash(self):
         lines_list = []
         entry_line_dict = {
-                "patho_ensembl_id": self.param("patho_ensembl_id"),
-                "patho_production_name": self.param("patho_species_name"),
-                "host_ensembl_id": self.param("host_ensembl_id"),
-                "host_uniprot_id": self.update_uniprot("host_uniprot_id", self.param("host_species_name")),
-                "host_production_name": self.update_host_species_name("host_species_production_name","host_species_name"),
+                "interactor_A_ensembl_id": self.param("interactor_A_ensembl_id"),
+                "interactor_A_production_name": self.param("interactor_A_species_name"),
+                "interactor_B_ensembl_id": self.param("interactor_B_ensembl_id"),
+                "interactor_B_uniprot_id": self.update_uniprot("interactor_B_uniprot_id", self.param("interactor_B_species_name")),
+                "interactor_B_production_name": self.update_interactor_B_species_name("interactor_B_species_production_name","interactor_B_species_name"),
                 }
 
         lines_list.append(entry_line_dict)

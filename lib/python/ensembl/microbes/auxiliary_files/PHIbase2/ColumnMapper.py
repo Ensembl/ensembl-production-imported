@@ -30,26 +30,26 @@ class ColumnMapper():
 
         if 'combined_PHIbase' in db_dict:
             file_rows = {
-                    "patho_uniprot_id": 1,
-                    "patho_sequence": 24,
-                    "patho_ensembl_id": 2,
-                    "patho_species_taxon_id": 3,
-                    "patho_species_strain": 5,
-                    "patho_species_name": 4,
-                    "host_uniprot_id": 9,
-                    "host_species_taxon_id": 11,
-                    "host_species_strain": 13,
-                    "host_species_name": 12,
-                    "host_sequence": 25,
-		    "host_ensembl_id": 10,
+                    "interactor_A_uniprot_id": 1,
+                    "interactor_A_sequence": 24,
+                    "interactor_A_ensembl_id": 2,
+                    "interactor_A_species_taxon_id": 3,
+                    "interactor_A_species_strain": 5,
+                    "interactor_A_species_name": 4,
+                    "interactor_B_uniprot_id": 9,
+                    "interactor_B_species_taxon_id": 11,
+                    "interactor_B_species_strain": 13,
+                    "interactor_B_species_name": 12,
+                    "interactor_B_sequence": 25,
+                    "interactor_B_ensembl_id": 10,
                     "litterature_id": 22,
                     "source_db_label": db_dict,
                     }
 
-            ColumnMapper.patho_interactor_type = "protein"
-            ColumnMapper.patho_curie_type = "uniprot"
-            ColumnMapper.host_interactor_type = "protein"
-            ColumnMapper.host_curie_type = "uniprot"
+            ColumnMapper.interactor_A_interactor_type = "protein"
+            ColumnMapper.interactor_A_curie_type = "uniprot"
+            ColumnMapper.interactor_B_interactor_type = "protein"
+            ColumnMapper.interactor_B_curie_type = "uniprot"
 
             ColumnMapper.ontology_description = "Expertly curated molecular and biological information on genes proven to affect the outcome of pathogen-host interactions"
 

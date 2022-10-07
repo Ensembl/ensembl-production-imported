@@ -58,17 +58,17 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('source_db_label')
         self.check_param('doi')
 
-        self.check_param('patho_species_taxon_id')
-        self.check_param('patho_species_name')
-        self.check_param('patho_division')
-        self.check_param('patho_ensembl_id')
-        self.check_param('patho_molecular_structure')
+        self.check_param('interactor_A_species_taxon_id')
+        self.check_param('interactor_A_species_name')
+        self.check_param('interactor_A_division')
+        self.check_param('interactor_A_ensembl_id')
+        self.check_param('interactor_A_molecular_structure')
 
-        self.check_param('host_species_taxon_id')
-        self.check_param('host_species_name')
-        self.check_param('host_division')
-        self.check_param('host_ensembl_id')
-        self.check_param('host_molecular_structure')
+        self.check_param('interactor_B_species_taxon_id')
+        self.check_param('interactor_B_species_name')
+        self.check_param('interactor_B_division')
+        self.check_param('interactor_B_ensembl_id')
+        self.check_param('interactor_B_molecular_structure')
         
 
     def run(self):
@@ -84,52 +84,52 @@ class DBwriter(eHive.BaseRunnable):
         session = Session()
 
         phi_id = self.param('PHI_id')
-        patho_species_taxon_id = int(self.param('patho_species_taxon_id'))
-        patho_species_name = self.param('patho_species_name')
-        patho_division = self.param('patho_division')
-        host_species_taxon_id = int(self.param('host_species_taxon_id'))
-        host_species_name = self.param('host_species_name')
-        host_division = self.param('host_division')
+        interactor_A_species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
+        interactor_A_species_name = self.param('interactor_A_species_name')
+        interactor_A_division = self.param('interactor_A_division')
+        interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
+        interactor_B_species_name = self.param('interactor_B_species_name')
+        interactor_B_division = self.param('interactor_B_division')
         source_db_label = self.param('source_db_label')
-        patho_ensembl_gene_stable_id = self.param('patho_ensembl_id')
-        host_ensembl_gene_stable_id = self.param('host_ensembl_id')
-        patho_structure = self.param('patho_molecular_structure')
-        host_structure = self.param('host_molecular_structure')
-        patho_interactor_type = self.param("patho_interactor_type")
-        patho_curie = self.param("patho_curie")
-        patho_names = self.param("patho_ensembl_id")
-        host_interactor_type = self.param("host_interactor_type")
-        host_curie = self.param("host_curie")
-        host_names = self.param("host_ensembl_id")
+        interactor_A_ensembl_gene_stable_id = self.param('interactor_A_ensembl_id')
+        interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
+        interactor_A_structure = self.param('interactor_A_molecular_structure')
+        interactor_B_structure = self.param('interactor_B_molecular_structure')
+        interactor_A_interactor_type = self.param("interactor_A_interactor_type")
+        interactor_A_curie = self.param("interactor_A_curie")
+        interactor_A_names = self.param("interactor_A_ensembl_id")
+        interactor_B_interactor_type = self.param("interactor_B_interactor_type")
+        interactor_B_curie = self.param("interactor_B_curie")
+        interactor_B_names = self.param("interactor_B_ensembl_id")
         doi = self.param("doi")
-        print(f" PHI_id = {phi_id} :: patho_species_name {patho_species_name} :: host_species_name {host_species_name} :: source_db_label {source_db_label}")
+        print(f" PHI_id = {phi_id} :: interactor_A_species_name {interactor_A_species_name} :: interactor_B_species_name {interactor_B_species_name} :: source_db_label {source_db_label}")
         
         source_db_value = self.get_source_db_value(session, source_db_label)
-        pathogen_species_value = self.get_species_value(session, patho_species_taxon_id, patho_division, patho_species_name)
-        host_species_value = self.get_species_value(session, host_species_taxon_id, host_division, host_species_name)
+        interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_species_name)
+        interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_species_name)
         
         try:
             session.add(source_db_value)
             source_db_id = source_db_value.source_db_id
-            session.add(pathogen_species_value)
-            session.add(host_species_value)
+            session.add(interactor_A_species_value)
+            session.add(interactor_B_species_value)
             session.flush()
 
-            patho_ensembl_gene_value = self.get_ensembl_gene_value(session, patho_ensembl_gene_stable_id, pathogen_species_value.species_id)
-            host_ensembl_gene_value = self.get_ensembl_gene_value(session, host_ensembl_gene_stable_id, host_species_value.species_id)
-            session.add(patho_ensembl_gene_value)
-            session.add(host_ensembl_gene_value)
+            interactor_A_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_A_ensembl_gene_stable_id, interactor_A_species_value.species_id)
+            interactor_B_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_B_ensembl_gene_stable_id, interactor_B_species_value.species_id)
+            session.add(interactor_A_ensembl_gene_value)
+            session.add(interactor_B_ensembl_gene_value)
             session.flush()
                 
-            pathogen_curated_interactor = self.get_interactor_value(session, patho_interactor_type, patho_curie, patho_names, patho_structure, patho_ensembl_gene_value.ensembl_gene_id)
-            host_curated_interactor = self.get_interactor_value(session, host_interactor_type, host_curie, host_names, host_structure, host_ensembl_gene_value.ensembl_gene_id)
-            session.add(pathogen_curated_interactor)
-            session.add(host_curated_interactor)
+            interactor_A_curated_interactor = self.get_interactor_value(session, interactor_A_interactor_type, interactor_A_curie, interactor_A_names, interactor_A_structure, interactor_A_ensembl_gene_value.ensembl_gene_id)
+            interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_names, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
+            session.add(interactor_A_curated_interactor)
+            session.add(interactor_B_curated_interactor)
             session.flush()
             
-            patho_intctr_id = pathogen_curated_interactor.curated_interactor_id
-            host_intctr_id = host_curated_interactor.curated_interactor_id
-            interaction_value = self.get_interaction_value(session, patho_intctr_id, host_intctr_id, doi, source_db_value.source_db_id)    
+            interactor_A_intctr_id = interactor_A_curated_interactor.curated_interactor_id
+            interactor_B_intctr_id = interactor_B_curated_interactor.curated_interactor_id
+            interaction_value = self.get_interaction_value(session, interactor_A_intctr_id, interactor_B_intctr_id, doi, source_db_value.source_db_id)    
             session.add(interaction_value)
             session.flush()
             
@@ -226,15 +226,15 @@ class DBwriter(eHive.BaseRunnable):
         
         return ontology_term.ontology_term_id
 
-    def get_interaction_value(self, session, patho_intctr_id, host_intctr_id, i_doi, i_source_db_id):
+    def get_interaction_value(self, session, interactor_A_intctr_id, interactor_B_intctr_id, i_doi, i_source_db_id):
         interaction_value = None
         try:
-            interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id).one()
+            interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=interactor_A_intctr_id, interactor_2=interactor_B_intctr_id, doi=i_doi, source_db_id=i_source_db_id).one()
         except MultipleResultsFound:
-            interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id).first()
+            interaction_value = session.query(interaction_db_models.Interaction).filter_by(interactor_1=interactor_A_intctr_id, interactor_2=interactor_B_intctr_id, doi=i_doi, source_db_id=i_source_db_id).first()
         except NoResultFound:
-            interaction_value = interaction_db_models.Interaction(interactor_1=patho_intctr_id, interactor_2=host_intctr_id, doi=i_doi, source_db_id=i_source_db_id, import_timestamp=db.sql.functions.now())
-            self.add_stored_value('Interaction', [{"interactor_1": patho_intctr_id, "interactor_2": host_intctr_id, "doi": i_doi, "source_db_id": i_source_db_id}])
+            interaction_value = interaction_db_models.Interaction(interactor_1=interactor_A_intctr_id, interactor_2=interactor_B_intctr_id, doi=i_doi, source_db_id=i_source_db_id, import_timestamp=db.sql.functions.now())
+            self.add_stored_value('Interaction', [{"interactor_1": interactor_A_intctr_id, "interactor_2": interactor_B_intctr_id, "doi": i_doi, "source_db_id": i_source_db_id}])
         return interaction_value
 
         
