@@ -36,12 +36,10 @@ class InteractorDataManager(eHive.BaseRunnable):
         self.get_interactor_fields()
         
     def get_interactor_fields(self):
-        patho_interactor_type = self.get_interactor_type()
-        host_interactor_type = self.get_interactor_type()
-        patho_curie = 'prot:' + self.param('patho_uniprot_id')
-        host_curie = 'prot:' + self.param('host_uniprot_id')
-        self.param('patho_interactor_type', patho_interactor_type)
-        self.param('host_interactor_type', host_interactor_type)
+        patho_curie_type = self.param("patho_curie_type")
+        host_curie_type = self.param("host_curie_type")
+        patho_curie = patho_curie_type + ":" + self.param('patho_uniprot_id')
+        host_curie = host_curie_type + ":" + self.param('host_uniprot_id')
         self.param('patho_curie', patho_curie)
         self.param('host_curie', host_curie)
 

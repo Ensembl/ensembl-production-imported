@@ -46,6 +46,11 @@ class ColumnMapper():
                     "source_db_label": db_dict,
                     }
 
+            ColumnMapper.patho_interactor_type = "protein"
+            ColumnMapper.patho_curie_type = "uniprot"
+            ColumnMapper.host_interactor_type = "protein"
+            ColumnMapper.host_curie_type = "uniprot"
+
             ColumnMapper.ontology_description = "Expertly curated molecular and biological information on genes proven to affect the outcome of pathogen-host interactions"
 
             ColumnMapper.source_db_description = "Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity."
