@@ -79,6 +79,7 @@ class FileReader(eHive.BaseRunnable):
                     "non_vertebrate_url": non_vertebrate_url,
                     "bacteria_url":bacteria_url,
                     "source_db_label": cm.source_db_label,
+                    "source_db_description": cm.source_db_description,
                     }
                 keys_rows_dict = col_map.ColumnMapper.keys_rows
                 for key in keys_rows_dict:

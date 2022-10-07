@@ -48,6 +48,8 @@ class ColumnMapper():
 
             ColumnMapper.ontology_description = "Expertly curated molecular and biological information on genes proven to affect the outcome of pathogen-host interactions"
 
+            ColumnMapper.source_db_description = "Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity."
+            
             ColumnMapper.keys_descriptions = {
                     "Interaction phenotype": "Interaction phenotype/ disease outcome",
                     "Disease name": "Name of disease",

@@ -324,7 +324,7 @@ class DBwriter(eHive.BaseRunnable):
         except MultipleResultsFound:
             source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).first()
         except NoResultFound:
-            source_db_value = interaction_db_models.SourceDb(label='PHI-base', external_db='Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity.')
+            source_db_value = interaction_db_models.SourceDb(label=db_label, external_db=self.param("source_db_description"))
             self.add_stored_value('SourceDb', [db_label])
         return source_db_value
 
