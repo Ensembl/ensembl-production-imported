@@ -134,7 +134,10 @@ class InteractionKeys(eHive.BaseRunnable):
 
     def write_output(self):
         try:
-            obo_file = self.param('obo_file')
+            source_db = self.param('source_db')
+            cm = col_map.ColumnMapper(source_db)
+
+            obo_file = cm.ontology_file
             self.dataflow({
                 "key_list": self.param('key_list'),
                 "inputfile": self.param('inputfile'),

@@ -120,7 +120,6 @@ sub pipeline_analyses {
                        registry   => '#registry#',
 		       inputfile  => '#inputfile#',
 		       source_db  => '#source_db#',
-		       obo_file   => $self->o('obo_file'),
                       },
       -flow_into    => {
                         1 => {'load_ontologies' => INPUT_PLUS()},

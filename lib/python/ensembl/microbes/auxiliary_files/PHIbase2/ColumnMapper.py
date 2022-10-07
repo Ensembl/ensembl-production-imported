@@ -53,6 +53,8 @@ class ColumnMapper():
 
             ColumnMapper.ontology_description = "Expertly curated molecular and biological information on genes proven to affect the outcome of pathogen-host interactions"
 
+            ColumnMapper.ontology_file = "/hps/software/users/ensembl/repositories/microbes/mcarbajo/checkout/ensembl-production-imported/lib/python/ensembl/microbes/auxiliary_files/PHIbase2/PHI_DUMMY.obo"
+                    
             ColumnMapper.source_db_description = "Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity."
             
             ColumnMapper.keys_descriptions = {
