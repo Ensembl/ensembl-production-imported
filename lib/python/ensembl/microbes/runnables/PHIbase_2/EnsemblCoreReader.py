@@ -62,7 +62,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         interactor_A_strain_taxon_id = self.get_strain_taxon('interactor_A_species_strain')
         interactor_A_species_taxon_id = int(self.param_required('interactor_A_species_taxon_id'))
         interactor_A_taxon_ref = self.param('interactor_A_taxon_ref')
-        interactor_A_uniprot_id = self.param('interactor_A_uniprot_id')
+        interactor_A_id = self.param('interactor_A_id')
 
         interactor_B_strain_taxon_id = self.get_strain_taxon('interactor_B_species_strain')
         interactor_B_species_taxon_id = int(self.param_required('interactor_B_species_taxon_id'))
@@ -83,7 +83,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                     dbname = dbname.strip()
                     print("interactor_A_db:" + dbname + ":")
                     interactor_A_production_names_list = self.get_production_names_list(taxon_id,dbname, interactor_A_staging_url)
-                    interactor_A_ensembl_gene_stable_id, interactor_A_production_name = self.get_ensembl_id(taxon_id, interactor_A_uniprot_id, interactor_A_production_names_list)
+                    interactor_A_ensembl_gene_stable_id, interactor_A_production_name = self.get_ensembl_id(taxon_id, interactor_A_id, interactor_A_production_names_list)
         
         interactor_B_staging_url = self.get_staging_url('interactor_B_division')
         self.set_server_params('staging', interactor_B_staging_url)
@@ -96,14 +96,14 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             interactor_B_dbnames_list = self.get_names_list('interactor_B_dbnames_set')
             print("interactor_B_DB names:" + str(interactor_B_dbnames_list))
             try:
-                interactor_B_uniprot_id = self.param('interactor_B_uniprot_id')
+                interactor_B_id = self.param('interactor_B_id')
                 taxon_id = self.get_taxon_id(interactor_B_taxon_ref,interactor_B_strain_taxon_id,interactor_B_species_taxon_id)
                 for dbname in interactor_B_dbnames_list:
                     if not interactor_B_ensembl_gene_stable_id:
                         dbname = dbname.strip()
                         print("interactor_B_db:" + dbname + ":")
                         interactor_B_production_names_list = self.get_production_names_list(taxon_id,dbname,interactor_B_staging_url)
-                        interactor_B_ensembl_gene_stable_id, interactor_B_production_name = self.get_ensembl_id(taxon_id, interactor_B_uniprot_id, interactor_B_production_names_list)
+                        interactor_B_ensembl_gene_stable_id, interactor_B_production_name = self.get_ensembl_id(taxon_id, interactor_B_id, interactor_B_production_names_list)
                 if not interactor_B_ensembl_gene_stable_id:
                     interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_species_name")
                     print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
@@ -113,11 +113,11 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                 print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
 
         if interactor_A_ensembl_gene_stable_id == '':
-            error_msg = self.param('PHI_id') + " entry fail. Couldn't map UniProt " + interactor_A_uniprot_id + " to any Ensembl gene"
+            error_msg = self.param('PHI_id') + " entry fail. Couldn't map UniProt " + interactor_A_id + " to any Ensembl gene"
             self.param('failed_job', error_msg)
             print(error_msg)
         else:
-            print("** " + interactor_A_uniprot_id + " mapped to " + interactor_A_ensembl_gene_stable_id + " **") 
+            print("** " + interactor_A_id + " mapped to " + interactor_A_ensembl_gene_stable_id + " **") 
             self.param("interactor_A_ensembl_id",interactor_A_ensembl_gene_stable_id)
             self.param("interactor_A_species_name",interactor_A_production_name)
         
@@ -251,7 +251,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                 "interactor_A_ensembl_id": self.param("interactor_A_ensembl_id"),
                 "interactor_A_production_name": self.param("interactor_A_species_name"),
                 "interactor_B_ensembl_id": self.param("interactor_B_ensembl_id"),
-                "interactor_B_uniprot_id": self.update_uniprot("interactor_B_uniprot_id", self.param("interactor_B_species_name")),
+                "interactor_B_id": self.update_uniprot("interactor_B_id", self.param("interactor_B_species_name")),
                 "interactor_B_production_name": self.update_interactor_B_species_name("interactor_B_species_production_name","interactor_B_species_name"),
                 }
 

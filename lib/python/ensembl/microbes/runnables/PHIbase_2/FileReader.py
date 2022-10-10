@@ -58,7 +58,7 @@ class FileReader(eHive.BaseRunnable):
                 entry_line_dict = {
                     "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
                     "PHI_id": row[0],
-                    "interactor_A_uniprot_id": row[cm.interactor_A_uniprot_id],
+                    "interactor_A_id": row[cm.interactor_A_id],
                     "interactor_A_interactor_type": cm.interactor_A_interactor_type,
                     "interactor_A_curie_type": cm.interactor_A_curie_type,
                     "interactor_A_sequence": row[cm.interactor_A_sequence],
@@ -66,7 +66,7 @@ class FileReader(eHive.BaseRunnable):
                     "interactor_A_species_taxon_id": row[cm.interactor_A_species_taxon_id],
                     "interactor_A_species_strain": row[cm.interactor_A_species_strain],
                     "interactor_A_species_name": row[cm.interactor_A_species_name],
-                    "interactor_B_uniprot_id": row[cm.interactor_B_uniprot_id],
+                    "interactor_B_id": row[cm.interactor_B_id],
                     "interactor_B_interactor_type": cm.interactor_B_interactor_type,
                     "interactor_B_curie_type": cm.interactor_B_curie_type,
                     "interactor_B_ensembl_id": row[cm.interactor_B_ensembl_id],
