@@ -30,16 +30,16 @@ class ColumnMapper():
 
         if 'combined_PHIbase' in db_dict:
             file_rows = {
-                    "interactor_A_uniprot_id": 1,
+                    "interactor_A_id": 1,
                     "interactor_A_sequence": 24,
                     "interactor_A_ensembl_id": 2,
                     "interactor_A_species_taxon_id": 3,
                     "interactor_A_species_strain": 5,
-                    "interactor_A_species_name": 4,
-                    "interactor_B_uniprot_id": 9,
+                    "interactor_A_name": 4,
+                    "interactor_B_id": 9,
                     "interactor_B_species_taxon_id": 11,
                     "interactor_B_species_strain": 13,
-                    "interactor_B_species_name": 12,
+                    "interactor_B_name": 12,
                     "interactor_B_sequence": 25,
                     "interactor_B_ensembl_id": 10,
                     "litterature_id": 22,

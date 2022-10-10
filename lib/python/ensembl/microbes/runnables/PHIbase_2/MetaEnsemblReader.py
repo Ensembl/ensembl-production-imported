@@ -45,8 +45,8 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         phi_id = self.param_required('PHI_id')
         self.check_param('interactor_A_species_taxon_id')
         self.check_param('interactor_B_species_taxon_id')
-        self.check_param('interactor_A_species_name')
-        self.check_param('interactor_B_species_name')
+        self.check_param('interactor_A_name')
+        self.check_param('interactor_B_name')
         self.check_param('doi')
 
     def run(self):
@@ -215,14 +215,14 @@ class MetaEnsemblReader(eHive.BaseRunnable):
                 raise Exception('dbnames_set is empty')
         except:
             error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB. "
-            if param in ('interactor_A_species_name','interactor_B_species_name','interactor_A_species_taxon_id', 'interactor_B_species_taxon_id'):
+            if param in ('interactor_A_name','interactor_B_name','interactor_A_species_taxon_id', 'interactor_B_species_taxon_id'):
                 error_msg = error_msg +" Main identifier missing."
             else:                
                 try:
                     if param == "interactor_A_dbnames_set":
-                        error_msg = error_msg + "Could not map " + self.param('interactor_A_species_name') + " species_taxon(" + str(self.param('interactor_A_species_taxon_id')) + ") to Ensembl"
+                        error_msg = error_msg + "Could not map " + self.param('interactor_A_name') + " species_taxon(" + str(self.param('interactor_A_species_taxon_id')) + ") to Ensembl"
                     if param == "interactor_B_dbnames_set":
-                        error_msg = error_msg + "Could not map " + self.param('interactor_B_species_name') + " species_taxon(" + str(self.param('interactor_B_species_taxon_id')) + ") to Ensembl"    
+                        error_msg = error_msg + "Could not map " + self.param('interactor_B_name') + " species_taxon(" + str(self.param('interactor_B_species_taxon_id')) + ") to Ensembl"    
                 except:
                     error_msg = error_msg + " Main identifier missing."
             self.param('failed_job', error_msg)

@@ -105,11 +105,11 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                         interactor_B_production_names_list = self.get_production_names_list(taxon_id,dbname,interactor_B_staging_url)
                         interactor_B_ensembl_gene_stable_id, interactor_B_production_name = self.get_ensembl_id(taxon_id, interactor_B_id, interactor_B_production_names_list)
                 if not interactor_B_ensembl_gene_stable_id:
-                    interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_species_name")
+                    interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_name")
                     print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
             except Exception as e:
                 print(e)
-                interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_species_name")
+                interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_name")
                 print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
 
         if interactor_A_ensembl_gene_stable_id == '':
@@ -119,7 +119,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         else:
             print("** " + interactor_A_id + " mapped to " + interactor_A_ensembl_gene_stable_id + " **") 
             self.param("interactor_A_ensembl_id",interactor_A_ensembl_gene_stable_id)
-            self.param("interactor_A_species_name",interactor_A_production_name)
+            self.param("interactor_A_name",interactor_A_production_name)
         
         if "UNDETERMINED" not in interactor_B_ensembl_gene_stable_id: #Unfortunate double negation. Enters only  if the stable_id is defined
             self.param("interactor_B_species_production_name",interactor_B_production_name)
@@ -238,9 +238,9 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         except: 
             return "UNDETERMINED"  + "_" + self.param('PHI_id') + "_" + species_name
 
-    def update_interactor_B_species_name(self, matched_production_name, reported_name):
+    def update_interactor_B_name(self, matched_production_name, reported_name):
         try:
-            print("mached_species_name:" + self.param(matched_production_name) + ":")
+            print("mached_name:" + self.param(matched_production_name) + ":")
             return self.param(matched_production_name)
         except:
             return self.param(reported_name)
@@ -249,10 +249,10 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         lines_list = []
         entry_line_dict = {
                 "interactor_A_ensembl_id": self.param("interactor_A_ensembl_id"),
-                "interactor_A_production_name": self.param("interactor_A_species_name"),
+                "interactor_A_production_name": self.param("interactor_A_name"),
                 "interactor_B_ensembl_id": self.param("interactor_B_ensembl_id"),
-                "interactor_B_id": self.update_uniprot("interactor_B_id", self.param("interactor_B_species_name")),
-                "interactor_B_production_name": self.update_interactor_B_species_name("interactor_B_species_production_name","interactor_B_species_name"),
+                "interactor_B_id": self.update_uniprot("interactor_B_id", self.param("interactor_B_name")),
+                "interactor_B_production_name": self.update_interactor_B_name("interactor_B_species_production_name","interactor_B_name"),
                 }
 
         lines_list.append(entry_line_dict)

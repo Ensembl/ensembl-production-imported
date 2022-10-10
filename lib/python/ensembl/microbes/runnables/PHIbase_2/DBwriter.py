@@ -59,13 +59,13 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('doi')
 
         self.check_param('interactor_A_species_taxon_id')
-        self.check_param('interactor_A_species_name')
+        self.check_param('interactor_A_name')
         self.check_param('interactor_A_division')
         self.check_param('interactor_A_ensembl_id')
         self.check_param('interactor_A_molecular_structure')
 
         self.check_param('interactor_B_species_taxon_id')
-        self.check_param('interactor_B_species_name')
+        self.check_param('interactor_B_name')
         self.check_param('interactor_B_division')
         self.check_param('interactor_B_ensembl_id')
         self.check_param('interactor_B_molecular_structure')
@@ -73,7 +73,6 @@ class DBwriter(eHive.BaseRunnable):
 
     def run(self):
         self.param('entries_to_delete',{})
-        self.warning("DBWriter ----------------------------------------------------")
         self.insert_new_value()
 
     def insert_new_value(self):
@@ -85,10 +84,10 @@ class DBwriter(eHive.BaseRunnable):
 
         phi_id = self.param('PHI_id')
         interactor_A_species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
-        interactor_A_species_name = self.param('interactor_A_species_name')
+        interactor_A_name = self.param('interactor_A_name')
         interactor_A_division = self.param('interactor_A_division')
         interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
-        interactor_B_species_name = self.param('interactor_B_species_name')
+        interactor_B_name = self.param('interactor_B_name')
         interactor_B_division = self.param('interactor_B_division')
         source_db_label = self.param('source_db_label')
         interactor_A_ensembl_gene_stable_id = self.param('interactor_A_ensembl_id')
@@ -102,11 +101,10 @@ class DBwriter(eHive.BaseRunnable):
         interactor_B_curie = self.param("interactor_B_curie")
         interactor_B_names = self.param("interactor_B_ensembl_id")
         doi = self.param("doi")
-        print(f" PHI_id = {phi_id} :: interactor_A_species_name {interactor_A_species_name} :: interactor_B_species_name {interactor_B_species_name} :: source_db_label {source_db_label}")
         
         source_db_value = self.get_source_db_value(session, source_db_label)
-        interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_species_name)
-        interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_species_name)
+        interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_name)
+        interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_name)
         
         try:
             session.add(source_db_value)
@@ -136,7 +134,6 @@ class DBwriter(eHive.BaseRunnable):
             interaction_id = interaction_value.interaction_id
             key_value_pairs_dict = self.get_key_value_pairs(session)
             
-            print(f"key_valuepair dict {key_value_pairs_dict}")
             for key_v in key_value_pairs_dict:
                 meta_key_id = self.get_meta_key_id(session, key_v)
                 kvp_value = self.get_kv_pair_value(session, interaction_id, meta_key_id,key_value_pairs_dict[key_v])
@@ -199,8 +196,6 @@ class DBwriter(eHive.BaseRunnable):
                 self.add_stored_value('KeyValuePair',added_values_list)
             else:
                 self.add_stored_value('KeyValuePair', [{"interaction_id":int_id, "meta_key_id":key_id, "value":mkp_value, "ontology_term_id":ontology_term_id}])
-            
-            print(f" A new mkp_value has been created with interaction_id {int_id}  mk_id {key_id} and value {mkp_value} + added as stored value ")
 
         return kv_pair_value
     
@@ -359,14 +354,14 @@ class DBwriter(eHive.BaseRunnable):
                 self.add_stored_value('Species', [species_tax_id])   
         return species_value
 
-    def write_output(self):
-        if self.param('failed_job') != '':
-            self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
+    #def write_output(self):
+        #if self.param('failed_job') != '':
+        #    self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
 
     def check_param(self, param):
         try:
             self.param_required(param)
         except:
-            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            error_msg = self.param('PHI_id') + " DBWriter ERROR entry doesn't have the required field " + param + " to attempt writing to the DB"
             self.param('failed_job', error_msg)
             print(error_msg)
