@@ -22,7 +22,6 @@ import pymysql
 import eHive
 import datetime
 import re
-import models as core_db_models
 import ensembl.microbes.auxiliary_files.PHIbase2.interaction_DB_models as interaction_db_models
 import requests
 from xml.etree import ElementTree
@@ -59,13 +58,13 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('doi')
 
         self.check_param('interactor_A_species_taxon_id')
-        self.check_param('interactor_A_name')
+        self.check_param('interactor_A_production_name')
         self.check_param('interactor_A_division')
         self.check_param('interactor_A_ensembl_id')
         self.check_param('interactor_A_molecular_structure')
 
         self.check_param('interactor_B_species_taxon_id')
-        self.check_param('interactor_B_name')
+        self.check_param('interactor_B_production_name')
         self.check_param('interactor_B_division')
         self.check_param('interactor_B_ensembl_id')
         self.check_param('interactor_B_molecular_structure')
@@ -81,13 +80,14 @@ class DBwriter(eHive.BaseRunnable):
         engine = db.create_engine(p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
-
+        
         phi_id = self.param('PHI_id')
+        print(phi_id)
         interactor_A_species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
-        interactor_A_name = self.param('interactor_A_name')
+        interactor_A_production_name = self.param('interactor_A_production_name')
         interactor_A_division = self.param('interactor_A_division')
         interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
-        interactor_B_name = self.param('interactor_B_name')
+        interactor_B_production_name = self.param('interactor_B_production_name')
         interactor_B_division = self.param('interactor_B_division')
         source_db_label = self.param('source_db_label')
         interactor_A_ensembl_gene_stable_id = self.param('interactor_A_ensembl_id')
@@ -96,15 +96,16 @@ class DBwriter(eHive.BaseRunnable):
         interactor_B_structure = self.param('interactor_B_molecular_structure')
         interactor_A_interactor_type = self.param("interactor_A_interactor_type")
         interactor_A_curie = self.param("interactor_A_curie")
-        interactor_A_names = self.param("interactor_A_ensembl_id")
+        interactor_A_name = self.param("interactor_A_ensembl_id")
         interactor_B_interactor_type = self.param("interactor_B_interactor_type")
         interactor_B_curie = self.param("interactor_B_curie")
-        interactor_B_names = self.param("interactor_B_ensembl_id")
+        interactor_B_name = self.param("interactor_B_ensembl_id")
         doi = self.param("doi")
         
         source_db_value = self.get_source_db_value(session, source_db_label)
-        interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_name)
-        interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_name)
+        interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_production_name)
+        print(phi_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)
+        interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name)
         
         try:
             session.add(source_db_value)
@@ -119,8 +120,8 @@ class DBwriter(eHive.BaseRunnable):
             session.add(interactor_B_ensembl_gene_value)
             session.flush()
                 
-            interactor_A_curated_interactor = self.get_interactor_value(session, interactor_A_interactor_type, interactor_A_curie, interactor_A_names, interactor_A_structure, interactor_A_ensembl_gene_value.ensembl_gene_id)
-            interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_names, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
+            interactor_A_curated_interactor = self.get_interactor_value(session, interactor_A_interactor_type, interactor_A_curie, interactor_A_name, interactor_A_structure, interactor_A_ensembl_gene_value.ensembl_gene_id)
+            interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_name, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
             session.add(interactor_A_curated_interactor)
             session.add(interactor_B_curated_interactor)
             session.flush()
