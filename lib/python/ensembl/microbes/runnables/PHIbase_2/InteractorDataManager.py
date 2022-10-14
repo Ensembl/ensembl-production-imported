@@ -38,8 +38,8 @@ class InteractorDataManager(eHive.BaseRunnable):
     def get_interactor_fields(self):
         interactor_A_curie_type = self.param("interactor_A_curie_type")
         interactor_B_curie_type = self.param("interactor_B_curie_type")
-        interactor_A_curie = interactor_A_curie_type + ":" + self.param('interactor_A_id')
-        interactor_B_curie = interactor_B_curie_type + ":" + self.param('interactor_B_id')
+        interactor_A_curie = interactor_A_curie_type + ":" + self.param('interactor_A_molecular_id')
+        interactor_B_curie = interactor_B_curie_type + ":" + self.param('interactor_B_molecular_id')
         self.param('interactor_A_curie', interactor_A_curie)
         self.param('interactor_B_curie', interactor_B_curie)
 

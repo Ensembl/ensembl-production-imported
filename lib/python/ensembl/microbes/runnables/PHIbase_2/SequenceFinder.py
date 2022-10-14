@@ -30,8 +30,8 @@ class SequenceFinder(eHive.BaseRunnable):
         phi_id = self.param('PHI_id')
         self.check_param("interactor_A_ensembl_id")
         self.check_param("interactor_B_ensembl_id")
-        self.check_param("interactor_A_id")
-        self.check_param("interactor_B_id")
+        self.check_param("interactor_A_molecular_id")
+        self.check_param("interactor_B_molecular_id")
 
     def run(self):
         self.warning("Sequence finder run")
@@ -41,15 +41,15 @@ class SequenceFinder(eHive.BaseRunnable):
         phi_id = self.param('PHI_id')
         interactor_A_ensembl_gene_stable_id = self.param("interactor_A_ensembl_id")
         interactor_B_ensembl_gene_stable_id = self.param("interactor_B_ensembl_id")
-        interactor_A_id = self.param("interactor_A_id")
+        interactor_A_molecular_id = self.param("interactor_A_molecular_id")
 
-        interactor_A_molecular_structure = self.get_molecular_structure(interactor_A_id, interactor_A_ensembl_gene_stable_id)
+        interactor_A_molecular_structure = self.get_molecular_structure(interactor_A_molecular_id, interactor_A_ensembl_gene_stable_id)
         interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
         if interactor_B_ensembl_gene_stable_id == "UNDETERMINED":
             interactor_B_molecular_structure = "UNDETERMINED"
         else:
-            interactor_B_id = self.param("interactor_B_id")
-            interactor_B_molecular_structure = self.get_molecular_structure(interactor_B_id, interactor_B_ensembl_gene_stable_id)
+            interactor_B_molecular_id = self.param("interactor_B_molecular_id")
+            interactor_B_molecular_structure = self.get_molecular_structure(interactor_B_molecular_id, interactor_B_ensembl_gene_stable_id)
         self.param("interactor_A_molecular_structure",interactor_A_molecular_structure)
         self.param("interactor_B_molecular_structure",interactor_B_molecular_structure)
 
