@@ -30,16 +30,16 @@ class ColumnMapper():
 
         if 'combined_PHIbase' in db_dict:
             file_rows = {
-                    "interactor_A_id": 1,
+                    "interactor_A_molecular_id": 1,
                     "interactor_A_sequence": 24,
                     "interactor_A_ensembl_id": 2,
                     "interactor_A_species_taxon_id": 3,
                     "interactor_A_species_strain": 5,
-                    "interactor_A_name": 4,
-                    "interactor_B_id": 9,
+                    "interactor_A_name": 4,  #species name 
+                    "interactor_B_molecular_id": 9,
                     "interactor_B_species_taxon_id": 11,
                     "interactor_B_species_strain": 13,
-                    "interactor_B_name": 12,
+                    "interactor_B_name": 12,   #species name or chemical name if it points to a synthetic molecule
                     "interactor_B_sequence": 25,
                     "interactor_B_ensembl_id": 10,
                     "litterature_id": 22,
@@ -81,4 +81,53 @@ class ColumnMapper():
                     "Host experimental strain":14,
                     }
             ColumnMapper.litterature_source = "PMID"
+
+        if 'plasticDB' in db_dict:
+            file_rows = {
+                    "interactor_A_id": 14,
+                    "interactor_A_sequence": 15,
+                    "interactor_A_ensembl_id": 13,
+                    "interactor_A_species_taxon_id": 1,
+                    "interactor_A_species_strain": 27,
+                    "interactor_A_name": 0,
+                    "interactor_B_id": 3,
+                    "interactor_B_species_taxon_id": 29,
+                    "interactor_B_species_strain": 28,
+                    "interactor_B_name": 4,			#species name or chemical name if it points to a synthetic molecule
+                    "interactor_B_sequence": 30,
+                    "interactor_B_ensembl_id": 31,
+                    "litterature_id": 6,
+                    "source_db_label": db_dict,
+                    }
+
+            ColumnMapper.interactor_A_interactor_type = "protein"
+            ColumnMapper.interactor_A_curie_type = "uniprot"
+            ColumnMapper.interactor_B_interactor_type = "synthetic"
+            ColumnMapper.interactor_B_curie_type = "chebi"
+
+            ColumnMapper.ontology_description = ""
+
+            ColumnMapper.ontology_file = ""
+
+            ColumnMapper.source_db_description = "A database of microorganisms and proteins linked to plastic biodegradation."
+
+            ColumnMapper.keys_descriptions = {
+                    "Enzyme name": "Name of the plastic degradating enzyme",
+                    "Experimental evidence": "Experimental evidence",
+                    "Plastic used": "Specific plastic used for determining the degradation",
+                    "Thermophilic conditions": "Wether thermophilic conditions play a role in the biodegradation",
+                    "Isolation environment": "Environment in which the biodegradation was observed",
+                    "Isolation location": "Geographical location where the biodegradation was observed",
+                    }
+
+            ColumnMapper.keys_rows = {
+                    "Enzyme name": 8,
+                    "Experimental evidence": 17,
+                    "Plastic used": 18,
+                    "Thermophilic conditions": 21,
+                    "Isolation environment": 23,
+                    "Isolation location": 24,
+                    }
+            ColumnMapper.litterature_source = "DOI"
+
         return file_rows
