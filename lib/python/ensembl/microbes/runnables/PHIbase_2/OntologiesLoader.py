@@ -21,7 +21,6 @@ import pymysql
 import eHive
 import datetime
 import re
-import models as core_db_models
 import ensembl.microbes.auxiliary_files.PHIbase2.interaction_DB_models as interaction_db_models
 import requests
 import csv

@@ -34,8 +34,8 @@ class InteractionTable(eHive.BaseRunnable):
     def get_interactor_fields(self):
         interactor_A_interactor_type = self.get_interactor_type()
         interactor_B_interactor_type = self.get_interactor_type()
-        interactor_A_curie = 'prot:' + self.param('interactor_A_uniprot_id')
-        interactor_B_curie = 'prot:' + self.param('interactor_B_uniprot_id')
+        interactor_A_curie = 'prot:' + self.param('interactor_A_molecular_id')
+        interactor_B_curie = 'prot:' + self.param('interactor_B_molecular_id')
         self.param('interactor_A_interactor_type', interactor_A_interactor_type)
         self.param('interactor_B_interactor_type', interactor_B_interactor_type)
         self.param('interactor_A_curie', interactor_A_curie)

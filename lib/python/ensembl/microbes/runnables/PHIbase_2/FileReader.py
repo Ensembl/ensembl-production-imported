@@ -58,21 +58,21 @@ class FileReader(eHive.BaseRunnable):
                 entry_line_dict = {
                     "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
                     "PHI_id": row[0],
-                    "interactor_A_molecule_id": row[cm.interactor_A_molecule_id],#either uniprot or chebi
+                    "interactor_A_molecular_id": row[cm.interactor_A_molecular_id],#either uniprot or chebi
                     "interactor_A_interactor_type": cm.interactor_A_interactor_type,
                     "interactor_A_curie_type": cm.interactor_A_curie_type,
                     "interactor_A_sequence": row[cm.interactor_A_sequence],
                     "interactor_A_ensembl_id": row[cm.interactor_A_ensembl_id],
                     "interactor_A_species_taxon_id": row[cm.interactor_A_species_taxon_id],
                     "interactor_A_species_strain": row[cm.interactor_A_species_strain],
-                    "interactor_A_name": row[cm.interactor_A_name],
-                    "interactor_B_molecule_id": row[cm.interactor_B_molecule_id],#either uniprot or chebi
+                    "interactor_A_name": row[cm.interactor_A_name], #either species name or chebi
+                    "interactor_B_molecular_id": row[cm.interactor_B_molecular_id],#either uniprot or chebi
                     "interactor_B_interactor_type": cm.interactor_B_interactor_type,
                     "interactor_B_curie_type": cm.interactor_B_curie_type,
                     "interactor_B_ensembl_id": row[cm.interactor_B_ensembl_id],
                     "interactor_B_species_taxon_id": row[cm.interactor_B_species_taxon_id],
                     "interactor_B_species_strain": row[cm.interactor_B_species_strain],
-                    "interactor_B_name": row[cm.interactor_B_name],
+                    "interactor_B_name": row[cm.interactor_B_name], #either species name or chebi
                     "litterature_id": row[cm.litterature_id],
                     "litterature_source": cm.litterature_source,
                     "doi": row [cm.litterature_id],
