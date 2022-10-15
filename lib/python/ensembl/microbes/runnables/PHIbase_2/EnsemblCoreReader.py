@@ -33,7 +33,7 @@ from sqlalchemy import exc
 
 pymysql.install_as_MySQLdb()
 
-class EnsemblCoreReader2(eHive.BaseRunnable):
+class EnsemblCoreReader(eHive.BaseRunnable):
     """Reads from CoreDB to gather fields to attach interactor to the ensembl_gene (mostly ensembl_gene_stable_id)"""
 
     def param_defaults(self):
@@ -49,7 +49,6 @@ class EnsemblCoreReader2(eHive.BaseRunnable):
         self.check_param('interactor_A_division')
         self.check_param('interactor_B_division')
         self.check_param('interactor_A_species_taxon_id')
-        self.check_param('interactor_B_species_taxon_id')
         self.check_param('interactor_A_dbnames_set')
         self.check_param('interactor_B_dbnames_set')
 
@@ -82,16 +81,15 @@ class EnsemblCoreReader2(eHive.BaseRunnable):
                         interactor_A_production_name = r[0]
                         
         dbc.close()
-
+        print("interactor_A_ensembl_gene_stable_id :" + interactor_A_ensembl_gene_stable_id + ": interactor_A_production_name :" + interactor_A_production_name)
         interactor_B_strain_taxon_id = self.get_strain_taxon('interactor_B_species_strain')
-        interactor_B_species_taxon_id = int(self.param_required('interactor_B_species_taxon_id'))
+        interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
         interactor_B_taxon_ref = self.param('interactor_B_taxon_ref')
         interactor_B_ensembl_gene_stable_id = ''
         interactor_B_staging_url = self.get_staging_url('interactor_B_division')
         interactor_B_production_name = self.param('interactor_B_name')
         self.set_server_params('staging', interactor_B_staging_url)
         dbc = pymysql.connect(host=self.param('st_host'), user=self.param('st_user'), port=self.param('st_port'))
-
         try:
             interactor_B_ensembl_gene_stable_id = self.param_required('interactor_B_ensembl_id')
         except Exception:
@@ -130,11 +128,10 @@ class EnsemblCoreReader2(eHive.BaseRunnable):
         self.param("interactor_B_ensembl_id",interactor_B_ensembl_gene_stable_id)
            
     def getGenes_byProteinID_byDB(self, db_connection, dbname: str, accession_id: str):
-        db_connection.select_db(dbname)
-        gbp_sql = "SELECT m.meta_value species_name, g.stable_id gene_stable_id FROM xref x inner join object_xref ox using(xref_id) INNER JOIN translation tr on tr.translation_id = ox.ensembl_id INNER JOIN transcript t using(transcript_id) INNER JOIN seq_region sr using(seq_region_id) join coord_system cs using(coord_system_id)  INNER JOIN meta m using(species_id) INNER JOIN gene g on g.canonical_transcript_id = t.transcript_id WHERE x.dbprimary_acc = '" + accession_id + "' AND x.external_db_id in (SELECT external_db_id FROM external_db WHERE db_name LIKE '%UniProt%') AND ox.ensembl_object_type = 'Translation' AND m.meta_key = 'species.production_name';"
         results = []
+        gbp_sql = "SELECT m.meta_value species_name, g.stable_id gene_stable_id FROM xref x inner join object_xref ox using(xref_id) INNER JOIN translation tr on tr.translation_id = ox.ensembl_id INNER JOIN transcript t using(transcript_id) INNER JOIN seq_region sr using(seq_region_id) join coord_system cs using(coord_system_id)  INNER JOIN meta m using(species_id) INNER JOIN gene g on g.canonical_transcript_id = t.transcript_id WHERE x.dbprimary_acc = '" + accession_id + "' AND x.external_db_id in (SELECT external_db_id FROM external_db WHERE db_name LIKE '%UniProt%') AND ox.ensembl_object_type = 'Translation' AND m.meta_key = 'species.production_name';"
         try:
-            
+            db_connection.select_db(dbname)
             with db_connection.cursor() as cur:
                 cur.execute(gbp_sql)
                 results = [r for r in cur.fetchall()]
