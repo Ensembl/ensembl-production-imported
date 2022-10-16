@@ -64,8 +64,9 @@ class OntologiesLoader(eHive.BaseRunnable):
 
         source_db = self.param('source_db')
         cm = col_map.ColumnMapper(source_db)
+        ontology_name = cm.ontology_name
         ontology_description = cm.ontology_description
-        ontology_value = self.get_ontology_value(source_db, ontology_description, session)
+        ontology_value = self.get_ontology_value(ontology_name, ontology_description, session)
         session.add(ontology_value)
         session.flush()
         onto_id = ontology_value.ontology_id

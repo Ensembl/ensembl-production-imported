@@ -51,9 +51,10 @@ class ColumnMapper():
             ColumnMapper.interactor_B_interactor_type = "protein"
             ColumnMapper.interactor_B_curie_type = "uniprot"
 
-            ColumnMapper.ontology_description = "Expertly curated molecular and biological information on genes proven to affect the outcome of pathogen-host interactions"
+            ColumnMapper.ontology_name = "PHIPO"
+            ColumnMapper.ontology_description = "Pathogen Host Interactions Phenotype Ontology. Ontology of species-neutral phenotypes observed in pathogen-host interactions."
 
-            ColumnMapper.ontology_file = "/hps/software/users/ensembl/repositories/microbes/mcarbajo/checkout/ensembl-production-imported/lib/python/ensembl/microbes/auxiliary_files/PHIbase2/PHI_DUMMY.obo"
+            ColumnMapper.ontology_file = "/nfs/production/flicek/ensembl/microbes/mcarbajo/Phytopath_db/Obo_files/phipo-simple.obo"
                     
             ColumnMapper.source_db_description = "Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity."
             
