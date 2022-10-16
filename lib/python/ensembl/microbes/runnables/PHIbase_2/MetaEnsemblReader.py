@@ -53,10 +53,11 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         if self.param('failed_job') == '':
             #self.warning("\n EntryLine run")
             phi_id = self.param('PHI_id')
-        
+            db_connection = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
+            
             species_strain = self.get_strain_taxon('interactor_A_species_strain')
             species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
-            interactor_A_division, interactor_A_db_names_set, interactor_A_taxon_ref = self.get_meta_values(species_taxon_id,species_strain)        
+            interactor_A_division, interactor_A_db_names_set, interactor_A_taxon_ref = self.get_meta_values(db_connection, species_taxon_id,species_strain)        
 
             self.param("interactor_A_division",interactor_A_division)
        	    self.param("interactor_A_dbnames_set",interactor_A_db_names_set)
@@ -65,13 +66,14 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             # Same for Host 
             species_strain = self.get_strain_taxon('interactor_B_species_strain') 
             species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
-            interactor_B_division, interactor_B_db_names_set, interactor_B_taxon_ref = self.get_meta_values(species_taxon_id, species_strain)
-
+            interactor_B_division, interactor_B_db_names_set, interactor_B_taxon_ref = self.get_meta_values(db_connection, species_taxon_id, species_strain)
+            
+            db_connection.close()
             self.param("interactor_B_division",interactor_B_division) 
             self.param("interactor_B_dbnames_set",interactor_B_db_names_set)
             self.param("interactor_B_taxon_ref",interactor_B_taxon_ref)
 
-    def get_meta_values(self, species_taxon_id, species_strain):
+    def get_meta_values(self, db_connection, species_taxon_id, species_strain):
         division = "" 
         db_list = "" 
         db_set = set()
@@ -80,7 +82,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         try:
             if species_strain != 0: 
                 #print ("Trying strain_taxon_id: "+ str(species_strain))
-                division, db_set = self.get_meta_ensembl_info(species_strain) 
+                division, db_set = self.get_meta_ensembl_info(db_connection, species_strain) 
                 used_taxon_ref = 'taxonomy_id'
 
             if division == 0 or not db_set :
@@ -88,22 +90,21 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         #try the species taxonomy ID 
         except Exception as e:
             try:
-                #print (str(e) + " Trying species_taxon_id: "+ str(species_taxon_id))
-                division, db_set = self.get_meta_ensembl_info(species_taxon_id)
+                division, db_set = self.get_meta_ensembl_info(db_connection, species_taxon_id)
                 used_taxon_ref = 'species_taxonomy_id'
             except Exception as e:
                 print(e)
                 err_msg = "Entry: " + phi_id + " has no identifiable taxonomy for (" + str(species_taxon_id) + ")"
                 self.param('failed_job',err_msg)
-                return 0, 0, 0
+                return 0,0,0
 
         return division, db_set, used_taxon_ref
 
-    def get_meta_ensembl_info(self, tax_id):
+    def get_meta_ensembl_info(self,db_connection, tax_id):
         phi_id = self.param('PHI_id')
         div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE species_taxonomy_id=%d"
-        self.db = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
-        self.cur = self.db.cursor()
+        self.db = db_connection
+        self.cur = db_connection.cursor()
         try:
             self.cur.execute( div_sql % tax_id)
             self.db.commit()
@@ -111,8 +112,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             try:
                 print ("Mysql Error:- "+str(e))
             except IndexError:
-                print ("Mysql Error:- "+str(e))
-                self.connection_close()
+                print ("Mysql Index Error:- "+str(e))
         
         short_div= None
         if self.cur.rowcount == 1:
@@ -129,25 +129,21 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         
         core_db_name = None
         core_db_name_sql = "select gd.dbname from organism o join genome g using(organism_id) join genome_database gd using(genome_id) where o.species_taxonomy_id=%d and gd.type='core' and g.data_release_id=(select MAX(dr.data_release_id) from data_release dr where is_current=1)"
-        #core_db_name_sql = "select gd.dbname from organism o  join genome g using(organism_id) join genome_database gd using(genome_id) join division d on g.division_id=d.division_id where d.short_name=%s and o.species_taxonomy_id=%d and gd.type='core' and g.data_release_id=(select MAX(dr.data_release_id) from data_release dr where is_current=1)"
         try:
             self.cur.execute( core_db_name_sql %  tax_id) 
-            #self.cur.execute( core_db_name_sql % (short_div,tax_id))
             self.db.commit()
         except pymysql.Error as e:
             try:
                 print ("Mysql Error:- "+str(e))
             except IndexError:
-                print ("Mysql Error:- "+str(e))
+                print ("Mysql Index Error:- "+str(e))
+
         core_db_set = set()
         for row in self.cur:
             core_db_name = row[0]
             core_db_set.add(core_db_name)
             #print (f"core_DB -- {core_db_name}")
     
-        self.db.close()
-        #print("coredbset:")
-        #print (core_db_set)  
         return division, core_db_set
     
     def get_division(self,short_name):
