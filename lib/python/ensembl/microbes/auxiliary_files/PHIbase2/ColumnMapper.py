@@ -60,7 +60,7 @@ class ColumnMapper():
             ColumnMapper.keys_descriptions = {
                     "Interaction phenotype": "Interaction phenotype/ disease outcome",
                     "Disease name": "Name of disease",
-                    "Pathogen protein modification:": "Protein modification in the pathogen interactor",
+                    "Pathogen protein modification": "Protein modification in the pathogen interactor",
                     "Host protein modification": "Protein modification in the host interactor",
                     "Experimental evidence": "Experimental evidence",
                     "Interaction type": "Type of interaction",
