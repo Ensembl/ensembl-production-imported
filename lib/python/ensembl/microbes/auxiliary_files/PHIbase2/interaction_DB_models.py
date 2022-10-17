@@ -219,11 +219,11 @@ class Ontology(Base):
     def __repr__(self):
         try:
             o_id = self.ontology_id
-            return "<Ontology(ontology_id='%d', ontology_name='%s', ontology_description='%s')>" % (
-                o_id, self.ontology_name, self.ontology_description)
+            return "<Ontology(ontology_id='%d', name='%s', description='%s')>" % (
+                o_id, self.name, self.description)
         except NameError:
-            return "<Ontology(ontology_id=Null-until-stored, ontology_name='%s', ontology_description='%s')>" % (
-                self.ontology_name, self.ontology_description)
+            return "<Ontology(ontology_id=Null-until-stored, name='%s', description='%s')>" % (
+                self.name, self.description)
 
 class PredictionMethod(Base):
     __tablename__ = 'prediction_method'
