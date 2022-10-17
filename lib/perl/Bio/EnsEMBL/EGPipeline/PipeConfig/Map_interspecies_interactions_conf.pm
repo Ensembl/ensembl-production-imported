@@ -130,7 +130,7 @@ sub pipeline_analyses {
       -module     => 'ensembl.microbes.runnables.PHIbase_2.OntologiesLoader',
       -language   => 'python3',
       -flow_into    => {
-                         1 => 'input_file',
+                         1 => {'input_file' => INPUT_PLUS()},
                         },
     },
     {

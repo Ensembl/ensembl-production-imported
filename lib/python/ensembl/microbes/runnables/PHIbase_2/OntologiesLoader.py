@@ -44,24 +44,35 @@ class OntologiesLoader(eHive.BaseRunnable):
 
     def run(self):
         self.warning("OntologiesLoader run")
+        p2p_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
+
+        engine = db.create_engine(p2p_db_url)
+        Session = sessionmaker(bind=engine)
+        session = Session()
         try:
             obo_file = self.param_required('obo_file')
             print(f"obo file {obo_file}")
             self.param('entries_to_delete',{})
             obo_dict = self.read_obo_entries()
-            self.insert_obo_values(obo_dict)
+            self.insert_obo_values(session, obo_dict)
         except Exception as e:
             print(f"SKIPPING LOADING ONTOLOGIES. The .obo file has not been passed as a parameter. This is not a problem as long as the necessary ontologies have previously been  loaded before.")
+        ontologies_list = self.get_ontologies(session)
+        self.param("ontologies_list",ontologies_list)
+    
+    def get_ontologies(self, session):
+        ontologies_list = []
 
-    def insert_obo_values(self, obo_dict):
-        
-        p2p_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
-        
-        engine = db.create_engine(p2p_db_url)
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        
+        try:
+            ontologies_list = session.query(interaction_db_models.Ontology).all()
+        except NoResultFound:
+            print(f" A new ontology_value has been created with name {source_db} and description {o_description}")
+            pass
+        print("list of ontologies:" + str(ontologies_list))
+        return ontologies_list
 
+
+    def insert_obo_values(self, session, obo_dict):
         source_db = self.param('source_db')
         cm = col_map.ColumnMapper(source_db)
         ontology_name = cm.ontology_name
@@ -183,3 +194,21 @@ class OntologiesLoader(eHive.BaseRunnable):
         reg_file.close()
         print(f"int_db_url {int_db_url}")
         return int_db_url, ncbi_tax_url, meta_db_url
+
+
+    def build_output_hash(self):
+        lines_list = []
+        entry_line_dict = {
+                "ontologies_list": self.param("ontologies_list"),
+                }
+
+        lines_list.append(entry_line_dict)
+        return lines_list
+
+
+    def write_output(self):
+        entry_id = self.param('entry_id')
+
+        entries_list = self.build_output_hash()
+        for entry in entries_list:
+            self.dataflow(entry, 1)
