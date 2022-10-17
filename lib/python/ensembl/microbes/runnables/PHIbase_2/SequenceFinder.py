@@ -27,7 +27,7 @@ class SequenceFinder(eHive.BaseRunnable):
     def fetch_input(self):
         self.warning("Fetch Sequence Finder")
         self.param('failed_job', '')
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         self.check_param("interactor_A_ensembl_id")
         self.check_param("interactor_B_ensembl_id")
         self.check_param("interactor_A_molecular_id")
@@ -38,7 +38,7 @@ class SequenceFinder(eHive.BaseRunnable):
         self.get_values()
 
     def get_values(self):
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         interactor_A_ensembl_gene_stable_id = self.param("interactor_A_ensembl_id")
         interactor_B_ensembl_gene_stable_id = self.param("interactor_B_ensembl_id")
         interactor_A_molecular_id = self.param("interactor_A_molecular_id")
@@ -59,14 +59,14 @@ class SequenceFinder(eHive.BaseRunnable):
         '''
         uniprot_seq = self.get_uniprot_sequence(uniprot_id)
         ensembl_seqs = self.get_ensembl_sequences(ensembl_gene_id)
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         try:
             if not self.check_equals(uniprot_seq,ensembl_seqs):
                 raise (AssertionError)
             else:
-                print(f" {phi_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
+                print(f" {entry_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
         except AssertionError:
-            print(f" {phi_id} NO SEQUENCE MATCH for uniprot accession {uniprot_id} and ensembl_accession {ensembl_gene_id}")
+            print(f" {entry_id} NO SEQUENCE MATCH for uniprot accession {uniprot_id} and ensembl_accession {ensembl_gene_id}")
         '''
         return uniprot_seq
 
@@ -111,10 +111,10 @@ class SequenceFinder(eHive.BaseRunnable):
         return lines_list
 
     def write_output(self):
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         if self.param('failed_job') == '':
             entries_list = self.build_output_hash()
-            print(f"{phi_id} written to DBwriter")
+            print(f"{entry_id} written to DBwriter")
             for entry in entries_list:
                 self.dataflow(entry, 1)
         else:
@@ -124,7 +124,7 @@ class SequenceFinder(eHive.BaseRunnable):
         try:
             self.param_required(param)
         except:
-            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            error_msg = self.param('entry_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
             self.param('failed_job', error_msg)
             print(error_msg)
 

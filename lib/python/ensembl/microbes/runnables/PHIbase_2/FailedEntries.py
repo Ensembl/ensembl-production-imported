@@ -28,7 +28,7 @@ class FailedEntries(eHive.BaseRunnable):
         self.warning("FailedEntries")
 
     def run(self):
-        phi_id = self.param("PHI_id")
+        entry_id = self.param("entry_id")
         output_text = "/hps/software/users/ensembl/repositories/microbes/mcarbajo/checkout/ensembl-production-imported/lib/python/ensembl/microbes/auxiliary_files/PHIbase2/failed_entries.txt"
         msg = self.param('uncomplete_entry')
         with open(output_text, 'a+') as f:

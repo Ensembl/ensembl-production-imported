@@ -42,7 +42,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         self.param('meta_host',m_host)
         self.param('meta_port',int(m_port))
 
-        phi_id = self.param_required('PHI_id')
+        entry_id = self.param_required('entry_id')
         self.check_param('interactor_A_species_taxon_id')
         self.check_param('interactor_B_species_taxon_id')
         self.check_param('interactor_A_name')
@@ -52,7 +52,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
     def run(self):
         if self.param('failed_job') == '':
             #self.warning("\n EntryLine run")
-            phi_id = self.param('PHI_id')
+            entry_id = self.param('entry_id')
             db_connection = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
             
             species_strain = self.get_strain_taxon('interactor_A_species_strain')
@@ -77,7 +77,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         division = "" 
         db_list = "" 
         db_set = set()
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         #First, try to map the strain taxonomy ID
         try:
             if species_strain != 0: 
@@ -94,14 +94,14 @@ class MetaEnsemblReader(eHive.BaseRunnable):
                 used_taxon_ref = 'species_taxonomy_id'
             except Exception as e:
                 print(e)
-                err_msg = "Entry: " + phi_id + " has no identifiable taxonomy for (" + str(species_taxon_id) + ")"
+                err_msg = "Entry: " + entry_id + " has no identifiable taxonomy for (" + str(species_taxon_id) + ")"
                 self.param('failed_job',err_msg)
                 return 0,0,0
 
         return division, db_set, used_taxon_ref
 
     def get_meta_ensembl_info(self,db_connection, tax_id):
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE species_taxonomy_id=%d"
         self.db = db_connection
         self.cur = db_connection.cursor()
@@ -190,7 +190,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         self.check_param("interactor_B_division")
         self.check_param("interactor_A_dbnames_set")
         self.check_param("interactor_B_dbnames_set")
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
 
         if self.param('failed_job') == '':
             entries_list = self.build_output_hash()
@@ -198,7 +198,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
                 self.dataflow(entry, 1)
             print("--------------------------------------------------------------------------------\n") 
         else:
-            print(f"{phi_id} written to FailedJob")
+            print(f"{entry_id} written to FailedJob")
             self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
             print("---------------------------****************************-------------------------\n")
 
@@ -210,7 +210,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             if "dbnames_set" in param and not test_param:
                 raise Exception('dbnames_set is empty')
         except:
-            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB. "
+            error_msg = self.param('entry_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB. "
             if param in ('interactor_A_name','interactor_B_name','interactor_A_species_taxon_id', 'interactor_B_species_taxon_id'):
                 error_msg = error_msg +" Main identifier missing."
             else:                

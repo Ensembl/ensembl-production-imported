@@ -57,7 +57,7 @@ class FileReader(eHive.BaseRunnable):
             for row in reader:
                 entry_line_dict = {
                     "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
-                    "PHI_id": row[0],
+                    "entry_id": row[cm.entry_id],
                     "interactor_A_molecular_id": row[cm.interactor_A_molecular_id],#either uniprot or chebi
                     "interactor_A_interactor_type": cm.interactor_A_interactor_type,
                     "interactor_A_curie_type": cm.interactor_A_curie_type,

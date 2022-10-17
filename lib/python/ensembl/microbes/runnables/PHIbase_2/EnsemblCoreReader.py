@@ -44,7 +44,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         source_db = self.param("source_db_label")
         
         if "PHI-base" in source_db:
-            phi_id = self.param_required('PHI_id')
+            entry_id = self.param_required('entry_id')
 
         self.check_param('interactor_A_division')
         self.check_param('interactor_B_division')
@@ -56,7 +56,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         self.get_ensembl_values()
         
     def get_ensembl_values(self):     
-        print(self.param('PHI_id'))
+        print(self.param('entry_id'))
         interactor_A_strain_taxon_id = self.get_strain_taxon('interactor_A_species_strain')
         interactor_A_species_taxon_id = int(self.param_required('interactor_A_species_taxon_id'))
         interactor_A_taxon_ref = self.param('interactor_A_taxon_ref')
@@ -107,15 +107,15 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                         interactor_B_production_name = r.species_name
                 dbc.close()
                 if not interactor_B_ensembl_gene_stable_id:
-                    interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_name")
+                    interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('entry_id') + "_" + self.param("interactor_B_name")
 
             except Exception as e:
                 print(e)
-                interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('PHI_id') + "_" + self.param("interactor_B_name")
+                interactor_B_ensembl_gene_stable_id = "UNDETERMINED" + "_" + self.param('entry_id') + "_" + self.param("interactor_B_name")
                 print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
         
         if interactor_A_ensembl_gene_stable_id == '':
-            error_msg = self.param('PHI_id') + " entry fail. Couldn't map UniProt " + interactor_A_molecular_id + " to any Ensembl gene"
+            error_msg = self.param('entry_id') + " entry fail. Couldn't map UniProt " + interactor_A_molecular_id + " to any Ensembl gene"
             self.param('failed_job', error_msg)
             print(error_msg)
         else:
@@ -255,7 +255,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             print ("host uniprot:" + self.param(uniprot_id))
             return self.param(uniprot_id)
         except: 
-            return "UNDETERMINED"  + "_" + self.param('PHI_id') + "_" + species_name
+            return "UNDETERMINED"  + "_" + self.param('entry_id') + "_" + species_name
 
     def update_interactor_B_species_name(self, matched_production_name, reported_name):
         try:
@@ -282,16 +282,16 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             entries_list = self.build_output_hash()
             for entry in entries_list:
                 self.dataflow(entry, 1)
-            print("-----------------------   CoreReader " + self.param('PHI_id') + "  ----------------------------")
+            print("-----------------------   CoreReader " + self.param('entry_id') + "  ----------------------------")
         else:
-            print(self.param('PHI_id') + " written to FailedJob")
+            print(self.param('entry_id') + " written to FailedJob")
             self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
-            print("*******************       FAILED JOB  " + self.param('PHI_id') + " ***************************")
+            print("*******************       FAILED JOB  " + self.param('entry_id') + " ***************************")
     
     def check_param(self, param):
         try:
             self.param_required(param)
         except:
-            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            error_msg = self.param('entry_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
             self.param('failed_job', error_msg)
             print(error_msg)

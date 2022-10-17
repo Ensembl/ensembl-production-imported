@@ -30,6 +30,7 @@ class ColumnMapper():
 
         if 'combined_PHIbase' in db_dict:
             file_rows = {
+                    "entry_id": 0,
                     "interactor_A_molecular_id": 1,
                     "interactor_A_sequence": 24,
                     "interactor_A_ensembl_id": 2,
@@ -85,6 +86,7 @@ class ColumnMapper():
 
         if 'plasticDB' in db_dict:
             file_rows = {
+                    "entry_id": 0,
                     "interactor_A_id": 14,
                     "interactor_A_sequence": 15,
                     "interactor_A_ensembl_id": 13,

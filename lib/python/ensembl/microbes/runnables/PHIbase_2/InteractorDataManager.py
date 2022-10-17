@@ -25,7 +25,7 @@ class InteractorDataManager(eHive.BaseRunnable):
     def fetch_input(self):
         self.warning("Fetch InteractorDataManager")
         self.param('failed_job', '')
-        phi_id = self.param_required('PHI_id')
+        entry_id = self.param_required('entry_id')
         self.check_param('interactor_A_ensembl_id')
         self.check_param('interactor_A_molecular_structure')
         self.check_param('interactor_B_ensembl_id')
@@ -64,14 +64,14 @@ class InteractorDataManager(eHive.BaseRunnable):
         return lines_list
 
     def write_output(self):
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         if self.param('failed_job') == '':
             entries_list = self.build_output_hash()
             for entry in entries_list:
                 self.dataflow(entry, 1)
         else:
             #output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
-            print(f"{phi_id} written to FailedJob")
+            print(f"{entry_id} written to FailedJob")
             self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
             return 
 
@@ -79,6 +79,6 @@ class InteractorDataManager(eHive.BaseRunnable):
         try:
             self.param_required(param)
         except:
-            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            error_msg = self.param('entry_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
             self.param('failed_job', error_msg)
             print(error_msg)

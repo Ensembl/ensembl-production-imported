@@ -40,8 +40,8 @@ class DBwriter(eHive.BaseRunnable):
         return { }
 
     def fetch_input(self):
-        phi_id = self.param_required('PHI_id')
-        self.warning("Fetch WRAPPED dbWriter!" + phi_id)
+        entry_id = self.param_required('entry_id')
+        self.warning("Fetch WRAPPED dbWriter!" + entry_id)
         self.param('branch_to_flow_on_fail', -1)
         self.param('failed_job', '')
         
@@ -81,8 +81,8 @@ class DBwriter(eHive.BaseRunnable):
         Session = sessionmaker(bind=engine)
         session = Session()
         
-        phi_id = self.param('PHI_id')
-        print(phi_id)
+        entry_id = self.param('entry_id')
+        print(entry_id)
         interactor_A_species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
         interactor_A_production_name = self.param('interactor_A_production_name')
         interactor_A_division = self.param('interactor_A_division')
@@ -104,7 +104,7 @@ class DBwriter(eHive.BaseRunnable):
         
         source_db_value = self.get_source_db_value(session, source_db_label)
         interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_production_name)
-        print(phi_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)
+        print(entry_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)
         interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name)
         
         try:
@@ -145,19 +145,19 @@ class DBwriter(eHive.BaseRunnable):
             print(e)
             session.rollback()
             self.clean_entry(engine)
-            error_msg = self.param('PHI_id') + " DBWriter fail: " + str(e)
+            error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
             self.param('failed_job', error_msg)
         except exc.IntegrityError as e:
             print(e)
             session.rollback()
             self.clean_entry(engine)
-            error_msg = self.param('PHI_id') + " DBWriter fail: " + str(e)
+            error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
             self.param('failed_job', error_msg)
         except Exception as e:
             print(e)
             session.rollback()
             self.clean_entry(engine)
-            error_msg = self.param('PHI_id') + " DBWriter fail: " + str(e)
+            error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
             self.param('failed_job', error_msg)
 
     def get_meta_key_id(self, session, key_v):
@@ -170,13 +170,13 @@ class DBwriter(eHive.BaseRunnable):
 
     def get_key_value_pairs(self, session):
         key_list = self.param('key_list')
-        phi_id = self.param('PHI_id') 
+        entry_id = self.param('entry_id') 
         key_value_pairs_dict = {}
         for key in key_list:
             try:
                 key_value_pairs_dict[key] = self.param_required(key)
             except Exception as e:
-                print(e)
+                pass
         return key_value_pairs_dict
 
     def get_kv_pair_value(self, session, int_id, key_id, mkp_value):
@@ -355,14 +355,15 @@ class DBwriter(eHive.BaseRunnable):
                 self.add_stored_value('Species', [species_tax_id])   
         return species_value
 
-    #def write_output(self):
-        #if self.param('failed_job') != '':
-        #    self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
+    def write_output(self):
+        if self.param('failed_job') != '':
+            print(self.param('failed_job'))
+            #self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
 
     def check_param(self, param):
         try:
             self.param_required(param)
         except:
-            error_msg = self.param('PHI_id') + " DBWriter ERROR entry doesn't have the required field " + param + " to attempt writing to the DB"
+            error_msg = self.param('entry_id') + " DBWriter ERROR entry doesn't have the required field " + param + " to attempt writing to the DB"
             self.param('failed_job', error_msg)
-            print(error_msg)
+            print("***************************************\t" + error_msg + "***************************************\t")
