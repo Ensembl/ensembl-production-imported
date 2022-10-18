@@ -1080,8 +1080,17 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        '2' => 'Samples_factory'
+        '2->A' => 'Samples_factory',
+        'A->2' => 'Dataset_processing',
       },
+    },
+
+    {
+      -logic_name        => 'Dataset_processing',
+      -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -max_retry_count => 0,
     },
 
     {
@@ -1097,7 +1106,7 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        '4' => 'Prepare_fastq'
+        '4' => ['Prepare_fastq', '?accu_name=sample_dir&accu_address=[]']
       },
     },
 
