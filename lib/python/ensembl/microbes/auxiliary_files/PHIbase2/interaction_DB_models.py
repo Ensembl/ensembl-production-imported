@@ -80,7 +80,7 @@ class CuratedInteractor(Base):
     name = Column(String(255), nullable=True)
     molecular_structure = Column(String(10000), nullable=False)
     import_timestamp = Column(TIMESTAMP, nullable=False)
-    ensembl_gene_id = Column(INTEGER(11), ForeignKey("ensembl_gene.ensembl_gene_id"), nullable=False, index=True)
+    ensembl_gene_id = Column(INTEGER(11), ForeignKey("ensembl_gene.ensembl_gene_id"), nullable=True, index=True)
 
     predicted_interactors = relationship("PredictedInteractor", back_populates="curated_interactors")
     interactors_1 = relationship("Interaction", primaryjoin="CuratedInteractor.curated_interactor_id == Interaction.interactor_1")
@@ -100,7 +100,7 @@ class EnsemblGene(Base):
     __tablename__ = 'ensembl_gene'
 
     ensembl_gene_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
-    species_id = Column(INTEGER(11), ForeignKey("species.species_id"), nullable=False, index=True)
+    species_id = Column(INTEGER(11), ForeignKey("species.species_id"), nullable=True, index=True)
     ensembl_stable_id = Column(String(255))
     import_timestamp = Column(TIMESTAMP, nullable=False)
 
