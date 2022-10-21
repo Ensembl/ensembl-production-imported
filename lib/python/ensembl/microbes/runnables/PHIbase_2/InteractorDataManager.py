@@ -28,8 +28,9 @@ class InteractorDataManager(eHive.BaseRunnable):
         entry_id = self.param_required('entry_id')
         self.check_param('interactor_A_ensembl_id')
         self.check_param('interactor_A_molecular_structure')
-        self.check_param('interactor_B_ensembl_id')
-        self.check_param('interactor_B_molecular_structure')   
+        if self.param('interactor_B_interactor_type') != 'synthetic':
+            self.check_param('interactor_B_ensembl_id')
+            self.check_param('interactor_B_molecular_structure')   
 
     def run(self):
         self.warning("InteractorDataManager run")
@@ -39,18 +40,13 @@ class InteractorDataManager(eHive.BaseRunnable):
         interactor_A_curie_type = self.param("interactor_A_curie_type")
         interactor_B_curie_type = self.param("interactor_B_curie_type")
         interactor_A_curie = interactor_A_curie_type + ":" + self.param('interactor_A_molecular_id')
-        interactor_B_curie = interactor_B_curie_type + ":" + self.param('interactor_B_molecular_id')
+        if self.param('interactor_B_interactor_type') != 'synthetic':
+            interactor_B_curie = interactor_B_curie_type + ":" + self.param('interactor_B_molecular_id')
+        else:
+            interactor_B_curie = self.param('interactor_B_molecular_id')
         self.param('interactor_A_curie', interactor_A_curie)
         self.param('interactor_B_curie', interactor_B_curie)
 
-
-    def get_interactor_type(self):
-        #TODO Properly implement this for non PHI-base interactors
-        source_db = self.param('source_db_label')
-        if  source_db == 'combined_PHIbase':
-            return 'protein'
-        else:
-            raise ValueError ("Unkonwn interactor type")
 
     def build_output_hash(self):
         lines_list = []

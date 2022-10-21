@@ -41,12 +41,17 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         self.param('meta_user',m_user)
         self.param('meta_host',m_host)
         self.param('meta_port',int(m_port))
-
+        
         entry_id = self.param_required('entry_id')
+        interactor_B_interactor_type = self.param('interactor_B_interactor_type')
+
         self.check_param('interactor_A_species_taxon_id')
-        self.check_param('interactor_B_species_taxon_id')
         self.check_param('interactor_A_name')
         self.check_param('interactor_B_name')
+        if interactor_B_interactor_type == 'synthetic':
+            self.param('interactor_B_species_taxon_id',0)
+        else:
+            self.check_param('interactor_B_species_taxon_id')
         self.check_param('doi')
 
     def run(self):
@@ -57,20 +62,29 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             
             species_strain = self.get_strain_taxon('interactor_A_species_strain')
             species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
-            interactor_A_division, interactor_A_db_names_set, interactor_A_taxon_ref = self.get_meta_values(db_connection, species_taxon_id,species_strain)        
+            interactor_A_division, interactor_A_dbnames_set, interactor_A_taxon_ref = self.get_meta_values(db_connection, species_taxon_id,species_strain)        
 
             self.param("interactor_A_division",interactor_A_division)
-       	    self.param("interactor_A_dbnames_set",interactor_A_db_names_set)
+       	    self.param("interactor_A_dbnames_set",interactor_A_dbnames_set)
             self.param("interactor_A_taxon_ref",interactor_A_taxon_ref) 
-        
-            # Same for Host 
-            species_strain = self.get_strain_taxon('interactor_B_species_strain') 
-            species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
-            interactor_B_division, interactor_B_db_names_set, interactor_B_taxon_ref = self.get_meta_values(db_connection, species_taxon_id, species_strain)
+            
+            print("running " + entry_id)
+            # Same for interactor B
+            interactor_B_division = ""
+            interactor_B_taxon_ref = ""
+            interactor_B_dbnames_set = set()
+            if self.param('interactor_B_interactor_type') == 'synthetic':
+                interactor_B_division = "NA"
+                interactor_B_taxon_ref = "NA"
+                interactor_B_dbnames_set = set()
+            else:
+                species_strain = self.get_strain_taxon('interactor_B_species_strain') 
+                species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
+                interactor_B_division, interactor_B_dbnames_set, interactor_B_taxon_ref = self.get_meta_values(db_connection, species_taxon_id, species_strain)
             
             db_connection.close()
             self.param("interactor_B_division",interactor_B_division) 
-            self.param("interactor_B_dbnames_set",interactor_B_db_names_set)
+            self.param("interactor_B_dbnames_set",interactor_B_dbnames_set)
             self.param("interactor_B_taxon_ref",interactor_B_taxon_ref)
 
     def get_meta_values(self, db_connection, species_taxon_id, species_strain):
@@ -81,7 +95,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         #First, try to map the strain taxonomy ID
         try:
             if species_strain != 0: 
-                #print ("Trying strain_taxon_id: "+ str(species_strain))
+                print ("Trying strain_taxon_id: "+ str(species_strain))
                 division, db_set = self.get_meta_ensembl_info(db_connection, species_strain) 
                 used_taxon_ref = 'taxonomy_id'
 
@@ -90,13 +104,14 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         #try the species taxonomy ID 
         except Exception as e:
             try:
+                print ("Trying species_taxon_id: "+ str(species_taxon_id))
                 division, db_set = self.get_meta_ensembl_info(db_connection, species_taxon_id)
                 used_taxon_ref = 'species_taxonomy_id'
             except Exception as e:
                 print(e)
                 err_msg = "Entry: " + entry_id + " has no identifiable taxonomy for (" + str(species_taxon_id) + ")"
                 self.param('failed_job',err_msg)
-                return 0,0,0
+                return '',set(),''
 
         return division, db_set, used_taxon_ref
 
@@ -205,9 +220,8 @@ class MetaEnsemblReader(eHive.BaseRunnable):
     def check_param(self, param):
         try:
             self.param_required(param)
-            test_param = self.param(param) 
             #also checks that sets are not empty
-            if "dbnames_set" in param and not test_param:
+            if "dbnames_set" in param and self.param('interactor_B_interactor_type') != 'synthetic' and self.param(param) == set():
                 raise Exception('dbnames_set is empty')
         except:
             error_msg = self.param('entry_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB. "

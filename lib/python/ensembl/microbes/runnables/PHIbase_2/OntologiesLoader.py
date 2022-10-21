@@ -64,10 +64,12 @@ class OntologiesLoader(eHive.BaseRunnable):
         ontologies_list = []
 
         try:
-            ontologies_list = session.query(interaction_db_models.Ontology).all()
+            ontologies_results = session.query(interaction_db_models.Ontology).all()
         except NoResultFound:
             print(f" A new ontology_value has been created with name {source_db} and description {o_description}")
             pass
+        for ont in ontologies_results:
+            ontologies_list.append(ont.name)
         print("list of ontologies:" + str(ontologies_list))
         return ontologies_list
 
@@ -207,8 +209,6 @@ class OntologiesLoader(eHive.BaseRunnable):
 
 
     def write_output(self):
-        entry_id = self.param('entry_id')
-
         entries_list = self.build_output_hash()
         for entry in entries_list:
             self.dataflow(entry, 1)

@@ -29,9 +29,10 @@ class SequenceFinder(eHive.BaseRunnable):
         self.param('failed_job', '')
         entry_id = self.param('entry_id')
         self.check_param("interactor_A_ensembl_id")
-        self.check_param("interactor_B_ensembl_id")
         self.check_param("interactor_A_molecular_id")
         self.check_param("interactor_B_molecular_id")
+        if self.param('interactor_B_interactor_type') != 'synthetic':
+            self.check_param("interactor_B_ensembl_id")
 
     def run(self):
         self.warning("Sequence finder run")
@@ -40,16 +41,19 @@ class SequenceFinder(eHive.BaseRunnable):
     def get_values(self):
         entry_id = self.param('entry_id')
         interactor_A_ensembl_gene_stable_id = self.param("interactor_A_ensembl_id")
-        interactor_B_ensembl_gene_stable_id = self.param("interactor_B_ensembl_id")
         interactor_A_molecular_id = self.param("interactor_A_molecular_id")
 
         interactor_A_molecular_structure = self.get_molecular_structure(interactor_A_molecular_id, interactor_A_ensembl_gene_stable_id)
-        interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
-        if interactor_B_ensembl_gene_stable_id == "UNDETERMINED":
-            interactor_B_molecular_structure = "UNDETERMINED"
+        if self.param('interactor_B_interactor_type') == 'synthetic':
+            interactor_B_molecular_structure = ""
         else:
-            interactor_B_molecular_id = self.param("interactor_B_molecular_id")
-            interactor_B_molecular_structure = self.get_molecular_structure(interactor_B_molecular_id, interactor_B_ensembl_gene_stable_id)
+            interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
+            if interactor_B_ensembl_gene_stable_id == "UNDETERMINED":
+                interactor_B_molecular_structure = "UNDETERMINED"
+            else:
+                interactor_B_molecular_id = self.param("interactor_B_molecular_id")
+                interactor_B_molecular_structure = self.get_molecular_structure(interactor_B_molecular_id, interactor_B_ensembl_gene_stable_id)
+        
         self.param("interactor_A_molecular_structure",interactor_A_molecular_structure)
         self.param("interactor_B_molecular_structure",interactor_B_molecular_structure)
 

@@ -63,11 +63,12 @@ class DBwriter(eHive.BaseRunnable):
         self.check_param('interactor_A_ensembl_id')
         self.check_param('interactor_A_molecular_structure')
 
-        self.check_param('interactor_B_species_taxon_id')
-        self.check_param('interactor_B_production_name')
-        self.check_param('interactor_B_division')
-        self.check_param('interactor_B_ensembl_id')
-        self.check_param('interactor_B_molecular_structure')
+        if self.param('interactor_B_interactor_type') != 'synthetic':
+            self.check_param('interactor_B_species_taxon_id')
+            self.check_param('interactor_B_production_name')
+            self.check_param('interactor_B_division')
+            self.check_param('interactor_B_ensembl_id')
+            self.check_param('interactor_B_molecular_structure')
         
 
     def run(self):
@@ -86,43 +87,52 @@ class DBwriter(eHive.BaseRunnable):
         interactor_A_species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
         interactor_A_production_name = self.param('interactor_A_production_name')
         interactor_A_division = self.param('interactor_A_division')
-        interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
-        interactor_B_production_name = self.param('interactor_B_production_name')
-        interactor_B_division = self.param('interactor_B_division')
         source_db_label = self.param('source_db_label')
         interactor_A_ensembl_gene_stable_id = self.param('interactor_A_ensembl_id')
-        interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
         interactor_A_structure = self.param('interactor_A_molecular_structure')
-        interactor_B_structure = self.param('interactor_B_molecular_structure')
         interactor_A_interactor_type = self.param("interactor_A_interactor_type")
         interactor_A_curie = self.param("interactor_A_curie")
         interactor_A_name = self.param("interactor_A_ensembl_id")
         interactor_B_interactor_type = self.param("interactor_B_interactor_type")
-        interactor_B_curie = self.param("interactor_B_curie")
-        interactor_B_name = self.param("interactor_B_ensembl_id")
+        interactor_B_curie = self.param("interactor_B_molecular_id")
+        interactor_B_name = self.param("interactor_B_name")
         doi = self.param("doi")
         
+        if self.param('interactor_B_interactor_type') != 'synthetic':
+            interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
+            interactor_B_production_name = self.param('interactor_B_production_name')
+            interactor_B_division = self.param('interactor_B_division')
+            interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
+            interactor_B_name = self.param("interactor_B_ensembl_id")
+            interactor_B_structure = self.param('interactor_B_molecular_structure')
+            interactor_B_curie = self.param("interactor_B_curie")
+
         source_db_value = self.get_source_db_value(session, source_db_label)
         interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_production_name)
-        print(entry_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)
-        interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name)
+        #print(entry_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)  
         
         try:
             session.add(source_db_value)
             source_db_id = source_db_value.source_db_id
             session.add(interactor_A_species_value)
-            session.add(interactor_B_species_value)
+            if self.param('interactor_B_interactor_type') != 'synthetic':
+                interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name)
+                session.add(interactor_B_species_value)
             session.flush()
 
             interactor_A_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_A_ensembl_gene_stable_id, interactor_A_species_value.species_id)
-            interactor_B_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_B_ensembl_gene_stable_id, interactor_B_species_value.species_id)
             session.add(interactor_A_ensembl_gene_value)
-            session.add(interactor_B_ensembl_gene_value)
+            if self.param('interactor_B_interactor_type') != 'synthetic':
+                interactor_B_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_B_ensembl_gene_stable_id, interactor_B_species_value.species_id)
+                session.add(interactor_B_ensembl_gene_value)
             session.flush()
                 
             interactor_A_curated_interactor = self.get_interactor_value(session, interactor_A_interactor_type, interactor_A_curie, interactor_A_name, interactor_A_structure, interactor_A_ensembl_gene_value.ensembl_gene_id)
-            interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_name, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
             session.add(interactor_A_curated_interactor)
+            if self.param('interactor_B_interactor_type') != 'synthetic':
+                interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_name, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
+            else:
+                interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_name, None, None)
             session.add(interactor_B_curated_interactor)
             session.flush()
             

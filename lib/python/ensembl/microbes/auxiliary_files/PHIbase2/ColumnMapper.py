@@ -87,19 +87,19 @@ class ColumnMapper():
         if 'plasticDB' in db_dict:
             file_rows = {
                     "entry_id": 0,
-                    "interactor_A_id": 14,
-                    "interactor_A_sequence": 15,
-                    "interactor_A_ensembl_id": 13,
-                    "interactor_A_species_taxon_id": 1,
-                    "interactor_A_species_strain": 27,
-                    "interactor_A_name": 0,
-                    "interactor_B_id": 3,
-                    "interactor_B_species_taxon_id": 29,
-                    "interactor_B_species_strain": 28,
-                    "interactor_B_name": 4,			#species name or chemical name if it points to a synthetic molecule
-                    "interactor_B_sequence": 30,
-                    "interactor_B_ensembl_id": 31,
-                    "litterature_id": 6,
+                    "interactor_A_molecular_id": 15,
+                    "interactor_A_sequence": 16,
+                    "interactor_A_ensembl_id": 14,
+                    "interactor_A_species_taxon_id": 2,
+                    "interactor_A_species_strain": 28,
+                    "interactor_A_name": 1,
+                    "interactor_B_molecular_id": 4,
+                    "interactor_B_species_taxon_id": 30,
+                    "interactor_B_species_strain": 29,
+                    "interactor_B_name": 5,			#species name or chemical name if it points to a synthetic molecule
+                    "interactor_B_sequence": 31,
+                    "interactor_B_ensembl_id": 32,
+                    "litterature_id": 7,
                     "source_db_label": db_dict,
                     }
 
@@ -124,12 +124,12 @@ class ColumnMapper():
                     }
 
             ColumnMapper.keys_rows = {
-                    "Enzyme name": 8,
-                    "Experimental evidence": 17,
-                    "Plastic used": 18,
-                    "Thermophilic conditions": 21,
-                    "Isolation environment": 23,
-                    "Isolation location": 24,
+                    "Enzyme name": 9,
+                    "Experimental evidence": 18,
+                    "Plastic used": 19,
+                    "Thermophilic conditions": 22,
+                    "Isolation environment": 24,
+                    "Isolation location": 25,
                     }
             ColumnMapper.litterature_source = "DOI"
 
