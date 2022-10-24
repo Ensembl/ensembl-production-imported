@@ -28,7 +28,7 @@ class ColumnMapper():
         mapped_dict = {}
         file_rows = {}
 
-        if 'combined_PHIbase' in db_dict:
+        if 'PHI-base' in db_dict:
             file_rows = {
                     "entry_id": 0,
                     "interactor_A_molecular_id": 1,
