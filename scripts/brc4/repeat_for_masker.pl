@@ -179,7 +179,8 @@ sub get_species_map {
   for my $sp (@$species) {
     my $ma = $registry->get_adaptor($sp, "core", "MetaContainer");
     my ($organism_abbrev) = @{ $ma->list_value_by_key('BRC4.organism_abbrev') };
-    $map{$organism_abbrev} = $sp;
+    my ($prod_name) = @{ $ma->list_value_by_key('species.production_name') };
+    $map{$organism_abbrev} = $prod_name;
     $ma->dbc->disconnect_if_idle;
   }
   return \%map;
