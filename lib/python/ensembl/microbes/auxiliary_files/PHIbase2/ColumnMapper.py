@@ -108,8 +108,8 @@ class ColumnMapper():
             ColumnMapper.interactor_B_interactor_type = "synthetic"
             ColumnMapper.interactor_B_curie_type = "chebi"
 
+            ColumnMapper.ontology_name = ""
             ColumnMapper.ontology_description = ""
-
             ColumnMapper.ontology_file = ""
 
             ColumnMapper.source_db_description = "A database of microorganisms and proteins linked to plastic biodegradation."
@@ -132,5 +132,50 @@ class ColumnMapper():
                     "Isolation location": 25,
                     }
             ColumnMapper.litterature_source = "DOI"
+
+        if 'HPIDB' in db_dict:
+            file_rows = {
+                    "entry_id": 0,
+                    "interactor_A_molecular_id": 1,
+                    "interactor_A_sequence": 22,
+                    "interactor_A_ensembl_id": 27,
+                    "interactor_A_species_taxon_id": 10,
+                    "interactor_A_species_strain": 10,
+                    "interactor_A_name": 1,
+                    "interactor_B_molecular_id": 2,
+                    "interactor_B_species_taxon_id": 11,
+                    "interactor_B_species_strain": 11,
+                    "interactor_B_name": 2,                     #species name or chemical name if it points to a synthetic molecule
+                    "interactor_B_sequence": 23,
+                    "interactor_B_ensembl_id": 28,
+                    "litterature_id": 9,
+                    "source_db_label": db_dict,
+                    }
+
+            ColumnMapper.interactor_A_interactor_type = "protein"
+            ColumnMapper.interactor_A_curie_type = "uniprot"
+            ColumnMapper.interactor_B_interactor_type = "protein"
+            ColumnMapper.interactor_B_curie_type = "uniprot"
+
+            ColumnMapper.ontology_name = "PSI-MI"
+            ColumnMapper.ontology_description = "A structured controlled vocabulary for the annotation of experiments concerned with protein-protein interactions. Developed by the HUPO Proteomics Standards Initiative."
+            ColumnMapper.ontology_file = "/nfs/production/flicek/ensembl/microbes/mcarbajo/Phytopath_db/Obo_files/psi-mi.obo"
+
+            ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions. https://hpidb.igbb.msstate.edu/index.html"
+
+            ColumnMapper.keys_descriptions = {
+                    
+                    "Experimental evidence": "Experimental evidence",
+                    "Interaction type": "Type of interaction",
+                    "Confidence": "A method used to derive a numerical or empirical measure of confidence in a particular interaction, or in the identification of the participants in an interaction.",
+                    }
+
+            ColumnMapper.keys_rows = {
+                    
+                    "Experimental evidence": 7,
+                    "Interaction type": 12,
+                    "Confidence": 15,
+                    }
+            ColumnMapper.litterature_source = "PMID"
 
         return file_rows
