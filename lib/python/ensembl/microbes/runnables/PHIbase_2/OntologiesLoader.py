@@ -55,8 +55,10 @@ class OntologiesLoader(eHive.BaseRunnable):
             self.param('entries_to_delete',{})
             obo_dict = self.read_obo_entries()
             self.insert_obo_values(session, obo_dict)
+            session.close()
         except Exception as e:
             print(f"SKIPPING LOADING ONTOLOGIES. The .obo file has not been passed as a parameter. This is not a problem as long as the necessary ontologies have previously been  loaded before.")
+        session = Session()
         ontologies_list = self.get_ontologies(session)
         self.param("ontologies_list",ontologies_list)
     
