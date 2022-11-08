@@ -119,7 +119,7 @@ sub _lsf_resource {
   push @res_params, "-q $queue" if $queue;
   push @res_params, "-We $time" if $time;
   push @res_params, "-n $cpus" if $cpus;
-  push @res_params, $conf->{slurm_params} if $conf->{slurm_params};
+  push @res_params, $conf->{lsf_params} if $conf->{lsf_params};
   my $res_string = join(" ", @res_params);
   return $res_string;
 }
