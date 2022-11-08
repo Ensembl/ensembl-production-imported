@@ -169,20 +169,20 @@ sub resource_classes {
   my $long = "24:00:00";
 
   my %resources = (
+    'default'           => $self->make_resource({"queue" => $queue, "memory" => 4_000, "time" => $short}),
+    'normal'            => $self->make_resource({"queue" => $queue, "memory" => 4_000, "time" => $long}),
     'datamove'          => $self->make_resource({"queue" => $data_queue, "time" => $short}),
     'datamove_4Gb_mem'  => $self->make_resource({"queue" => $data_queue, "memory" => 4_000, "time" => $long}),
     'datamove_32Gb_mem' => $self->make_resource({"queue" => $data_queue, "memory" => 32_000, "time" => $long}),
-    'default'           => $self->make_resource({"queue" => $queue, "memory" => 4_000, "time" => $short}),
-    'normal'            => $self->make_resource({"queue" => $queue, "memory" => 4_000, "time" => $short}),
   );
 
   my @mems = (2, 4, 8, 12, 16, 32);
   my $tmem = 4;
+  my $time = $long;
+
   for my $mem (@mems) {
     my $name = "${mem}Gb_mem";
     my $tname = "${name}_${tmem}Gb_tmp";
-
-    my $time = $mem >= 4 ? $long : $short;
 
     $resources{$name} = $self->make_resource({"queue" => $queue, "memory" => $mem * 1000, "time" => $time});
     $resources{$tname} = $self->make_resource({"queue" => $queue, "memory" => $mem * 1000, "time" => $time, "temp_memory" => $tmem * 1000});
