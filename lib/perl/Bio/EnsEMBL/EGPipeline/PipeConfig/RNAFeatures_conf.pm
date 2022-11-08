@@ -698,14 +698,25 @@ sub pipeline_analyses {
 
 sub resource_classes {
   my ($self) = @_;
-  
-  return {
-    %{$self->SUPER::resource_classes},
-    'cmscan_4Gb_mem' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n '.$self->o('cmscan_cpu').' -M 4000 -R "rusage[mem=4000]"'},
-    'cmscan_8Gb_mem' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n '.$self->o('cmscan_cpu').' -M 8000 -R "rusage[mem=8000]"'},
-    'cmscan_16Gb_mem' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n '.$self->o('cmscan_cpu').' -M 16000 -R "rusage[mem=16000]"'},
-    'cmscan_32b_mem' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n '.$self->o('cmscan_cpu').' -M 32000 -R "rusage[mem=32000]"'},
+
+  my $queue = $self->o('queue_name');
+  my @mems = (4, 8, 16, 32);
+  my $cpu = $self->o('cmscan_cpu');
+  my $time = "24:00:00";
+
+  my %resources = %{$self->SUPER::resource_classes};
+
+  for my $mem (@mems) {
+    my $name = "cmscan_${mem}Gb_mem";
+    $resources{$name} = $self->make_resource({
+      queue => $queue,
+      memory => $mem * 1000,
+      temp_memory => $mem * 1000,
+      cpus => $cpu,
+      time => $time
+    });
   }
+  return \%resources;
 }
 
 1;
