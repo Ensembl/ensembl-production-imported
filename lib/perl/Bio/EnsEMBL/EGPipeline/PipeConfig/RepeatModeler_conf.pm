@@ -461,11 +461,12 @@ sub pipeline_analyses {
 sub resource_classes {
   my ($self) = @_;
   
+  # Specific resources for RepeatModeler, which can take a long time
   my $queue = $self->o('queue_name');
   my @mems = (8, 16, 32, 64);
   my $tmem = 4;
   my $cpu = 8;
-  my $time = "24:00:00";
+  my $time = "168:00:00"; # 1 week
 
   my %resources = %{$self->SUPER::resource_classes};
 
