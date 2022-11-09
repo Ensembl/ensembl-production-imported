@@ -88,10 +88,10 @@ sub default_options {
     clanin_file       => undef,
     cmscan_param_hash =>
     {
-      cpu            => $self->o('cmscan_cpu'),
-      heuristics     => $self->o('cmscan_heuristics'),
-      threshold      => $self->o('cmscan_threshold'),
-      clanin_file    => $self->o('clanin_file'),
+      -cpu            => $self->o('cmscan_cpu'),
+      -heuristics     => $self->o('cmscan_heuristics'),
+      -threshold      => $self->o('cmscan_threshold'),
+      -clanin_file    => $self->o('clanin_file'),
     },
     cmscan_parameters => '',
     cmsscan_resource_class => 'cmscan_4Gb_mem',
