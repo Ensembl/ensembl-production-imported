@@ -115,7 +115,7 @@ sub _lsf_resource {
   
   my @res_params;
   push @res_params, "-M $mem" if $mem;
-  push @res_params, ('-R [' . join(',', @rusage) . ']') if @rusage;
+  push @res_params, ('-R "rusage[' . join(',', @rusage) . ']"') if @rusage;
   push @res_params, "-q $queue" if $queue;
   push @res_params, "-We $time" if $time;
   push @res_params, "-n $cpus" if $cpus;
