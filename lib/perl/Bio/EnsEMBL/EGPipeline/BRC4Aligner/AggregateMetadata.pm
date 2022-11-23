@@ -122,7 +122,7 @@ sub create_consensus_metadata {
     $cons_str =~ s/:/ => /g;
     
     my $all_met_str = $json->encode($metadata_hash);
-    die("Could not create a consensus: " . join("; ", @errors) . "\nPlease check the logs and fix the Current Consensus (and copy it as 'force_metadata' param for this job):\n" . $cons_str . "\nAll metadata: " . $all_met_str);
+    die("Could not create a consensus: " . join("; ", @errors) . "\nPlease check the logs and fix the Current Consensus (and copy it as 'force_aligner_metadata' param for this job):\n" . $cons_str . "\nAll metadata: " . $all_met_str);
   }
 
   return \%consensus;
