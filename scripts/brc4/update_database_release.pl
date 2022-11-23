@@ -60,7 +60,7 @@ sub get_databases {
   
   my $db_array;
   if ($prefix) {
-    say("Search dbs with prefix $prefix:");
+    say("Search dbs with prefix '$prefix':");
     $db_array = $dbh->selectcol_arrayref("SHOW DATABASES LIKE '${prefix}_%';");
   } else {
     $db_array = $dbh->selectcol_arrayref("SHOW DATABASES;");
