@@ -85,6 +85,34 @@ sub default_options {
   }
 }
 
+=head2 make_resources
+
+Description: Method to generate a resource class for all available meadows (LSF, SLURM), instead of hardcopding the resources.
+
+It should return a hash like { LSF => '', SLURM => '' }
+
+Args: A hash with the following keys:
+
+=over
+
+=item * queue = name of the queue/partition to use
+
+=item * memory = integer in MB
+
+=item * time = time limit in the form 0:00:00 (h:mm:ss)
+
+=item * cpus = number of cores
+
+=item * temp_memory = reserve this amount of temp memory
+
+=item * lsf_param = a string for specific LSF parameters
+
+=item * slurm_param = a string for specific SLURM parameters
+
+=back
+             
+=cut
+
 
 sub make_resource {
   my ($self, $conf) = @_;
