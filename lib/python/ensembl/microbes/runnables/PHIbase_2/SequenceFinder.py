@@ -48,7 +48,7 @@ class SequenceFinder(eHive.BaseRunnable):
             interactor_B_molecular_structure = ""
         else:
             interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
-            if interactor_B_ensembl_gene_stable_id == "UNDETERMINED":
+            if "UNDETERMINED" in interactor_B_ensembl_gene_stable_id:
                 interactor_B_molecular_structure = "UNDETERMINED"
             else:
                 interactor_B_molecular_id = self.param("interactor_B_molecular_id")
@@ -59,16 +59,19 @@ class SequenceFinder(eHive.BaseRunnable):
 
     def get_molecular_structure(self, uniprot_id, ensembl_gene_id):
         #TO DO: Either redefine with a checksum value of the sequence or remove the sequence completely (we probably don't need it)
-        uniprot_seq = 'TO_BE_DEFINED'
-        '''
+        #uniprot_seq = 'TO_BE_DEFINED'
+        
         uniprot_seq = self.get_uniprot_sequence(uniprot_id)
-        ensembl_seqs = self.get_ensembl_sequences(ensembl_gene_id)
+        #ensembl_seqs = self.get_ensembl_sequences(ensembl_gene_id)
+        uniprot_seq = self.create_digest(uniprot_seq)
+        '''
         entry_id = self.param('entry_id')
         try:
             if not self.check_equals(uniprot_seq,ensembl_seqs):
                 raise (AssertionError)
             else:
-                print(f" {entry_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
+                uniprot_seq = self.create_digest(uniprot_seq)
+                #print(f" {entry_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
         except AssertionError:
             print(f" {entry_id} NO SEQUENCE MATCH for uniprot accession {uniprot_id} and ensembl_accession {ensembl_gene_id}")
         '''
@@ -101,9 +104,10 @@ class SequenceFinder(eHive.BaseRunnable):
                 ensembl_seq_list.append(dc_l.replace("<AAseq>",''))
         return ensembl_seq_list
 
-    def create_digest(input_string):
+    def create_digest(self,input_string):
         digest = hashlib.sha256(str(input_string).encode('utf-8')).hexdigest()
-        return digest
+        short_digest=digest[0:20]
+        return short_digest
 
     def build_output_hash(self):
         lines_list = []
