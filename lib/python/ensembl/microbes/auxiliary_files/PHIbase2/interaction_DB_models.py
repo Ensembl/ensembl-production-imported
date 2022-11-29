@@ -246,28 +246,33 @@ class PredictionMethod(Base):
 
 class SourceDb(Base):
     __tablename__ = 'source_db'
+    __table_args__ = (
+        Index('external_db_original_curator_db', 'external_db', 'original_curator_db', unique=True),
+    )
 
     source_db_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     label = Column(String(255), nullable=False)
     external_db = Column(String(255), nullable=False)
-
+    original_curator_db = Column(String(255), nullable=False)
+    
     interactions= relationship("Interaction", back_populates="source_dbs")
 
     def __repr__(self):
         try:
             sdb_id = self.source_db_id
-            return "<SourceDb(source_db_id='%d', label='%s', external_db='%s')>" % (
-                sdb_id, self.label, self.external_db)
+            return "<SourceDb(source_db_id='%d', label='%s', external_db='%s', original_curator_db='%s')>" % (
+                sdb_id, self.label, self.external_db, self.original_curator_db)
         except NameError:
-            return "<SourceDb(source_db_id=Null-until-stored, label='%s', external_db='%s')>" % (
-                self.label, self.external_db)
+            return "<SourceDb(source_db_id=Null-until-stored, label='%s', external_db='%s', original_curator_db='%s')>" % (
+                self.label, self.external_db, self.original_curator_db)
 
 class Species(Base):
     __tablename__ = 'species'
 
     species_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
-    ensembl_division = Column(String(255), nullable=False)
     production_name = Column(String(255), nullable=False)
+    scientific_name = Column(String(255), nullable=False)
+    ensembl_division = Column(String(255), nullable=False)
     taxon_id = Column(INTEGER(11), nullable=False, unique=True)
 
     ensembl_genes = relationship("EnsemblGene", back_populates="species_ids_r")
@@ -275,8 +280,8 @@ class Species(Base):
     def __repr__(self):
         try:
             s_id = self.species_id
-            return "<Species(species_id='%d', ensembl_division='%s', production_name='%s', taxon_id='%d')>" % (
-                s_id, self.ensembl_division, self.production_name, self.taxon_id)
+            return "<Species(species_id='%d', ensembl_division='%s', production_name='%s', taxon_id='%d', scientific_name='%s')>" % (
+                s_id, self.ensembl_division, self.production_name, self.taxon_id, self.scientific_name)
         except NameError:
-            return "<Species(species_id=Null-until-stored, ensembl_division='%s', production_name='%s', taxon_id='%d')>" % (
-                self.ensembl_division, self.production_name, self.taxon_id)
+            return "<Species(species_id=Null-until-stored, ensembl_division='%s', production_name='%s', taxon_id='%d', scientific_name='%s')>" % (
+                self.ensembl_division, self.production_name, self.taxon_id, self.scientific_name)

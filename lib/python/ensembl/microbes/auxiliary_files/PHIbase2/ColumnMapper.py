@@ -31,16 +31,16 @@ class ColumnMapper():
         if 'PHI-base' in db_dict:
             file_rows = {
                     "entry_id": 0,
-                    "interactor_A_molecular_id": 1,
+                    "interactor_A_molecular_id": 1, # uniprot id
                     "interactor_A_sequence": 24,
                     "interactor_A_ensembl_id": 2,
                     "interactor_A_species_taxon_id": 3,
                     "interactor_A_species_strain": 5,
-                    "interactor_A_name": 4,  #species name 
-                    "interactor_B_molecular_id": 9,
+                    "interactor_A_origin_name": 4,  # species name 
+                    "interactor_B_molecular_id": 9,   # uniprot id
                     "interactor_B_species_taxon_id": 11,
                     "interactor_B_species_strain": 13,
-                    "interactor_B_name": 12,   #species name or chemical name if it points to a synthetic molecule
+                    "interactor_B_origin_name": 12,   # species name (equivalent to chemical name when pointing to a synthetic molecule)
                     "interactor_B_sequence": 25,
                     "interactor_B_ensembl_id": 10,
                     "litterature_id": 22,
@@ -54,11 +54,12 @@ class ColumnMapper():
 
             ColumnMapper.ontology_name = "PHIPO"
             ColumnMapper.ontology_description = "Pathogen Host Interactions Phenotype Ontology. Ontology of species-neutral phenotypes observed in pathogen-host interactions."
-
             ColumnMapper.ontology_file = "/nfs/production/flicek/ensembl/microbes/mcarbajo/Phytopath_db/Obo_files/phipo-simple.obo"
-                    
+
             ColumnMapper.source_db_description = "Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity."
-            
+            ColumnMapper.source_db_name = "PHI-base"
+            ColumnMapper.original_curator_db = "PHI-Canto"
+
             ColumnMapper.keys_descriptions = {
                     "Interaction phenotype": "Interaction phenotype/ disease outcome",
                     "Disease name": "Name of disease",
@@ -84,19 +85,19 @@ class ColumnMapper():
                     }
             ColumnMapper.litterature_source = "PMID"
 
-        if 'plasticDB' in db_dict:
+        if 'PlasticDB' in db_dict:
             file_rows = {
                     "entry_id": 0,
                     "interactor_A_molecular_id": 15,
                     "interactor_A_sequence": 16,
-                    "interactor_A_ensembl_id": 14,
+                    "interactor_A_ensembl_id": 14, #uniprot id
                     "interactor_A_species_taxon_id": 2,
                     "interactor_A_species_strain": 28,
-                    "interactor_A_name": 1,
-                    "interactor_B_molecular_id": 4,
+                    "interactor_A_origin_name": 1,       #species_name
+                    "interactor_B_molecular_id": 4,  #CHEBI or CAS
                     "interactor_B_species_taxon_id": 30,
                     "interactor_B_species_strain": 29,
-                    "interactor_B_name": 5,			#species name or chemical name if it points to a synthetic molecule
+                    "interactor_B_origin_name": 5,	#chemical name (treated as equivalent of species name)
                     "interactor_B_sequence": 31,
                     "interactor_B_ensembl_id": 32,
                     "litterature_id": 7,
@@ -113,6 +114,8 @@ class ColumnMapper():
             ColumnMapper.ontology_file = ""
 
             ColumnMapper.source_db_description = "A database of microorganisms and proteins linked to plastic biodegradation."
+            ColumnMapper.source_db_name = "PlasticDB"
+            ColumnMapper.original_curator_db = "PlasticDB"
 
             ColumnMapper.keys_descriptions = {
                     "Enzyme name": "Name of the plastic degradating enzyme",
@@ -133,21 +136,21 @@ class ColumnMapper():
                     }
             ColumnMapper.litterature_source = "DOI"
 
-        if 'HPIDB' in db_dict:
+        if 'HPIDB/(HPIDBcurated)' in db_dict:
             file_rows = {
                     "entry_id": 0,
                     "interactor_A_molecular_id": 1,
-                    "interactor_A_sequence": 22,
-                    "interactor_A_ensembl_id": 27,
+                    "interactor_A_sequence": 20,
+                    "interactor_A_ensembl_id": 25,
                     "interactor_A_species_taxon_id": 10,
                     "interactor_A_species_strain": 10,
-                    "interactor_A_name": 1,
+                    "interactor_A_origin_name": 18,    #species name 
                     "interactor_B_molecular_id": 2,
                     "interactor_B_species_taxon_id": 11,
                     "interactor_B_species_strain": 11,
-                    "interactor_B_name": 2,                     #species name or chemical name if it points to a synthetic molecule
-                    "interactor_B_sequence": 23,
-                    "interactor_B_ensembl_id": 28,
+                    "interactor_B_origin_name": 19,   #species name 
+                    "interactor_B_sequence": 21,
+                    "interactor_B_ensembl_id": 26,
                     "litterature_id": 9,
                     "source_db_label": db_dict,
                     }
@@ -162,19 +165,25 @@ class ColumnMapper():
             ColumnMapper.ontology_file = "/nfs/production/flicek/ensembl/microbes/mcarbajo/Phytopath_db/Obo_files/psi-mi.obo"
 
             ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions. https://hpidb.igbb.msstate.edu/index.html"
+            ColumnMapper.source_db_name = "HPIDB"
+            ColumnMapper.original_curator_db = "HPIDB"
 
             ColumnMapper.keys_descriptions = {
                     
-                    "Experimental evidence": "Experimental evidence",
+                    "Experimental evidence": "Detection method or experimental evidence for this interaction",
                     "Interaction type": "Type of interaction",
                     "Confidence": "A method used to derive a numerical or empirical measure of confidence in a particular interaction, or in the identification of the participants in an interaction.",
+                    "Interactor_A experimental strain": "Strain in which the interaction was observed (first interactor)",
+                    "Interactor_B experimental strain": "Strain in which the interaction was observed (second interactor)",
                     }
 
             ColumnMapper.keys_rows = {
                     
                     "Experimental evidence": 7,
                     "Interaction type": 12,
-                    "Confidence": 15,
+                    "Confidence": 14,
+                    "Interactor_A experimental strain": 18,
+                    "Interactor_B experimental strain": 19,
                     }
             ColumnMapper.litterature_source = "PMID"
 

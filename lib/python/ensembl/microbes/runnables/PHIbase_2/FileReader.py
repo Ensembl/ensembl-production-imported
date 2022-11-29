@@ -49,50 +49,55 @@ class FileReader(eHive.BaseRunnable):
         
         source_db = self.param('source_db')
         cm = col_map.ColumnMapper(source_db)
-        print (f"COLUMN Mapper cm.source_db_label {cm.source_db_label}")
+        print (f"COLUMN Mapper cm.source_db_label {source_db}")
         with open(self.param('inputfile'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
             lines_list = []
             for row in reader:
-                entry_line_dict = {
-                    "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
-                    "entry_id": row[cm.entry_id],
-                    "interactor_A_molecular_id": row[cm.interactor_A_molecular_id],#either uniprot or chebi
-                    "interactor_A_interactor_type": cm.interactor_A_interactor_type,
-                    "interactor_A_curie_type": cm.interactor_A_curie_type,
-                    "interactor_A_sequence": row[cm.interactor_A_sequence],
-                    "interactor_A_ensembl_id": row[cm.interactor_A_ensembl_id],
-                    "interactor_A_species_taxon_id": row[cm.interactor_A_species_taxon_id],
-                    "interactor_A_species_strain": row[cm.interactor_A_species_strain],
-                    "interactor_A_name": row[cm.interactor_A_name], #either species name or chebi
-                    "interactor_B_molecular_id": row[cm.interactor_B_molecular_id],#either uniprot or chebi
-                    "interactor_B_interactor_type": cm.interactor_B_interactor_type,
-                    "interactor_B_curie_type": cm.interactor_B_curie_type,
-                    "interactor_B_ensembl_id": row[cm.interactor_B_ensembl_id],
-                    "interactor_B_species_taxon_id": row[cm.interactor_B_species_taxon_id],
-                    "interactor_B_species_strain": row[cm.interactor_B_species_strain],
-                    "interactor_B_name": row[cm.interactor_B_name], #either species name or chebi
-                    "litterature_id": row[cm.litterature_id],
-                    "litterature_source": cm.litterature_source,
-                    "doi": row [cm.litterature_id],
-                    "interactions_db_url": int_db_url,
-                    "ncbi_taxonomy_url": ncbi_tax_url,
-                    "meta_ensembl_url": meta_db_url,
-                    "vertebrate_url":vertebrate_url,
-                    "non_vertebrate_url": non_vertebrate_url,
-                    "bacteria_url":bacteria_url,
-                    "source_db_label": cm.source_db_label,
-                    "source_db_description": cm.source_db_description,
-                    "obo_file": cm.ontology_file,
-                    }
-                keys_rows_dict = col_map.ColumnMapper.keys_rows
-                for key in keys_rows_dict:
-                    row_number = keys_rows_dict[key]                  
-                    row_entry = row[row_number]
-                    if row_entry != '':
-                        entry_line_dict[key] = self.limit_string_length(row_entry)
-                lines_list.append(entry_line_dict)
+                try:
+                    entry_line_dict = {
+                        "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
+                        "entry_id": row[cm.entry_id],
+                        "interactor_A_molecular_id": row[cm.interactor_A_molecular_id],#either uniprot or chebi
+                        "interactor_A_interactor_type": cm.interactor_A_interactor_type,
+                        "interactor_A_curie_type": cm.interactor_A_curie_type,
+                        "interactor_A_sequence": row[cm.interactor_A_sequence],
+                        "interactor_A_ensembl_id": row[cm.interactor_A_ensembl_id],
+                        "interactor_A_species_taxon_id": row[cm.interactor_A_species_taxon_id],
+                        "interactor_A_species_strain": row[cm.interactor_A_species_strain],
+                        "interactor_A_origin_name": row[cm.interactor_A_origin_name], #either species name or chebi
+                        "interactor_B_molecular_id": row[cm.interactor_B_molecular_id],#either uniprot or chebi
+                        "interactor_B_interactor_type": cm.interactor_B_interactor_type,
+                        "interactor_B_curie_type": cm.interactor_B_curie_type,
+                        "interactor_B_sequence": row[cm.interactor_B_sequence],
+                        "interactor_B_ensembl_id": row[cm.interactor_B_ensembl_id],
+                        "interactor_B_species_taxon_id": row[cm.interactor_B_species_taxon_id],
+                        "interactor_B_species_strain": row[cm.interactor_B_species_strain],
+                        "interactor_B_origin_name": row[cm.interactor_B_origin_name], #either species name or chebi
+                        "litterature_id": row[cm.litterature_id],
+                        "litterature_source": cm.litterature_source,
+                        "doi": row [cm.litterature_id],
+                        "interactions_db_url": int_db_url,
+                        "ncbi_taxonomy_url": ncbi_tax_url,
+                        "meta_ensembl_url": meta_db_url,
+                        "vertebrate_url":vertebrate_url,
+                        "non_vertebrate_url": non_vertebrate_url,
+                        "bacteria_url":bacteria_url,
+                        "source_db_label": cm.source_db_label,
+                        "source_db_description": cm.source_db_description,
+                        "obo_file": cm.ontology_file,
+                        }
+                    keys_rows_dict = col_map.ColumnMapper.keys_rows
+                    for key in keys_rows_dict:
+                        row_number = keys_rows_dict[key]                  
+                        row_entry = row[row_number]
+                        if row_entry != '':
+                            entry_line_dict[key] = self.limit_string_length(row_entry)
+                    lines_list.append(entry_line_dict)
+                except Exception as e:
+                    print(e)
+                    pass
         return lines_list
 
 

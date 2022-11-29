@@ -46,8 +46,8 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         interactor_B_interactor_type = self.param('interactor_B_interactor_type')
 
         self.check_param('interactor_A_species_taxon_id')
-        self.check_param('interactor_A_name')
-        self.check_param('interactor_B_name')
+        self.check_param('interactor_A_origin_name')
+        self.check_param('interactor_B_origin_name')
         if interactor_B_interactor_type == 'synthetic':
             self.param('interactor_B_species_taxon_id',0)
         else:
@@ -72,7 +72,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             # Same for interactor B
             interactor_B_division = ""
             interactor_B_taxon_ref = ""
-            interactor_B_dbnames_set = set()
+            #interactor_B_dbnames_set = set()
             if self.param('interactor_B_interactor_type') == 'synthetic':
                 interactor_B_division = "NA"
                 interactor_B_taxon_ref = "NA"
@@ -90,7 +90,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
     def get_meta_values(self, db_connection, species_taxon_id, species_strain):
         division = "" 
         db_list = "" 
-        db_set = set()
+        db_set = 0
         entry_id = self.param('entry_id')
         #First, try to map the strain taxonomy ID
         try:
@@ -117,11 +117,11 @@ class MetaEnsemblReader(eHive.BaseRunnable):
 
     def get_meta_ensembl_info(self,db_connection, tax_id):
         entry_id = self.param('entry_id')
-        div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE species_taxonomy_id=%d"
+        div_sql="SELECT DISTINCT d.short_name FROM genome g JOIN organism o USING(organism_id) JOIN division d USING(division_id) WHERE o.species_taxonomy_id=" + str(tax_id) + " or o.taxonomy_id=" + str(tax_id) + ";"
         self.db = db_connection
         self.cur = db_connection.cursor()
         try:
-            self.cur.execute( div_sql % tax_id)
+            self.cur.execute(div_sql)
             self.db.commit()
         except pymysql.Error as e:
             try:
@@ -143,9 +143,9 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         #print("Division:" + str(division) + ":") 
         
         core_db_name = None
-        core_db_name_sql = "select gd.dbname from organism o join genome g using(organism_id) join genome_database gd using(genome_id) where o.species_taxonomy_id=%d and gd.type='core' and g.data_release_id=(select MAX(dr.data_release_id) from data_release dr where is_current=1)"
+        core_db_name_sql = "select gd.dbname from organism o join genome g using(organism_id) join genome_database gd using(genome_id) where (o.species_taxonomy_id=" + str(tax_id) + " or o.taxonomy_id=" + str(tax_id) + ") and gd.type='core' and g.data_release_id=(select MAX(dr.data_release_id) from data_release dr where is_current=1)"
         try:
-            self.cur.execute( core_db_name_sql %  tax_id) 
+            self.cur.execute(core_db_name_sql) 
             self.db.commit()
         except pymysql.Error as e:
             try:
@@ -153,14 +153,18 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             except IndexError:
                 print ("Mysql Index Error:- "+str(e))
 
-        core_db_set = set()
-        for row in self.cur:
-            core_db_name = row[0]
-            core_db_set.add(core_db_name)
-            #print (f"core_DB -- {core_db_name}")
     
-        return division, core_db_set
+        if division:
+            core_db_set = set()    
+            for row in self.cur:
+                core_db_name = row[0]
+                core_db_set.add(core_db_name)
+                #print (f"core_DB -- {core_db_name}")
     
+            return division, core_db_set
+        else:
+            return division,0
+
     def get_division(self,short_name):
         if short_name == None:
             return 0
@@ -221,18 +225,21 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         try:
             self.param_required(param)
             #also checks that sets are not empty
-            if "dbnames_set" in param and self.param('interactor_B_interactor_type') != 'synthetic' and self.param(param) == set():
-                raise Exception('dbnames_set is empty')
+            if "dbnames_set" in param and not self.param(param):
+                if "B_dbnames_set" in param and self.param('interactor_B_interactor_type') != 'synthetic':
+                    raise Exception('int_B dbnames_set is empty')
+                if "A_dbnames_set" in param:
+                    raise Exception('int_A dbnames_set is empty')
         except:
             error_msg = self.param('entry_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB. "
-            if param in ('interactor_A_name','interactor_B_name','interactor_A_species_taxon_id', 'interactor_B_species_taxon_id'):
-                error_msg = error_msg +" Main identifier missing."
+            if param in ('interactor_A_molecular_id','interactor_B_molecular_id','interactor_A_species_taxon_id', 'interactor_B_species_taxon_id'):
+                error_msg = error_msg +" Main identifier missing." + param
             else:                
                 try:
                     if param == "interactor_A_dbnames_set":
-                        error_msg = error_msg + "Could not map " + self.param('interactor_A_name') + " species_taxon(" + str(self.param('interactor_A_species_taxon_id')) + ") to Ensembl"
+                        error_msg = error_msg + "Could not map " + self.param('interactor_A_molecular_id') + " species_taxon(" + str(self.param('interactor_A_species_taxon_id')) + ") to Ensembl"
                     if param == "interactor_B_dbnames_set":
-                        error_msg = error_msg + "Could not map " + self.param('interactor_B_name') + " species_taxon(" + str(self.param('interactor_B_species_taxon_id')) + ") to Ensembl"    
+                        error_msg = error_msg + "Could not map " + self.param('interactor_B_molecular_id') + " species_taxon(" + str(self.param('interactor_B_species_taxon_id')) + ") to Ensembl"    
                 except:
                     error_msg = error_msg + " Main identifier missing."
             self.param('failed_job', error_msg)

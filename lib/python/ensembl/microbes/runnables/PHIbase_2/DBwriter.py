@@ -24,6 +24,8 @@ import datetime
 import re
 import ensembl.microbes.auxiliary_files.PHIbase2.interaction_DB_models as interaction_db_models
 import requests
+import ensembl.microbes.auxiliary_files.PHIbase2.ColumnMapper as col_map
+
 from xml.etree import ElementTree
 
 from sqlalchemy.orm import sessionmaker
@@ -81,34 +83,39 @@ class DBwriter(eHive.BaseRunnable):
         engine = db.create_engine(p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
-        
+
         entry_id = self.param('entry_id')
         print(entry_id)
         interactor_A_species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
+        interactor_A_molecular_id = self.param('interactor_A_molecular_id')
         interactor_A_production_name = self.param('interactor_A_production_name')
+        interactor_A_scientific_name = self.param('interactor_A_scientific_name')
         interactor_A_division = self.param('interactor_A_division')
         source_db_label = self.param('source_db_label')
         interactor_A_ensembl_gene_stable_id = self.param('interactor_A_ensembl_id')
         interactor_A_structure = self.param('interactor_A_molecular_structure')
         interactor_A_interactor_type = self.param("interactor_A_interactor_type")
         interactor_A_curie = self.param("interactor_A_curie")
-        interactor_A_name = self.param("interactor_A_ensembl_id")
+        interactor_A_origin_name = self.param("interactor_A_origin_name")
         interactor_B_interactor_type = self.param("interactor_B_interactor_type")
+        interactor_B_molecular_id = self.param('interactor_B_molecular_id')
         interactor_B_curie = self.param("interactor_B_molecular_id")
-        interactor_B_name = self.param("interactor_B_name")
+        interactor_B_origin_name = self.param("interactor_B_origin_name")
         doi = self.param("doi")
+        cm = col_map.ColumnMapper(source_db_label)
+        original_curator_db = cm.original_curator_db
         
         if self.param('interactor_B_interactor_type') != 'synthetic':
             interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
             interactor_B_production_name = self.param('interactor_B_production_name')
+            interactor_B_scientific_name = self.param('interactor_B_scientific_name')
             interactor_B_division = self.param('interactor_B_division')
             interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
-            interactor_B_name = self.param("interactor_B_ensembl_id")
             interactor_B_structure = self.param('interactor_B_molecular_structure')
             interactor_B_curie = self.param("interactor_B_curie")
 
-        source_db_value = self.get_source_db_value(session, source_db_label)
-        interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_production_name)
+        source_db_value = self.get_source_db_value(session, source_db_label, original_curator_db)
+        interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_production_name, interactor_A_scientific_name)
         #print(entry_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)  
         
         try:
@@ -116,7 +123,7 @@ class DBwriter(eHive.BaseRunnable):
             source_db_id = source_db_value.source_db_id
             session.add(interactor_A_species_value)
             if self.param('interactor_B_interactor_type') != 'synthetic':
-                interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name)
+                interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name, interactor_B_scientific_name)
                 session.add(interactor_B_species_value)
             session.flush()
 
@@ -127,12 +134,12 @@ class DBwriter(eHive.BaseRunnable):
                 session.add(interactor_B_ensembl_gene_value)
             session.flush()
                 
-            interactor_A_curated_interactor = self.get_interactor_value(session, interactor_A_interactor_type, interactor_A_curie, interactor_A_name, interactor_A_structure, interactor_A_ensembl_gene_value.ensembl_gene_id)
+            interactor_A_curated_interactor = self.get_interactor_value(session, interactor_A_interactor_type, interactor_A_curie, interactor_A_molecular_id, interactor_A_structure, interactor_A_ensembl_gene_value.ensembl_gene_id)
             session.add(interactor_A_curated_interactor)
             if self.param('interactor_B_interactor_type') != 'synthetic':
-                interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_name, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
+                interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_molecular_id, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
             else:
-                interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_name, None, None)
+                interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_origin_name, None, None)
             session.add(interactor_B_curated_interactor)
             session.flush()
             
@@ -265,8 +272,10 @@ class DBwriter(eHive.BaseRunnable):
 
         if "SourceDb" in entries_to_delete:
             source_db = db.Table('source_db', metadata, autoload=True, autoload_with=engine)
-            db_label = entries_to_delete["SourceDb"]
-            stmt = db.delete(source_db).where(source_db.columns.label == db_label)
+            source_db_dict = entries_to_delete["SourceDb"][0]
+            db_label = source_db_dict["db_label"]
+            curator_db = source_db_dict["original_curator_db"]
+            stmt = db.delete(source_db).where(source_db.columns.label == db_label).where(source_db.columns.original_curator_db == curator_db)
             connection.execute(stmt)
 
         if "EnsemblGene" in entries_to_delete:
@@ -279,8 +288,8 @@ class DBwriter(eHive.BaseRunnable):
         if "Species" in entries_to_delete:
             species_list = entries_to_delete["Species"]
             species = db.Table('species', metadata, autoload=True, autoload_with=engine)
-            for species_tax_id in species_list:
-                stmt = db.delete(species).where(species.c.taxon_id == species_tax_id)
+            for species_dict in species_list:
+                stmt = db.delete(species).where(species.c.taxon_id == species_dict["taxon_id"]).where(species.c.production_name == species_dict["production_name"])
                 connection.execute(stmt)
 
         if "CuratedInteractor" in entries_to_delete:
@@ -323,15 +332,15 @@ class DBwriter(eHive.BaseRunnable):
         new_values[table] = id_value
         self.param('entries_to_delete',new_values)
 
-    def get_source_db_value(self, session, db_label):
+    def get_source_db_value(self, session, db_label, curator_db):
         source_db_value = None
         try:
-            source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).one()
+            source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label, original_curator_db=curator_db).one()
         except MultipleResultsFound:
-            source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label).first()
+            source_db_value = session.query(interaction_db_models.SourceDb).filter_by(label=db_label, original_curator_db=curator_db).first()
         except NoResultFound:
-            source_db_value = interaction_db_models.SourceDb(label=db_label, external_db=self.param("source_db_description"))
-            self.add_stored_value('SourceDb', [db_label])
+            source_db_value = interaction_db_models.SourceDb(label=db_label, external_db=self.param("source_db_description"),original_curator_db=curator_db)
+            self.add_stored_value('SourceDb', [{"label":db_label, "original_curator_db":curator_db}])
         return source_db_value
 
 
@@ -350,19 +359,19 @@ class DBwriter(eHive.BaseRunnable):
                 self.add_stored_value('EnsemblGene', [stable_id])           
         return ensembl_gene_value
 
-    def get_species_value(self, session, species_tax_id, division, species_name):
+    def get_species_value(self, session, species_tax_id, division, species_name, science_name):
         try:
-            species_value = session.query(interaction_db_models.Species).filter_by(taxon_id=species_tax_id).one()
+            species_value = session.query(interaction_db_models.Species).filter_by(taxon_id=species_tax_id, production_name=species_name).one()
         except MultipleResultsFound:
             print(f"ERROR: Multiple results found for {species_name} - tx {species_tax_id}")
         except NoResultFound:
-            species_value = interaction_db_models.Species(ensembl_division=division, production_name=species_name, taxon_id=species_tax_id)
+            species_value = interaction_db_models.Species(ensembl_division=division, production_name=species_name, taxon_id=species_tax_id, scientific_name=science_name)
             if 'Species' in self.param('entries_to_delete'):
                 added_values_list = self.param('entries_to_delete')['Species']
-                added_values_list.append(species_tax_id)
+                added_values_list.append({"taxon_id":species_tax_id,"production_name":species_name})
                 self.add_stored_value('Species',added_values_list)
             else:
-                self.add_stored_value('Species', [species_tax_id])   
+                self.add_stored_value('Species', [{"taxon_id":species_tax_id,"production_name":species_name}])
         return species_value
 
     def write_output(self):
