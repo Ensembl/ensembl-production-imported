@@ -60,6 +60,7 @@ class InteractionKeys(eHive.BaseRunnable):
         
         source_db = self.param('source_db')
         cm = col_map.ColumnMapper(source_db)
+        print("source_db:" + source_db)
         key_dict = cm.keys_descriptions
         key_list = []
         for k_name in key_dict:
