@@ -228,7 +228,9 @@ sub set_queryfile {
   my $query_symlink = catdir($results_dir, $filename);
   
   if (!-e $results_dir) {
-    make_path($results_dir) or $self->throw("Failed to create directory '$results_dir'");
+    make_path($results_dir)
+      or sleep(int(rand(10))) and make_path($results_dir)
+      or $self->throw("Failed to create directory '$results_dir'");
   }
   if (!-l $query_symlink) {
     symlink($queryfile, $query_symlink) or $self->throw("Failed to create symlink '$query_symlink'");
