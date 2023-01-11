@@ -192,7 +192,7 @@ class OntologyTerm(Base):
     ontology_term_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     ontology_id = Column(INTEGER(11), ForeignKey("ontology.ontology_id"), nullable=False, index=True)
     accession = Column(String(255), nullable=False, unique=True)
-    description = Column(String(255), nullable=False, unique=True)
+    description = Column(String(255), nullable=False)
 
     ontologies = relationship("Ontology", back_populates="ontology_terms")
     key_value_pairs = relationship("KeyValuePair", back_populates="ontology_terms")
@@ -270,10 +270,10 @@ class Species(Base):
     __tablename__ = 'species'
 
     species_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
-    production_name = Column(String(255), nullable=False)
+    production_name = Column(String(255), unique=True, nullable=True)
     scientific_name = Column(String(255), nullable=False)
     ensembl_division = Column(String(255), nullable=False)
-    taxon_id = Column(INTEGER(11), nullable=False, unique=True)
+    taxon_id = Column(INTEGER(11), nullable=False)
 
     ensembl_genes = relationship("EnsemblGene", back_populates="species_ids_r")
 
