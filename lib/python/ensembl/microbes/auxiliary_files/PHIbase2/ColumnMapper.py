@@ -74,7 +74,7 @@ class ColumnMapper():
 
             ColumnMapper.keys_rows = {
                     "Interaction phenotype": 17,
-                    "Disease name": 20,
+                    "Disease name": 19,
                     "Pathogen protein modification": 8,
                     "Host protein modification": 16,
                     "Experimental evidence": 20,
@@ -136,7 +136,21 @@ class ColumnMapper():
                     }
             ColumnMapper.litterature_source = "DOI"
 
-        if 'HPIDB/(HPIDBcurated)' in db_dict:
+        if 'HPIDB' in db_dict:
+
+            if 'HPIDBcurated' in db_dict:
+                ColumnMapper.original_curator_db = "HPIDB"
+                ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions. https://hpidb.igbb.msstate.edu/index.html"
+            elif 'INTACTcurated' in db_dict:
+                ColumnMapper.original_curator_db = "IntAct"
+                ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by IntAct)"
+            elif 'DIPcurated' in db_dict:
+                ColumnMapper.original_curator_db = "DIP"
+                ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by DIP)"
+            elif 'MINTcurated' in db_dict:
+                ColumnMapper.original_curator_db = "MINT"
+                ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by MINT)"
+
             file_rows = {
                     "entry_id": 0,
                     "interactor_A_molecular_id": 1,
@@ -166,7 +180,6 @@ class ColumnMapper():
 
             ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions. https://hpidb.igbb.msstate.edu/index.html"
             ColumnMapper.source_db_name = "HPIDB"
-            ColumnMapper.original_curator_db = "HPIDB"
 
             ColumnMapper.keys_descriptions = {
                     
@@ -187,4 +200,6 @@ class ColumnMapper():
                     }
             ColumnMapper.litterature_source = "PMID"
 
+
         return file_rows
+    
