@@ -1,4 +1,0 @@
-jsonschema
-unidecode
-RSeQC
-HTSeq
