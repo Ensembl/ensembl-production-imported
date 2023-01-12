@@ -56,7 +56,7 @@ sub run {
     my $results_dir = dirname($uqstranded_htseq_files[0]);
     my $sum_uqstranded_htseq_file = catfile($results_dir, 'genes.htseq-union.stranded.sum.counts');
     my $uqstranded_htseq_files_str = join " ", @uqstranded_htseq_files;
-    my $sum_uqstranded_htseq_file_output = `cat $uqstranded_htseq_files_str | awk '{a[\$1]+=\$2}END{for(i in a) print i,a[i]}' > $sum_uqstranded_htseq_file`;
+    my $sum_uqstranded_htseq_file_output = `cat $uqstranded_htseq_files_str | awk '{a[\$1]+=\$2}END{for(i in a) print i,a[i]}' OFS='\\t' > $sum_uqstranded_htseq_file`;
     push @sum_htseq_files, $sum_uqstranded_htseq_file;
   };
 
@@ -66,7 +66,7 @@ sub run {
     my $results_dir = dirname($nuqstranded_htseq_files[0]);
     my $sum_nuqstranded_htseq_file = catfile($results_dir, 'genes.htseq-union.stranded.nonunique.sum.counts');
     my $nuqstranded_htseq_files_str = join " ", @nuqstranded_htseq_files;
-    my $sum_nuqstranded_htseq_file_output = `cat $nuqstranded_htseq_files_str | awk '{a[\$1]+=\$2}END{for(i in a) print i,a[i]}' > $sum_nuqstranded_htseq_file`;
+    my $sum_nuqstranded_htseq_file_output = `cat $nuqstranded_htseq_files_str | awk '{a[\$1]+=\$2}END{for(i in a) print i,a[i]}' OFS='\\t' > $sum_nuqstranded_htseq_file`;
     push @sum_htseq_files, $sum_nuqstranded_htseq_file;
   };
 
