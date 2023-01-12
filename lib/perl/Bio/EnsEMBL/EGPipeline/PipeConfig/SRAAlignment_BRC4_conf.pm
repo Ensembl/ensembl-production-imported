@@ -732,7 +732,6 @@ sub pipeline_analyses {
       },
       -input_ids  => [{}],
       -rc_name           => 'normal',
-      -meadow_type       => 'LSF',
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into  => { 1 => 'Check_schema' },
@@ -753,7 +752,6 @@ sub pipeline_analyses {
       },
       -max_retry_count => 0,
       -rc_name    => 'normal',
-      -meadow_type       => 'LSF',
       -analysis_capacity => 1,
     },
 
@@ -769,7 +767,6 @@ sub pipeline_analyses {
         '3' => 'Organisms_not_found',
       },
       -rc_name    => 'normal',
-      -meadow_type       => 'LSF',
       -analysis_capacity => 1,
       -max_retry_count => 0,
     },
@@ -1080,8 +1077,17 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        '2' => 'Samples_factory'
+        '2->A' => 'Samples_factory',
+        'A->2' => 'Dataset_processing',
       },
+    },
+
+    {
+      -logic_name        => 'Dataset_processing',
+      -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -max_retry_count => 0,
     },
 
     {
@@ -1097,7 +1103,7 @@ sub pipeline_analyses {
       -max_retry_count => 0,
       -rc_name           => 'normal',
       -flow_into         => {
-        '4' => 'Prepare_fastq'
+        '4' => ['Prepare_fastq', '?accu_name=sample_dir&accu_address=[]']
       },
     },
 
@@ -1345,7 +1351,7 @@ sub pipeline_analyses {
         trim_adapters_pe => $self->o('trim_adapters_pe'),
         trim_adapters_se => $self->o('trim_adapters_se'),
       },
-      -rc_name           => '16GB',
+      -rc_name           => '16Gb_mem',
       -flow_into         => {
         '2' => 'GetMetadata',
       },
@@ -1437,7 +1443,7 @@ sub pipeline_analyses {
         store_cmd      => 0,
         threads       => 1,
       },
-      -rc_name           => '8GB',
+      -rc_name           => '8Gb_mem',
       -flow_into         => {
         '2' => {
           'InferStrandness' => {
@@ -1576,7 +1582,7 @@ sub pipeline_analyses {
       -parameters        => {
         bam_file  => '#sample_bam_file#',
       },
-      -rc_name           => '16GB',
+      -rc_name           => '16Gb_mem',
       -analysis_capacity => 10,
       -max_retry_count => 0,
     },
@@ -1623,7 +1629,7 @@ sub pipeline_analyses {
       -parameters        => {
         bam_file  => '#output_bam_file#',
       },
-      -rc_name           => '16GB',
+      -rc_name           => '16Gb_mem',
       -analysis_capacity => 10,
       -max_retry_count => 0,
     },
@@ -1854,18 +1860,26 @@ sub pipeline_analyses {
 
 sub resource_classes {
   my ($self) = @_;
-  
+
+  my $queue = $self->o('queue_name');
+  my @mems = (8, 16, 32, 64);
+  my $tmem = 4;
+  my $time = "24:00:00";
   my $threads = $self->o("threads");
-  
-  return {
-    %{$self->SUPER::resource_classes},
-    '8GB' => {'LSF' => "-q " . $self->o('queue_name') . " -M 8000 -R \"span[hosts=1]\""},
-    '16GB' => {'LSF' => "-q " . $self->o('queue_name') . " -M 16000 -R \"span[hosts=1]\""},
-    '32GB' => {'LSF' => "-q " . $self->o('queue_name') . " -M 32000 -R \"span[hosts=1]\""},
-    '8GB_multicpu' => {'LSF' => "-q " . $self->o('queue_name') . " -n $threads -M 8000 -R \"span[hosts=1]\""},
-    '16GB_multicpu' => {'LSF' => "-q " . $self->o('queue_name') . " -n $threads -M 16000 -R \"span[hosts=1]\""},
-    '32GB_multicpu' => {'LSF' => "-q " . $self->o('queue_name') . " -n $threads -M 32000 -R \"span[hosts=1]\""},
+
+  my %resources = %{$self->SUPER::resource_classes};
+
+  for my $mem (@mems) {
+    my $name = "${mem}GB_multicpu";
+    $resources{$name} = $self->make_resource({
+      queue => $queue,
+      memory => $mem * 1000,
+      cpus => $threads,
+      time => $time,
+      lsf_params => ' -R "span[hosts=1]"',
+    });
   }
+  return \%resources;
 }
 
 1;

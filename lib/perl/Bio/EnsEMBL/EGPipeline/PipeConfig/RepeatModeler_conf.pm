@@ -195,7 +195,7 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count   => 0,
       -batch_size        => 50,
-      -meadow_type       => 'LOCAL',
+      -rc_name           => 'default',
     },
 
     # Same, when there is no filter needed
@@ -237,7 +237,7 @@ sub pipeline_analyses {
                               max_dirs_per_directory  => $self->o('max_dirs_per_directory'),
                               unique_file_names       => 1,
                             },
-      #-rc_name           => '8Gb_mem',
+      #-rc_name           => '9Gb_mem',
       -rc_name           => '16Gb_mem',
       -flow_into         => {'2' => ['BuildDatabase']},
     },
@@ -369,7 +369,7 @@ sub pipeline_analyses {
       -flow_into         => {
                               '2' => WHEN('#do_filtering# and #need_filtering#', 'Dumps', ELSE({ 'NoFilter' => { species => '#species#' } })),
                             },
-      -meadow_type       => 'LOCAL',
+      -rc_name           => 'default',
     },
 
     {
@@ -387,7 +387,7 @@ sub pipeline_analyses {
         ],
         'A->1' => 'RepbaseTranslationsToIgnore',
       },
-      -meadow_type       => 'LOCAL',
+      -rc_name           => 'default',
     },
     {
       -logic_name        => 'DumpTranscripts',
@@ -461,13 +461,26 @@ sub pipeline_analyses {
 sub resource_classes {
   my ($self) = @_;
   
-  return {
-    %{$self->SUPER::resource_classes},
-    '8Gb_mem_8_cores'  => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 8000 -n 8 -R "rusage[mem=8000,tmp=4000]"'},
-    '16Gb_mem_8_cores' => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 16000 -n 8 -R "rusage[mem=16000,tmp=4000]"'},
-    '32Gb_mem_8_cores' => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 32000 -n 8 -R "rusage[mem=32000,tmp=4000]"'},
-    '64Gb_mem_8_cores' => {'LSF' => '-q ' . $self->o('queue_name') . '  -M 64000 -n 8 -R "rusage[mem=64000,tmp=4000]"'},
+  # Specific resources for RepeatModeler, which can take a long time
+  my $queue = $self->o('queue_name');
+  my @mems = (8, 16, 32, 64);
+  my $tmem = 4;
+  my $cpu = 8;
+  my $time = "168:00:00"; # 1 week
+
+  my %resources = %{$self->SUPER::resource_classes};
+
+  for my $mem (@mems) {
+    my $name = "${mem}Gb_mem_${cpu}_cores";
+    $resources{$name} = $self->make_resource({
+      queue => $queue,
+      memory => $mem * 1000,
+      temp_memory => $tmem * 1000,
+      cpus => $cpu,
+      time => $time
+    });
   }
+  return \%resources;
 }
 
 1;

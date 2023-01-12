@@ -11,3 +11,18 @@ Contains predefined resource classes and a few options shared by other pipelines
 `-queue_name` |  | Default LSF queue name 
 `-email` | |  Default email to use
 
+### make_resources
+
+This method creates resource strings for LSF and SLURM, to avoid hardcoding them.
+
+It accepts one hashref with the following keys:
+
+| option | default value |  meaning | 
+| - | - | - |
+| `queue` |  | Name of the queue/partition
+| `memory` |  | Memory to reserve in MB
+| `time` |  | Time limit in the form 0:00:00 (h:mm:ss)
+| `cpus` | 1 | number of cores
+| `temp_memory` | 0 | Temp memory to reserve
+| `lsf_param` | '' | A string for specific LSF parameters
+| `slurm_param` | '' | A string for specific SLURM parameters
