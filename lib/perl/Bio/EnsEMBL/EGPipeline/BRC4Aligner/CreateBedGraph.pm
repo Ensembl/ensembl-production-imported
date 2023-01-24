@@ -99,7 +99,7 @@ sub convert_to_bed {
   }
 
   my $bed_tmp = "$bed.unsorted";
-  my $cmd = "bedtools genomecov $filter -ibam $bam -bg > $bed_tmp && bedSort $bed_tmp $bed";
+  my $cmd = "bedtools genomecov $filter -ibam $bam -bg -split > $bed_tmp && bedSort $bed_tmp $bed";
   
   my ($stdout, $stderr, $exit) = capture {
     system($cmd);
