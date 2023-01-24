@@ -765,6 +765,7 @@ sub pipeline_analyses {
         '2->A' => 'Prepare_genome',
         'A->2' => 'Species_report',
         '3' => 'Organisms_not_found',
+        '4' => 'Genes_not_found',
       },
       -rc_name    => 'normal',
       -analysis_capacity => 1,
@@ -779,6 +780,13 @@ sub pipeline_analyses {
       -max_retry_count => 0,
     },
 
+    {
+      -logic_name        => 'Genes_not_found',
+      -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -max_retry_count => 0,
+    },
 
     {
       -logic_name        => 'Species_report',
