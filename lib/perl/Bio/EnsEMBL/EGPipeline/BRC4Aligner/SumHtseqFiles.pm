@@ -38,10 +38,15 @@ sub run {
   my @sum_htseq_files;
 
   for my $case_hash (@$cases) {
-    push @unstranded, $case_hash if $case_hash->{"strand"} eq 'unstranded';
-    push @uniquestranded, $case_hash if ($case_hash->{"strand"} ne 'stranded') && ($case_hash->{"number"} eq 'unique');
-    push @nonuniquestranded, $case_hash if ($case_hash->{"strand"} ne 'stranded') && ($case_hash->{"number"} eq 'total');
+  
+    if ($case_hash->{"strand"} eq 'unstranded') {
+      push @unstranded, $case_hash;
+    } else {
+      push @uniquestranded, $case_hash if $case_hash->{"number"} eq 'unique';
+      push @nonuniquestranded, $case_hash if $case_hash->{"number"} eq 'total';
+    }
   }
+  
 
   #Unstranded
   if (@unstranded != 0) {
