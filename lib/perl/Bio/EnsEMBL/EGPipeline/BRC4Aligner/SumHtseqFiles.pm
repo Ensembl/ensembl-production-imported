@@ -39,8 +39,8 @@ sub run {
 
   for my $case_hash (@$cases) {
     push @unstranded, $case_hash if $case_hash->{"strand"} eq 'unstranded';
-    push @uniquestranded, $case_hash if ($case_hash->{"strand"} ne 'stranded') && ($case_hash->{"number"} eq 'unique');
-    push @nonuniquestranded, $case_hash if ($case_hash->{"strand"} ne 'stranded') && ($case_hash->{"number"} eq 'total');
+    push @uniquestranded, $case_hash if ($case_hash->{"strand"} ne 'unstranded') && ($case_hash->{"number"} eq 'unique');
+    push @nonuniquestranded, $case_hash if ($case_hash->{"strand"} ne 'unstranded') && ($case_hash->{"number"} eq 'total');
   }
 
   #Unstranded
