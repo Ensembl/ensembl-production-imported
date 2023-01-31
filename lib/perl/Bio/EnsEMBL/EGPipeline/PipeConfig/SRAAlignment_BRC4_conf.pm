@@ -651,7 +651,7 @@ sub default_options {
     bcftools_dir  => undef,
     ucscutils_dir => undef,
     bamutils_dir  => undef,
-
+    
     ###########################################################################
     # PARAMETERS unlikely to be changed
 
@@ -1414,7 +1414,23 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into         => {
-        1 => '?accu_name=aligner_metadata&accu_input_variable=input_metadata',
+        1 => 'MetadataCheck',
+      },
+    },
+
+    {
+      -logic_name        => 'MetadataCheck',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::MetadataCheck',
+      -rc_name           => 'normal',
+      -parameters        => {
+        seq_file_1     => '#sample_seq_file_1#',
+        seq_file_2     => '#sample_seq_file_2#',
+        aligner_metadata => '#input_metadata#',
+      },
+      -analysis_capacity => 20,
+      -max_retry_count => 0,
+      -flow_into         => {
+        1 => '?accu_name=aligner_metadata&accu_input_variable=alter_metadata',
       },
     },
 

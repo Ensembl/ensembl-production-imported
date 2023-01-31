@@ -24,17 +24,24 @@ sub run {
   my $seq1 = $self->param_required('seq_file_1');
   my $seq2 = $self->param('seq_file_2');
   my $input_metadata = $self->param('input_metadata');
+  my $input_is_paired = $input_metadata->{'is_paired'};
+  my $input_is_stranded = $input_metadata->{'is_stranded'};
 
-  if (defined $seq1 = $self->param_required('seq_file_1') ){
-    print $input_metadata;
+  
+  if (defined $seq1 && $seq2){
+    $input_is_paired = "1" ;
   }
-    #$output->{subset_seq_file_2} = $self->param('subset_seq_file_2');
- #} else {
-  #  $output->{subset_seq_file_2} = undef;
+  else{
+   print "It is not paired";
+  }
 
-  # Check that there are genes!
-  #my $merged_data =
- # if count ($merged_data) > 1{
-   # paired
+  my $alter_metadata = {
+      is_stranded => $input_is_stranded,
+      is_paired => $input_is_paired,
+  };
+  
+  $self->dataflow_output_id({
+      alter_metadata => $alter_metadata
+    },  1);
   }
 1;
