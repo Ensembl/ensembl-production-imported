@@ -98,21 +98,11 @@ sub retrieve_files {
   my $previous_dir = getcwd();
   chdir $work_dir;
   if ($download_sra) {
-    # Retrieve the SRA file
-    my $SRA_ROOT = "ftp://ftp-trace.ncbi.nih.gov/sra/sra-instant/reads/ByRun/sra/%s/%s/%s/%s.sra";
-    my @sra_pars = (
-      substr($run_acc, 0, 3),
-      substr($run_acc, 0, 6),
-      $run_acc,
-      $run_acc
-    );
-    my $sra_url = sprintf($SRA_ROOT, @sra_pars);
-
-    # Download it
+    # Retrieve the SRA file and Download it
     # We HAVE to be in the directory where the files will be extracted...
     my $sra_file = "$run_acc.sra";
-    my $http_response_code = getstore($sra_url, $sra_file);
-    die "Could not download file $sra_file from $sra_url" if not -f $sra_file;
+    my $download_sra_file = system("prefetch", $sra_file);
+    die "Could not download file $sra_file from $download_sra_file" if not -f $sra_file;
     $sra_acc = $sra_file;
   }
   
