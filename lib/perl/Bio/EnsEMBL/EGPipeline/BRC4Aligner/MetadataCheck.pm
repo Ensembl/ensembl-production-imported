@@ -28,10 +28,10 @@ sub run {
   my $input_is_stranded = $input_metadata->{'is_stranded'};
 
   
-  if (defined $seq1 && $seq2){
-    $input_is_paired = "1" ;
+  if (defined $seq1 && $seq2) {
+    $input_is_paired = "1";
   }
-  else{
+  else {
    print "It is not paired";
   }
 
