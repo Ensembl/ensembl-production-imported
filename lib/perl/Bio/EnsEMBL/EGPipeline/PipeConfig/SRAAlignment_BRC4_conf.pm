@@ -651,7 +651,6 @@ sub default_options {
     bcftools_dir  => undef,
     ucscutils_dir => undef,
     bamutils_dir  => undef,
-    
     ###########################################################################
     # PARAMETERS unlikely to be changed
 

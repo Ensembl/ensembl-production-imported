@@ -62,7 +62,6 @@ sub run {
         $self->dataflow_output_id($data, 4);
       }
       delete $organisms{$organism};
-    
     } elsif (defined $prod_names{$prod_name}) {
       my $data = {
         species => $prod_name,
