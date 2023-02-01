@@ -781,10 +781,10 @@ sub pipeline_analyses {
 
     {
       -logic_name        => 'Genes_not_found',
-      -module     => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
       -rc_name           => 'normal',
       -analysis_capacity => 1,
-      -max_retry_count => 0,
+      -max_retry_count   => 0,
     },
 
     {
