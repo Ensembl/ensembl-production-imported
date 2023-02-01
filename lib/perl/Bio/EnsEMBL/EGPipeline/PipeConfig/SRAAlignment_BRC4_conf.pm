@@ -1427,7 +1427,7 @@ sub pipeline_analyses {
         aligner_metadata => '#input_metadata#',
       },
       -analysis_capacity => 20,
-      -max_retry_count => 0,
+      -max_retry_count   => 0,
       -flow_into         => {
         1 => '?accu_name=aligner_metadata&accu_input_variable=alter_metadata',
       },
