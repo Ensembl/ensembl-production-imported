@@ -72,7 +72,7 @@ sub run {
       unless ($self->has_genes($dba)) {
         $self->dataflow_output_id($data, 4);
       }
-      }
+    }
   
     $dba->dbc->disconnect_if_idle();
   }

@@ -42,6 +42,6 @@ sub run {
   
   $self->dataflow_output_id({
       alter_metadata => $alter_metadata
-    },  1);
+    },  2);
   }
 1;

@@ -1429,7 +1429,7 @@ sub pipeline_analyses {
       -analysis_capacity => 20,
       -max_retry_count   => 0,
       -flow_into         => {
-        1 => '?accu_name=aligner_metadata&accu_input_variable=alter_metadata',
+        2 => '?accu_name=aligner_metadata&accu_input_variable=alter_metadata',
       },
     },
 
