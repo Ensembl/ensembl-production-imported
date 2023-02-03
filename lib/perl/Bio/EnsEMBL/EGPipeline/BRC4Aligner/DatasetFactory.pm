@@ -54,8 +54,12 @@ sub run {
   for my $dataset (@$datasets) {
     # Check there is not already a directory for this dataset
     my $ds_dir = catdir($results_dir, $dataset->{name});
+    my @files = glob("$ds_dir/*/*");
+    
     if (not -e $ds_dir) {
       $self->dataflow_output_id({ dataset_metadata => $dataset }, 2);
+    } elsif (!@files) {
+      die "Directory $ds_dir is empty, rerun!\n";
     } else {
       $self->dataflow_output_id({ dataset_metadata => $dataset }, 3);
     }

@@ -651,7 +651,6 @@ sub default_options {
     bcftools_dir  => undef,
     ucscutils_dir => undef,
     bamutils_dir  => undef,
-
     ###########################################################################
     # PARAMETERS unlikely to be changed
 
@@ -765,6 +764,7 @@ sub pipeline_analyses {
         '2->A' => 'Prepare_genome',
         'A->2' => 'Species_report',
         '3' => 'Organisms_not_found',
+        '4' => 'Genes_not_found',
       },
       -rc_name    => 'normal',
       -analysis_capacity => 1,
@@ -779,6 +779,13 @@ sub pipeline_analyses {
       -max_retry_count => 0,
     },
 
+    {
+      -logic_name        => 'Genes_not_found',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -max_retry_count   => 0,
+    },
 
     {
       -logic_name        => 'Species_report',
@@ -1406,7 +1413,23 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into         => {
-        1 => '?accu_name=aligner_metadata&accu_input_variable=input_metadata',
+        1 => 'MetadataCheck',
+      },
+    },
+
+    {
+      -logic_name        => 'MetadataCheck',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::MetadataCheck',
+      -rc_name           => 'normal',
+      -parameters        => {
+        seq_file_1     => '#sample_seq_file_1#',
+        seq_file_2     => '#sample_seq_file_2#',
+        aligner_metadata => '#input_metadata#',
+      },
+      -analysis_capacity => 20,
+      -max_retry_count   => 0,
+      -flow_into         => {
+        2 => '?accu_name=aligner_metadata&accu_input_variable=alter_metadata',
       },
     },
 

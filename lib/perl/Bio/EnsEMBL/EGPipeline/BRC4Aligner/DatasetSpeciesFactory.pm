@@ -58,6 +58,9 @@ sub run {
         organism => $organism
       };
       $self->dataflow_output_id($data, 2);
+      unless ($self->has_genes($dba)) {
+        $self->dataflow_output_id($data, 4);
+      }
       delete $organisms{$organism};
     } elsif (defined $prod_names{$prod_name}) {
       my $data = {
@@ -66,7 +69,11 @@ sub run {
         component => 'component'
       };
       $self->dataflow_output_id($data, 2);
+      unless ($self->has_genes($dba)) {
+        $self->dataflow_output_id($data, 4);
+      }
     }
+  
     $dba->dbc->disconnect_if_idle();
   }
   
