@@ -31,6 +31,7 @@ sub param_defaults {
     'bedtools_dir'  => undef,
     'ucscutils_dir' => undef,
     'clean_up'      => 1,
+    'throw_empty_bed' => 1
   };
 }
 
@@ -110,7 +111,7 @@ sub convert_to_bed {
   unlink $bed_tmp;
   
   # Check the bed file is not empty
-  if (not -s $bed) {
+  if ($self->param('throw_empty_bed') and not -s $bed) {
     $self->throw("Bed file '$bed' is empty. Made with strand='$strand' and direction='$filter'. Command: $cmd");
   }
 
