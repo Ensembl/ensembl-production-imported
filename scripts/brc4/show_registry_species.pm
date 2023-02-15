@@ -28,9 +28,6 @@ my $sps = $registry->get_all_species();
 
 my @lines;
 my %report;
-if (not $opt{report}) {
-  push @lines, scalar(@$sps) . " species";
-}
 
 my $build = $opt{build} // 0;
 my $ens_version = 0;
