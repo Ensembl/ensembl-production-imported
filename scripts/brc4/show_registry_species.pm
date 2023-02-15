@@ -82,16 +82,7 @@ for my $sp (sort @$sps) {
           }
         }
 
-        if ($opt{report}) {
-          my $species = {
-            abbrev => $org,
-            insdc => $insdc
-          };
-          push @{ $report{$comp} }, $species;
-        } else {
-          push @lines, "$db\t$sp\t$name\t" . join(", ", sort keys %groups) . "\t$stats" if not $skip;
-        }
-
+        push @lines, "$db\t$sp\t$name\t" . join(", ", sort keys %groups) . "\t$stats" if not $skip;
       };
       $core->dbc->disconnect_if_idle();
       print($stdout);
@@ -101,31 +92,6 @@ for my $sp (sort @$sps) {
       warn("Error: can't use core for $sp: $_");
     };
   }
-}
-
-if ($opt{report}) {
-  my $title = "EBI genomes processing - VEuPathDB build $build";
-  my @summary_start = ($title, "");
-  my @summary;
-  my @full_report;
-  my $ntotal = 0;
-  for my $comp (sort keys %report) {
-    my $species = $report{$comp};
-    my $nsp = scalar @$species;
-    $ntotal += $nsp;
-
-    push @summary, "- $nsp $comp";
-    
-    push @full_report, ($comp);
-    push @full_report, "$nsp new genomes:";
-    for my $sp (@$species) {
-      push @full_report, "- $sp->{abbrev} ($sp->{insdc})";
-    }
-  }
-  push @summary_start, "$ntotal new genomes:";
-  push @summary, "Ensembl API version " . $ens_version;
-  
-  @lines = (@summary_start, @summary, "", @full_report);
 }
 
 say join("\n", @lines);
@@ -147,7 +113,6 @@ sub usage {
     --organism <str>  : organism_abbrev from brc4
 
     Optional:
-    --report          : format the output for BRC4 report
     --build           : filter by brc4 build
     
     --help            : show this help message
@@ -164,7 +129,6 @@ sub opt_check {
     "registry=s",
     "species=s",
     "organism=s",
-    "report",
     "build=s",
     "help",
     "verbose",
