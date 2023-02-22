@@ -132,7 +132,7 @@ Where to find fastq-dump (in case it is not in your path).
 
 =item B<--do_htseqcount>
 
-Choose to compute the htseq-count values or not.
+Choose to compute the htseq-count values (1) or not (0).
 
 Default: 1
 
