@@ -68,8 +68,8 @@ class DatasetCollection:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Convert a sample list from a json file into a sample list for Redmine')
-
+        description='Convert a sample list from a json file into a sample list for Redmine'
+    )
     parser.add_argument('--json', type=str, required=True,
                         help='Path to the json file')
 
