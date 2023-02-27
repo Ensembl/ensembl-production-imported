@@ -73,14 +73,20 @@ for my $species (sort @$sps) {
 }
 
 # Output the list, filtered
-my $outfh = *STDOUT;
+my $outfh;
 if ($opt{output_to_model}) {
-  open my $outfh, ">", $opt{output_to_model};
+  open $outfh, ">", $opt{output_to_model};
+} else {
+  $outfh = *STDOUT;
 }
+my $nlibs = 0;
 for my $map_ref (sort keys %new_map) {
   next if exists $ref_libs->{$map_ref};
   print $outfh "$map_ref\t$new_map{$map_ref}\n";
+  $nlibs++;
 }
+close($outfh) if $opt{output_to_model};
+print STDERR "$nlibs new libraries to build\n";
 
 ###############################################################################
 sub get_libs {
