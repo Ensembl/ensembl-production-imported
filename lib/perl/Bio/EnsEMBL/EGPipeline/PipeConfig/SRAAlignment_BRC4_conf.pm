@@ -130,6 +130,12 @@ Default: 0
 
 Where to find fastq-dump (in case it is not in your path).
 
+=item B<--do_htseqcount>
+
+Choose to compute the htseq-count values (1) or not (0).
+
+Default: 1
+
 =item B<--redo_htseqcount>
 
 Special pipeline path, where no alignment is done, but a previous alignment is reused to recount
@@ -633,6 +639,9 @@ sub default_options {
 
     # Do not proceed if the reads are too long
     max_read_length => 1000,
+    
+    # Do we want to compute the htseq-count
+    do_htseqcount => 1,
 
     ###########################################################################
     # PATHS
@@ -711,6 +720,7 @@ sub pipeline_wide_parameters {
     'dnaseq'      => $self->o('dnaseq'),
     'force_ncbi'      => $self->o('force_ncbi'),
     'global_bw'       => $self->o('global_bw'),
+    'do_htseqcount'   => $self->o('do_htseqcount'),
   };
 }
 
@@ -1665,7 +1675,7 @@ sub pipeline_analyses {
         bam_file => '#sorted_bam_file#',
         results_dir => '#sample_dir#',
       },
-      -flow_into         => WHEN("-s #genome_gtf_file#", "HtseqFactory"),
+      -flow_into         => WHEN("#do_htseqcount# and -s #genome_gtf_file#", "HtseqFactory"),
       -rc_name           => 'normal',
       -analysis_capacity => 25,
       -max_retry_count => 0,

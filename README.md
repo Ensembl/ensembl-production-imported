@@ -6,24 +6,28 @@ Please, make sure you have all the proper credential, keys, etc. set up.
 
 ## Installation and configuration
 
-### Getting this repo
+### Getting this repo and installation
 
 ```
 git clone git@github.com:Ensembl/ensembl-production-imported.git
 ```
 
+Install the python part (of the pipelines):
+
+```
+pip install ./ensembl-production-imported
+```
+
 ### Configuration
 
-#### Refresing environment
+#### Refreshing environment
 
 Add `lib/perl` to `PERL5LIB` env (use instead of `modules`),
-and `lib/python` to `PYTHONPATH` env 
 
 ```
 export ENS_ROOT_DIR=$(pwd) # or whatever -- path to the dir to where the repo(s) was(were) cloned
 
 export PERL5LIB=${PERL5LIB}:${ENS_ROOT_DIR}/ensembl-production-imported/lib/perl
-export PYTHONPATH=${PYTHONPATH}:${ENS_ROOT_DIR}/ensembl-production-imported/lib/python
 ```
 
 N.B. Please, predefine `ENS_ROOT_DIR` env.
