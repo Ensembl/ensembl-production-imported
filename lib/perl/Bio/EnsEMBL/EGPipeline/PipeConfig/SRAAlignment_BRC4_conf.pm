@@ -130,6 +130,12 @@ Default: 0
 
 Where to find fastq-dump (in case it is not in your path).
 
+=item B<--do_htseqcount>
+
+Choose to compute the htseq-count values (1) or not (0).
+
+Default: 1
+
 =item B<--redo_htseqcount>
 
 Special pipeline path, where no alignment is done, but a previous alignment is reused to recount
@@ -633,6 +639,9 @@ sub default_options {
 
     # Do not proceed if the reads are too long
     max_read_length => 1000,
+    
+    # Do we want to compute the htseq-count
+    do_htseqcount => 1,
 
     ###########################################################################
     # PATHS
@@ -651,7 +660,6 @@ sub default_options {
     bcftools_dir  => undef,
     ucscutils_dir => undef,
     bamutils_dir  => undef,
-
     ###########################################################################
     # PARAMETERS unlikely to be changed
 
@@ -712,6 +720,7 @@ sub pipeline_wide_parameters {
     'dnaseq'      => $self->o('dnaseq'),
     'force_ncbi'      => $self->o('force_ncbi'),
     'global_bw'       => $self->o('global_bw'),
+    'do_htseqcount'   => $self->o('do_htseqcount'),
   };
 }
 
@@ -765,6 +774,7 @@ sub pipeline_analyses {
         '2->A' => 'Prepare_genome',
         'A->2' => 'Species_report',
         '3' => 'Organisms_not_found',
+        '4' => 'Genes_not_found',
       },
       -rc_name    => 'normal',
       -analysis_capacity => 1,
@@ -779,6 +789,13 @@ sub pipeline_analyses {
       -max_retry_count => 0,
     },
 
+    {
+      -logic_name        => 'Genes_not_found',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -max_retry_count   => 0,
+    },
 
     {
       -logic_name        => 'Species_report',
@@ -1406,7 +1423,23 @@ sub pipeline_analyses {
       -analysis_capacity => 1,
       -max_retry_count => 0,
       -flow_into         => {
-        1 => '?accu_name=aligner_metadata&accu_input_variable=input_metadata',
+        1 => 'MetadataCheck',
+      },
+    },
+
+    {
+      -logic_name        => 'MetadataCheck',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::MetadataCheck',
+      -rc_name           => 'normal',
+      -parameters        => {
+        seq_file_1     => '#sample_seq_file_1#',
+        seq_file_2     => '#sample_seq_file_2#',
+        aligner_metadata => '#input_metadata#',
+      },
+      -analysis_capacity => 20,
+      -max_retry_count   => 0,
+      -flow_into         => {
+        2 => '?accu_name=aligner_metadata&accu_input_variable=alter_metadata',
       },
     },
 
@@ -1642,7 +1675,7 @@ sub pipeline_analyses {
         bam_file => '#sorted_bam_file#',
         results_dir => '#sample_dir#',
       },
-      -flow_into         => WHEN("-s #genome_gtf_file#", "HtseqFactory"),
+      -flow_into         => WHEN("#do_htseqcount# and -s #genome_gtf_file#", "HtseqFactory"),
       -rc_name           => 'normal',
       -analysis_capacity => 25,
       -max_retry_count => 0,
