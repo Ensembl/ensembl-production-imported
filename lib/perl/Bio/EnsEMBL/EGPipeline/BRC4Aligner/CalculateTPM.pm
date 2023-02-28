@@ -31,7 +31,7 @@ sub run {
   my $tpm_htseq_file = $sum_htseq_file . ".tpm";
   my $rpk_htseq_file = $sum_htseq_file . ".rpk";
 
-  my @rpk_args = ( "bash", "-c", "join <(sort -k1 $sum_htseq_file) <(sort -k1 $fl_file) | awk '{print \$1\"\t\"\$2/(\$3/1000)}' > $rpk_htseq_file" );
+  my @rpk_args = ( "bash", "-c", "join <(sort -k1,1 $sum_htseq_file) <(sort -k1,1 $fl_file) | awk '{print \$1\"\t\"\$2/(\$3/1000)}' > $rpk_htseq_file" );
   system(@rpk_args);
 
   open my $fh, '<', $rpk_htseq_file or die $!;
