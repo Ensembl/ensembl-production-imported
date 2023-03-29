@@ -54,11 +54,12 @@ sub fetch_input {
   my $gtf_file      = $self->param('gtf_file');
   my $dnaseq        = $self->param('dnaseq');
   my $aligner_metadata = $self->param_required('aligner_metadata');
-  my $strandness    = $aligner_metadata->{strandness};
+  my $strand_direction = $aligner_metadata->{strand_direction};
+  my $is_paired     = $self->param('is_paired');
   my $no_spliced    = $self->param('no_spliced');
 
   # DNA-Seq special changes
-  $strandness = undef if $dnaseq;
+  $strand_direction = undef if $dnaseq;
   if ($dnaseq) {
     $no_spliced = 1;
   }
@@ -78,7 +79,8 @@ sub fetch_input {
     -run_mode          => $run_mode,
     -gtf_file          => $gtf_file,
     -max_intron_length => $max_intron_length,
-    -strandness        => $strandness,
+    -strand_direction  => $strand_direction,
+    -is_paired         => $is_paired,
     -no_spliced        => $no_spliced,
     -number_primary    => $number_primary,
   );
