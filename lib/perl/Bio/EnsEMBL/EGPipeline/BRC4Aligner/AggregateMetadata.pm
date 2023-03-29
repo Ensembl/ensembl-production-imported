@@ -69,7 +69,6 @@ sub check_metadata {
   }
   push @errors, "No 'is_stranded' value" if not defined $met->{is_stranded};
   if ($met->{is_stranded}) {
-    push @errors, "No 'strandness' value" if not defined $met->{strandness};
     push @errors, "No 'strand_direction' value" if not defined $met->{strand_direction};
   }
   
@@ -83,7 +82,6 @@ sub create_consensus_metadata {
     "is_paired" => {},
     "is_stranded" => {},
     "strand_direction" => {},
-    "strandness" => {}
   );
   
   for my $sample (keys %$metadata_hash) {

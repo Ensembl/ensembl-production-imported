@@ -116,7 +116,6 @@ sub run {
       is_stranded => $is_stranded,
       is_paired => $is_paired,
       strand_direction => $strand_direction,
-      strandness => $strandness,
   };
   $self->dataflow_output_id({
       aligner_metadata => $aligner_metadata
