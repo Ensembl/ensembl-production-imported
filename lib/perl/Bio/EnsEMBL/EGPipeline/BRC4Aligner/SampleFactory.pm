@@ -109,20 +109,6 @@ sub run {
       } else {
         $input_metadata{strand_direction} = $default_direction;
       }
-      
-      if ($input_metadata{is_paired}) {
-        if ($input_metadata{strand_direction} eq 'forward') {
-          $input_metadata{strandness} = "FR";
-        } elsif ($input_metadata{strand_direction} eq 'reverse') {
-          $input_metadata{strandness} = "RF";
-        }
-      } else {
-        if ($input_metadata{strand_direction} eq 'forward') {
-          $input_metadata{strandness} = "F";
-        } elsif ($input_metadata{strand_direction} eq 'reverse') {
-          $input_metadata{strandness} = "R";
-        }
-      }
     }
     $sample_data{input_metadata} = \%input_metadata;
     
