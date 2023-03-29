@@ -30,7 +30,8 @@ sub param_defaults {
   
   return {
     force_aligner_metadata => undef,
-    ignore_single_paired => 0
+    ignore_single_paired => 0,
+    ambiguity_majority_rule => 0.10, # Ratio of acceptable ambiguous samples
   };
 }
 
@@ -84,17 +85,30 @@ sub create_consensus_metadata {
     "strand_direction" => {},
   );
   
+  my @stranded_ambiguous;
   for my $sample (keys %$metadata_hash) {
     my $met = $metadata_hash->{$sample};
     for my $key (keys %$met) {
       my $value = $met->{$key};
-      $met_counts{$key}{$value}++;
+      if ($key eq 'stranded_ambiguous') {
+        push @stranded_ambiguous, $met;
+      } else {
+        $met_counts{$key}{$value}++;
+      }
     }
   }
   
   # Special: we can process mixed single/paired end
   if ($self->param('ignore_single_paired')) {
     delete $met_counts{'is_paired'};
+  }
+
+  # Check if there are ambiguous samples to check
+  my $ambiguity_ratio = 0;
+  if ($self->param('ambiguity_majority_rule') and @stranded_ambiguous) {
+    my $num_ambiguous = scalar @stranded_ambiguous;
+    my $num_samples = scalar keys %$metadata_hash;
+    $ambiguity_ratio = $num_ambiguous / $num_samples;
   }
   
   # Check that there is only 1 value for each key
@@ -111,6 +125,20 @@ sub create_consensus_metadata {
     } else {
       my $unique_value = shift @sub_keys;
       $consensus{$key} = $unique_value;
+    }
+  }
+
+  # Compare ambiguity
+  if ($self->param('ambiguity_majority_rule') and $ambiguity_ratio) {
+    if ($ambiguity_ratio > $self->param('ambiguity_majority_rule')) {
+      push @errors, "Too many ambiguous samples: $ambiguity_ratio";
+    } else {
+      # Make sure that the ambiguous samples are compatible with the consensus
+      for my $ambig (@stranded_ambiguous) {
+        if ($ambig->{strand_direction} != $consensus{strand_direction}) {
+          push @errors, "Ambiguous sample strand_direction differs from consensus: " . $ambig->{strand_direction} . " != " . $consensus{strand_direction};
+        }
+      }
     }
   }
   
