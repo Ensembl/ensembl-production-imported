@@ -36,13 +36,14 @@ sub new {
   (
     $self->{max_intron_length},
     $self->{gtf_file},
-    $self->{strandness},
+    $self->{strand_direction},
+    $self->{is_paired},
     $self->{no_spliced},
     $self->{number_primary},
   ) =
   rearrange(
     [
-      'MAX_INTRON_LENGTH', 'GTF_FILE', 'STRANDNESS', 'NO_SPLICED', 'NUMBER_PRIMARY'
+      'MAX_INTRON_LENGTH', 'GTF_FILE', 'STRAND_DIRECTION', 'IS_PAIRED', 'NO_SPLICED', 'NUMBER_PRIMARY'
     ], @args
   );
   
@@ -59,16 +60,24 @@ sub new {
     $self->{align_params} .= " --max-intronlen $self->{max_intron_length} ";
   }
 
-  if ($self->{strandness}) {
-    my $st = $self->{strandness};
-
-    if ($st) {
-      if ($st =~ /^(F|R|FR|RF)$/) {
-        $self->{align_params} .= " --rna-strandness $st";
+  if ($self->{strand_direction}) {
+    $strandness = "";
+    if ($self->{strand_direction} eq 'forward') {
+      if ($self->{is_paired}) {
+        $strandness = "FR";
       } else {
-        die "Unrecognized strandness: $st (needs to be F, R, FR, RF, or null)";
+        $strandness = "F";
       }
+    } elsif ($self->{strand_direction} eq 'reverse') {
+      if ($self->{is_paired}) {
+        $strandness = "RF";
+      } else {
+        $standness = "R";
+      }
+    } else {
+      die "Unsupported strand_direction: " . $self->{strand_direction};
     }
+    $self->{align_params} .= " --rna-strandness $strandness";
   }
 
   if ($self->{no_spliced}) {
