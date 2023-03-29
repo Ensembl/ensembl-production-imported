@@ -74,6 +74,7 @@ sub run {
   open my $LOG, ">>", $log_file;
 
   print $LOG "Strandness inference: $output\n";
+  print $LOG "Sample = " . $self->param('sample_name');
 
   # Check inferred vs input
   if (defined $input_is_paired and $input_is_paired != $is_paired) {
