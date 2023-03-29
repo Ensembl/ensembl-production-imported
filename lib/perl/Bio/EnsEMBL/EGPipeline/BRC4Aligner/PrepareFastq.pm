@@ -55,6 +55,7 @@ sub run {
   my $sample_data = {
     sample_seq_file_1 => $file1,
     sample_seq_file_2 => $file2,
+    is_paired => $align_meta->{is_paired},
   };
   $self->dataflow_output_id($sample_data, 2);
 }
