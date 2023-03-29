@@ -61,7 +61,7 @@ sub new {
   }
 
   if ($self->{strand_direction}) {
-    $strandness = "";
+    my $strandness = "";
     if ($self->{strand_direction} eq 'forward') {
       if ($self->{is_paired}) {
         $strandness = "FR";
@@ -72,7 +72,7 @@ sub new {
       if ($self->{is_paired}) {
         $strandness = "RF";
       } else {
-        $standness = "R";
+        $strandness = "R";
       }
     } else {
       die "Unsupported strand_direction: " . $self->{strand_direction};
