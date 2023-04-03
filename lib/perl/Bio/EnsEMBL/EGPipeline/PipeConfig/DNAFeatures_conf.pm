@@ -115,6 +115,8 @@ sub default_options {
     # Instead, use the species classification to find the closest species in Repbase
     guess_repbase_species => 0,
 
+    trf_resource_class => 'normal',
+
     # The ensembl-analysis Dust and TRF modules take a parameters hash
     # which is parsed, rather than requiring explicit command line
     # options.  It's generally not necessary to override default
@@ -270,6 +272,7 @@ sub pipeline_wide_parameters {
    'repeatmasker_sensitivity'       => $self->o('repeatmasker_sensitivity'),
    'repeatmasker_logic_name'        => $self->o('repeatmasker_logic_name'),
    'repeatmasker_resource_class'    => $self->o('repeatmasker_resource_class'),
+   'trf_resource_class'    => $self->o('trf_resource_class'),
  };
 }
 
@@ -517,7 +520,7 @@ sub pipeline_analyses {
                               parameters_hash => $self->o('trf_parameters_hash'),
                               workdir         => catdir('#work_dir#', '#species#', 'trf_wd'),
                             },
-      -rc_name           => 'normal',
+      -rc_name           => $self->o('trf_resource_class'),
     },
 
     {
