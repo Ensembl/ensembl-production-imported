@@ -73,6 +73,7 @@ sub default_options {
     max_seqs_per_file       => undef,
     max_files_per_directory => 50,
     max_dirs_per_directory  => $self->o('max_files_per_directory'),
+    splitdump_resource_class => '8Gb_mem',
     
     # Dust and TRF can handle large files; this size should mean that
     # jobs take a few minutes.
@@ -272,7 +273,8 @@ sub pipeline_wide_parameters {
    'repeatmasker_sensitivity'       => $self->o('repeatmasker_sensitivity'),
    'repeatmasker_logic_name'        => $self->o('repeatmasker_logic_name'),
    'repeatmasker_resource_class'    => $self->o('repeatmasker_resource_class'),
-   'trf_resource_class'    => $self->o('trf_resource_class'),
+   'trf_resource_class'             => $self->o('trf_resource_class'),
+   'splitdump_resource_class'       => $self->o('splitdump_resource_class'),
  };
 }
 
@@ -462,7 +464,7 @@ sub pipeline_analyses {
                               out_dir                 => catdir('#work_dir#', '#species#', 'dust_trf'),
                               file_varname            => 'queryfile',
                             },
-      -rc_name           => '8Gb_mem',
+      -rc_name           => $self->o('splitdump_resource_class'),
       -flow_into         => {
                               '2' => [
                                 WHEN('#dust#' => ['Dust']),
@@ -484,7 +486,7 @@ sub pipeline_analyses {
                               out_dir                 => catdir('#work_dir#', '#species#', 'repeatmasker'),
                               file_varname            => 'queryfile',
                             },
-      -rc_name           => '8Gb_mem',
+      -rc_name           => $self->o('splitdump_resource_class'),
       -flow_into         => {
                               '2' => [
                                 WHEN('#repeatmasker#'      => ['RepeatMaskerFactory']),
