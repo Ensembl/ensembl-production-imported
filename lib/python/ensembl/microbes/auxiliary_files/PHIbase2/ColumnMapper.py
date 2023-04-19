@@ -74,7 +74,7 @@ class ColumnMapper():
 
             ColumnMapper.keys_rows = {
                     "Interaction phenotype": 17,
-                    "Disease name": 19,
+                    "Disease name": 18,
                     "Pathogen protein modification": 8,
                     "Host protein modification": 16,
                     "Experimental evidence": 20,
@@ -138,16 +138,16 @@ class ColumnMapper():
 
         if 'HPIDB' in db_dict:
 
-            if 'HPIDBcurated' in db_dict:
+            if 'HPIDB curated' in db_dict:
                 ColumnMapper.original_curator_db = "HPIDB"
                 ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions. https://hpidb.igbb.msstate.edu/index.html"
-            elif 'INTACTcurated' in db_dict:
+            elif 'INTACT curated' in db_dict:
                 ColumnMapper.original_curator_db = "IntAct"
                 ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by IntAct)"
-            elif 'DIPcurated' in db_dict:
+            elif 'DIP curated' in db_dict:
                 ColumnMapper.original_curator_db = "DIP"
                 ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by DIP)"
-            elif 'MINTcurated' in db_dict:
+            elif 'MINT curated' in db_dict:
                 ColumnMapper.original_curator_db = "MINT"
                 ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by MINT)"
 

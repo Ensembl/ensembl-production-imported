@@ -48,7 +48,9 @@ class MetaEnsemblReader(eHive.BaseRunnable):
         self.check_param('interactor_A_species_taxon_id')
         self.check_param('interactor_A_origin_name')
         self.check_param('interactor_B_origin_name')
+
         if interactor_B_interactor_type == 'synthetic':
+            self.check_param('interactor_B_molecular_id')
             self.param('interactor_B_species_taxon_id',0)
         else:
             self.check_param('interactor_B_species_taxon_id')

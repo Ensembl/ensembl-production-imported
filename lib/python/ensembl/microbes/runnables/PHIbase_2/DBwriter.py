@@ -25,7 +25,7 @@ import re
 import ensembl.microbes.auxiliary_files.PHIbase2.interaction_DB_models as interaction_db_models
 import requests
 import ensembl.microbes.auxiliary_files.PHIbase2.ColumnMapper as col_map
-
+import csv
 from xml.etree import ElementTree
 
 from sqlalchemy.orm import sessionmaker
@@ -47,7 +47,10 @@ class DBwriter(eHive.BaseRunnable):
         self.param('branch_to_flow_on_fail', -1)
         self.param('failed_job', '')
         
-        p2p_db_url = self.param_required('interactions_db_url')
+        p2p_db_url = "mysql://admin:6es4M0L1@mysql-molintxs-prod-hl.ebi.ac.uk:4716/MolIntXS_DEV"
+        self.param('interactions_db_url', p2p_db_url)
+
+        #p2p_db_url = self.param_required('interactions_db_url')
         jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
         (i_user,i_pwd,i_host,i_port,i_db) = re.compile(jdbc_pattern).findall(p2p_db_url)[0]
         self.param('p2p_user',i_user)
@@ -67,20 +70,21 @@ class DBwriter(eHive.BaseRunnable):
 
         if self.param('interactor_B_interactor_type') != 'synthetic':
             self.check_param('interactor_B_species_taxon_id')
-            self.check_param('interactor_B_production_name')
+            self.check_param('interactor_B_scientific_name')
             self.check_param('interactor_B_division')
             self.check_param('interactor_B_ensembl_id')
             self.check_param('interactor_B_molecular_structure')
         
-
+ 
     def run(self):
         self.param('entries_to_delete',{})
         self.insert_new_value()
 
     def insert_new_value(self):
         p2p_db_url = self.param_required('interactions_db_url')
-        
+
         engine = db.create_engine(p2p_db_url)
+        print ("P2P DB: " + p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -91,7 +95,6 @@ class DBwriter(eHive.BaseRunnable):
         interactor_A_production_name = self.param('interactor_A_production_name')
         interactor_A_scientific_name = self.param('interactor_A_scientific_name')
         interactor_A_division = self.param('interactor_A_division')
-        source_db_label = self.param('source_db_label')
         interactor_A_ensembl_gene_stable_id = self.param('interactor_A_ensembl_id')
         interactor_A_structure = self.param('interactor_A_molecular_structure')
         interactor_A_interactor_type = self.param("interactor_A_interactor_type")
@@ -102,8 +105,10 @@ class DBwriter(eHive.BaseRunnable):
         interactor_B_curie = self.param("interactor_B_molecular_id")
         interactor_B_origin_name = self.param("interactor_B_origin_name")
         doi = self.param("doi")
+        source_db_label = self.param('source_db_label')
         cm = col_map.ColumnMapper(source_db_label)
         original_curator_db = cm.original_curator_db
+        #source_db_label = self.param('source_db_label') + " (curated by " + original_curator_db + ")"
         
         if self.param('interactor_B_interactor_type') != 'synthetic':
             interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
@@ -115,12 +120,13 @@ class DBwriter(eHive.BaseRunnable):
             interactor_B_curie = self.param("interactor_B_curie")
 
         source_db_value = self.get_source_db_value(session, source_db_label, original_curator_db)
+        session.add(source_db_value)
+        session.flush()
+        source_db_id = source_db_value.source_db_id
+        
         interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_production_name, interactor_A_scientific_name)
         #print(entry_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)  
-        
         try:
-            session.add(source_db_value)
-            source_db_id = source_db_value.source_db_id
             session.add(interactor_A_species_value)
             if self.param('interactor_B_interactor_type') != 'synthetic':
                 interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name, interactor_B_scientific_name)
@@ -270,7 +276,34 @@ class DBwriter(eHive.BaseRunnable):
         entries_to_delete = self.param('entries_to_delete')
         print(entries_to_delete)
 
-        if "SourceDb" in entries_to_delete:
+        if "KeyValuePair" in entries_to_delete:
+            kvp_list = entries_to_delete["KeyValuePair"]
+            key_value_pair = db.Table('key_value_pair', metadata, autoload=True, autoload_with=engine)
+            for kvp_dict in kvp_list:
+                stmt = (db.delete(key_value_pair)
+                         .where(key_value_pair.c.interaction_id == kvp_dict["interaction_id"])
+                         .where(key_value_pair.c.meta_key_id == kvp_dict["meta_key_id"])
+                         .where(key_value_pair.c.value == kvp_dict["value"])
+                         .where(key_value_pair.c.ontology_term_id == kvp_dict["ontology_term_id"]))
+                connection.execute(stmt)
+
+        if "Interaction" in entries_to_delete:
+            interaction_dict = entries_to_delete["Interaction"][0]
+            int_1 = interaction_dict["interactor_1"]
+            int_2 = interaction_dict["interactor_2"]
+            doi = interaction_dict["doi"]
+            db_id = interaction_dict["source_db_id"]
+            interaction = db.Table('interaction', metadata, autoload=True, autoload_with=engine)
+            stmt = db.delete(interaction).where(interaction.c.interactor_1 == int_1).where(interaction.c.interactor_2 == int_2).where(interaction.c.doi == doi).where(interaction.c.source_db_id == db_id)
+            connection.execute(stmt)
+
+        if "CuratedInteractor" in entries_to_delete:
+            interactor_list = entries_to_delete["CuratedInteractor"]
+            interactors = db.Table('curated_interactor', metadata, autoload=True, autoload_with=engine)
+            for curie in interactor_list:
+                stmt = db.delete(interactors).where(interactors.c.curies == curie)
+                connection.execute(stmt)
+        
             source_db = db.Table('source_db', metadata, autoload=True, autoload_with=engine)
             source_db_dict = entries_to_delete["SourceDb"][0]
             db_label = source_db_dict["db_label"]
@@ -289,25 +322,8 @@ class DBwriter(eHive.BaseRunnable):
             species_list = entries_to_delete["Species"]
             species = db.Table('species', metadata, autoload=True, autoload_with=engine)
             for species_dict in species_list:
-                stmt = db.delete(species).where(species.c.taxon_id == species_dict["taxon_id"]).where(species.c.production_name == species_dict["production_name"])
+                stmt = db.delete(species).where(species.c.taxon_id == species_dict["taxon_id"]).where(species.c.scientific_name == species_dict["scientific_name"])
                 connection.execute(stmt)
-
-        if "CuratedInteractor" in entries_to_delete:
-            interactor_list = entries_to_delete["CuratedInteractor"]
-            interactors = db.Table('curated_interactor', metadata, autoload=True, autoload_with=engine)
-            for curie in interactor_list:
-                stmt = db.delete(interactors).where(interactors.c.curies == curie)
-                connection.execute(stmt)
-        
-        if "Interaction" in entries_to_delete:
-            interaction_dict = entries_to_delete["Interaction"][0]
-            int_1 = interaction_dict["interactor_1"]
-            int_2 = interaction_dict["interactor_2"]
-            doi = interaction_dict["doi"]
-            db_id = interaction_dict["source_db_id"]
-            interaction = db.Table('interaction', metadata, autoload=True, autoload_with=engine)
-            stmt = db.delete(interaction).where(interaction.c.interactor_1 == int_1).where(interaction.c.interactor_2 == int_2).where(interaction.c.doi == doi).where(interaction.c.source_db_id == db_id)
-            connection.execute(stmt)
 
         if "MetaKey" in entries_to_delete:
             key_list = entries_to_delete["MetaKey"]
@@ -316,16 +332,13 @@ class DBwriter(eHive.BaseRunnable):
                 stmt = db.delete(meta_key).where(meta_key.c.name == mk_name)
                 connection.execute(stmt)
 
-        if "KeyValuePair" in entries_to_delete:
-            kvp_list = entries_to_delete["KeyValuePair"]
-            key_value_pair = db.Table('key_value_pair', metadata, autoload=True, autoload_with=engine)
-            for kvp_dict in kvp_list:
-                stmt = (db.delete(key_value_pair)
-                         .where(key_value_pair.c.interaction_id == kvp_dict["interaction_id"])
-                         .where(key_value_pair.c.meta_key_id == kvp_dict["meta_key_id"])
-                         .where(key_value_pair.c.value == kvp_dict["value"])
-                         .where(key_value_pair.c.ontology_term_id == kvp_dict["ontology_term_id"]))
-                connection.execute(stmt)
+        if "SourceDb" in entries_to_delete:
+            source_db = db.Table('source_db', metadata, autoload=True, autoload_with=engine)
+            source_db_dict = entries_to_delete["SourceDb"][0]
+            db_label = source_db_dict["label"]
+            curator_db = source_db_dict["original_curator_db"]
+            stmt = db.delete(source_db).where(source_db.columns.label == db_label).where(source_db.columns.original_curator_db == curator_db)
+            connection.execute(stmt)
 
     def add_stored_value(self, table,  id_value):
         new_values = self.param('entries_to_delete')
@@ -361,17 +374,17 @@ class DBwriter(eHive.BaseRunnable):
 
     def get_species_value(self, session, species_tax_id, division, species_name, science_name):
         try:
-            species_value = session.query(interaction_db_models.Species).filter_by(taxon_id=species_tax_id, production_name=species_name).one()
+            species_value = session.query(interaction_db_models.Species).filter_by(taxon_id=species_tax_id, scientific_name=science_name).one()
         except MultipleResultsFound:
-            print(f"ERROR: Multiple results found for {species_name} - tx {species_tax_id}")
+            print(f"ERROR: Multiple results found for {science_name} - tx {species_tax_id}")
         except NoResultFound:
             species_value = interaction_db_models.Species(ensembl_division=division, production_name=species_name, taxon_id=species_tax_id, scientific_name=science_name)
             if 'Species' in self.param('entries_to_delete'):
                 added_values_list = self.param('entries_to_delete')['Species']
-                added_values_list.append({"taxon_id":species_tax_id,"production_name":species_name})
+                added_values_list.append({"taxon_id":species_tax_id,"scientific_name":science_name})
                 self.add_stored_value('Species',added_values_list)
             else:
-                self.add_stored_value('Species', [{"taxon_id":species_tax_id,"production_name":species_name}])
+                self.add_stored_value('Species', [{"taxon_id":species_tax_id,"scientific_name":science_name}])
         return species_value
 
     def write_output(self):

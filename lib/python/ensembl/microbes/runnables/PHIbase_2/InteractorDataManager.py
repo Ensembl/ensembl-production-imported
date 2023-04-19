@@ -41,7 +41,10 @@ class InteractorDataManager(eHive.BaseRunnable):
         interactor_B_curie_type = self.param("interactor_B_curie_type")
         interactor_A_curie = interactor_A_curie_type + ":" + self.param('interactor_A_molecular_id')
         if self.param('interactor_B_interactor_type') != 'synthetic':
-            interactor_B_curie = interactor_B_curie_type + ":" + self.param('interactor_B_molecular_id')
+            if self.param('interactor_B_molecular_id'):
+                interactor_B_curie = interactor_B_curie_type + ":" + self.param('interactor_B_molecular_id')
+            else:
+                interactor_B_curie = interactor_B_curie_type + ":UNDETERMINED"
         else:
             interactor_B_curie = self.param('interactor_B_molecular_id')
         self.param('interactor_A_curie', interactor_A_curie)

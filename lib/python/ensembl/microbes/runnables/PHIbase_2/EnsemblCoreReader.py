@@ -62,32 +62,29 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         interactor_A_molecular_id = self.param('interactor_A_molecular_id')
         interactor_A_ensembl_gene_stable_id = ''
         interactor_A_staging_url = self.get_staging_url('interactor_A_division')
-        interactor_A_production_name = ''
-        interactor_A_scientific_name = ''
+        interactor_A_production_name = None
+        interactor_A_scientific_name = None
 
         self.set_server_params('staging',interactor_A_staging_url)
         
         interactor_A_dbnames_list = self.get_names_list('interactor_A_dbnames_set')
         dbc = pymysql.connect(host=self.param('st_host'), user=self.param('st_user'), port=self.param('st_port'))
-        try:
-            interactor_A_ensembl_gene_stable_id = self.param_required('interactor_A_ensembl_id')
-        except Exception:
-            for dbn in interactor_A_dbnames_list:
-                dbn = dbn.strip()
-                if interactor_A_ensembl_gene_stable_id == '':
-                    gg = self.getGenes_byProteinID_byDB(dbc, dbn, interactor_A_molecular_id)
-                    for r in gg:
-                        interactor_A_ensembl_gene_stable_id = r[2]
-                        interactor_A_production_name = r[0]
-                        interactor_A_scientific_name = r[1]
+        for dbn in interactor_A_dbnames_list:
+            dbn = dbn.strip()
+            gg = self.getGenes_byProteinID_byDB(dbc, dbn, interactor_A_molecular_id)
+            for r in gg:
+                if interactor_A_scientific_name == None:
+                    interactor_A_ensembl_gene_stable_id = r[2]
+                    interactor_A_production_name = r[0]
+                    interactor_A_scientific_name = r[1]
                         
         dbc.close()
         print("interactor_A_ensembl_gene_stable_id :" + interactor_A_ensembl_gene_stable_id 
-                + ": interactor_A_production_name :" + interactor_A_production_name
-                + ": interactor_A_scientific_name :" + interactor_A_scientific_name)
+                + ": interactor_A_production_name :" + str(interactor_A_production_name)
+                + ": interactor_A_scientific_name :" + str(interactor_A_scientific_name))
         interactor_B_ensembl_gene_stable_id = ''
-        interactor_B_production_name = ''
-        interactor_B_scientific_name = ''
+        interactor_B_production_name = None
+        interactor_B_scientific_name = None
         if self.param('interactor_B_interactor_type') == 'synthetic':
            pass
         else:    
@@ -98,29 +95,26 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             self.set_server_params('staging', interactor_B_staging_url)
             dbc = pymysql.connect(host=self.param('st_host'), user=self.param('st_user'), port=self.param('st_port'))
             try:
-                interactor_B_ensembl_gene_stable_id = self.param_required('interactor_B_ensembl_id')
-            except Exception:
-                try:
-                    interactor_B_dbnames_list = self.get_names_list('interactor_B_dbnames_set')
-                    interactor_B_molecular_id = self.param('interactor_B_molecular_id')
-                    taxon_id = self.get_taxon_id(interactor_B_taxon_ref,interactor_B_strain_taxon_id,interactor_B_species_taxon_id)
-                    for dbn in interactor_B_dbnames_list: 
-                        if interactor_B_ensembl_gene_stable_id == '':
-                            dbn = dbn.strip()
-                            gg = self.getGenes_byProteinID_byDB(dbc, dbn, interactor_B_molecular_id)
-                        for r in gg:
+                interactor_B_dbnames_list = self.get_names_list('interactor_B_dbnames_set')
+                interactor_B_molecular_id = self.param('interactor_B_molecular_id')
+                taxon_id = self.get_taxon_id(interactor_B_taxon_ref,interactor_B_strain_taxon_id,interactor_B_species_taxon_id)
+                for dbn in interactor_B_dbnames_list: 
+                    dbn = dbn.strip()
+                    gg = self.getGenes_byProteinID_byDB(dbc, dbn, interactor_B_molecular_id)
+                    for r in gg:
+                        if  interactor_B_scientific_name == None:
                             interactor_B_ensembl_gene_stable_id = r[2]
                             interactor_B_production_name = r[0]
                             interactor_B_scientific_name = r[1]
-                    dbc.close()
-                    if not interactor_B_ensembl_gene_stable_id:
-                        interactor_B_ensembl_gene_stable_id = self.undetermined_gene_name(self.param("interactor_B_origin_name"))
-
-                except Exception as e:
-                    print(e)
+                
+                if not interactor_B_ensembl_gene_stable_id:
                     interactor_B_ensembl_gene_stable_id = self.undetermined_gene_name(self.param("interactor_B_origin_name"))
-                    print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
-        
+
+            except Exception as e:
+                print(e)
+                interactor_B_ensembl_gene_stable_id = self.undetermined_gene_name(self.param("interactor_B_origin_name"))
+                print("interactor_B_ensembl_gene_stable_id = " + interactor_B_ensembl_gene_stable_id)
+            dbc.close()        
         if interactor_A_ensembl_gene_stable_id == '':
             error_msg = self.param('entry_id') + " entry fail. Couldn't map UniProt " + interactor_A_molecular_id + " to any Ensembl gene"
             self.param('failed_job', error_msg)
@@ -131,8 +125,8 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             self.param("interactor_A_production_name",interactor_A_production_name)
             self.param("interactor_A_scientific_name",interactor_A_scientific_name)
 
-        if "UNDETERMINED" not in interactor_B_ensembl_gene_stable_id: #Unfortunate double negation. Enters only if the interactor_B_stable_id is defined
-            self.param("interactor_B_production_name",interactor_B_production_name)
+       # if "UNDETERMINED" not in interactor_B_ensembl_gene_stable_id: #Unfortunate double negation. Enters only if the interactor_B_stable_id is defined
+        self.param("interactor_B_production_name",interactor_B_production_name)
         self.param("interactor_B_scientific_name",interactor_B_scientific_name)
         self.param("interactor_B_ensembl_id",interactor_B_ensembl_gene_stable_id)
            
@@ -155,6 +149,31 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                        "AND mscn.meta_key='species.scientific_name' "
                        "AND x.external_db_id in "
                        "(SELECT external_db_id FROM external_db WHERE db_name LIKE '%UniProt%');")
+
+        try:
+            db_connection.select_db(dbname)
+            with db_connection.cursor() as cur:
+                cur.execute(gbp_sql)
+                results = [r for r in cur.fetchall()]
+        except pymysql.Error as e:
+            try:
+                print ("Mysql Error:- "+str(e))
+            except IndexError:
+                print ("Mysql Error:- "+str(e))
+                self.connection_close()
+        return results
+
+    def get_species_names_by_EnsemblID(self, db_connection, dbname: str, ensembl_id: str):
+        results = []   
+
+        gbp_sql = ("SELECT mpn.meta_value production_name, mscn.meta_value scientific_name, g.stable_id gene_stable_id FROM gene g "
+                          "INNER JOIN seq_region sr using(seq_region_id) "
+                          "INNER JOIN coord_system cs using(coord_system_id) "
+                          "INNER JOIN meta mpn using(species_id) "
+                          "INNER JOIN meta mscn  using(species_id) "
+                   "WHERE  mpn.meta_key = 'species.production_name' "
+                          "AND mscn.meta_key='species.scientific_name' "
+                          "AND g.stable_id='" + ensembl_id + "';")
 
         try:
             db_connection.select_db(dbname)
@@ -277,40 +296,35 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         elif taxon_ref == 'species_taxonomy_id':
             return species_taxon_id
 
-
-    def update_molecular_id(self,molecular_id, B_name):
-        if self.param('interactor_B_interactor_type') == 'synthetic':
-            return self.param(molecular_id)
-        try:
-            print ("host molecular id:" + self.param(molecular_id))
-            return self.param(molecular_id)
-        except: 
-            return self.undetermined_gene_name(B_name)
-
-    def update_interactor_B_species_name(self, matched_production_name, reported_name):
-        if self.param('interactor_B_interactor_type') == 'synthetic':
-            return ''
-        try:
-            print("mached_species_name:" + self.param(matched_production_name) + ":")
-            return self.param(matched_production_name)
-        except:
-            return self.param(reported_name)
-    
     def undetermined_gene_name(self, orig_name):
         return "UNDETERMINED" + "_" + self.param("entry_id") + "_" + '_'.join(orig_name.split()[:2])
 
+    def update_molecular_id(self):
+        if self.param('interactor_B_interactor_type') == 'synthetic':
+            return self.param('interactor_B_molecular_id')
+        try:
+            print(self.param('interactor_B_molecular_id'))
+            return self.param('interactor_B_molecular_id')
+        except:
+            return self.param('interactor_B_ensembl_id')
+            '''
+            try:
+                print(self.param("interactor_B_production_name"))
+                return self.undetermined_gene_name(self.param("interactor_B_production_name"))
+            except:
+                return '''''
 
     def build_output_hash(self):
         lines_list = []
+        self.check_param('interactor_A_production_name')
         entry_line_dict = {
                 "interactor_A_ensembl_id": self.param("interactor_A_ensembl_id"),
                 "interactor_A_production_name": self.param("interactor_A_production_name"),
                 "interactor_A_scientific_name": self.param("interactor_A_scientific_name"),
                 "interactor_B_ensembl_id": self.param("interactor_B_ensembl_id"),
-                "interactor_B_molecular_id": self.update_molecular_id("interactor_B_molecular_id", self.param("interactor_B_production_name")),
-                #   "interactor_B_production_name": self.update_interactor_B_species_name("interactor_B_production_name","interactor_B_origin_name"),
+                "interactor_B_molecular_id": self.update_molecular_id(),
+                "interactor_B_scientific_name" : self.update_scientific_name('interactor_B_scientific_name','interactor_B_origin_name'),
                 "interactor_B_production_name": self.param("interactor_B_production_name"),
-                "interactor_B_scientific_name": self.param("interactor_B_scientific_name"),
                 }
 
         lines_list.append(entry_line_dict)
@@ -326,6 +340,17 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             print(self.param('entry_id') + " written to FailedJob")
             self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
             print("*******************       FAILED JOB  " + self.param('entry_id') + " ***************************")
+    
+    def update_scientific_name(self,param, alt_param):
+        try:
+            if self.param(param) is None or self.param(param) == '':
+                print(" scientific name via " + alt_param + " :"+  self.param(alt_param)) 
+                return self.param(alt_param)
+            print(" scientific name via TRY " + param + " :"+  self.param(param))
+            return self.param(param)
+        except:
+            print(" scientific name via EXCEPT " + param + " :"+  self.param(param))
+            return self.param(alt_param)
     
     def check_param(self, param):
         try:

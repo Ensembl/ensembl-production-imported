@@ -57,7 +57,7 @@ class OntologiesLoader(eHive.BaseRunnable):
             self.insert_obo_values(session, obo_dict)
             session.close()
         except Exception as e:
-            print(f"SKIPPING LOADING ONTOLOGIES. The .obo file has not been passed as a parameter. This is not a problem as long as the necessary ontologies have previously been  loaded before.")
+            print(f"SKIPPING LOADING ONTOLOGIES. This might not be a problem if the necessary ontologies have been loaded in a previous session.")
         session = Session()
         ontologies_list = self.get_ontologies(session)
         self.param("ontologies_list",ontologies_list)
@@ -68,7 +68,6 @@ class OntologiesLoader(eHive.BaseRunnable):
         try:
             ontologies_results = session.query(interaction_db_models.Ontology).all()
         except NoResultFound:
-            print(f" A new ontology_value has been created with name {source_db} and description {o_description}")
             pass
         for ont in ontologies_results:
             ontologies_list.append(ont.name)
@@ -85,11 +84,13 @@ class OntologiesLoader(eHive.BaseRunnable):
         session.add(ontology_value)
         session.flush()
         onto_id = ontology_value.ontology_id
-
         for t_id in obo_dict:
-            onto_term_value = self.get_ontology_term_value(session, onto_id, t_id, obo_dict[t_id])
-            session.add(onto_term_value)
-    
+            try:
+                onto_term_value = self.get_ontology_term_value(session, onto_id, t_id, obo_dict[t_id])
+                session.add(onto_term_value)
+            except Exception as e:
+                print(t_id + " ERROR ------- " + e)
+        
         try:
             session.commit()
         except pymysql.err.IntegrityError as e:
@@ -105,35 +106,35 @@ class OntologiesLoader(eHive.BaseRunnable):
             session.rollback()
             self.clean_entry(engine)
 
-    def get_ontology_value(self, source_db, o_description, session):
+    def get_ontology_value(self, o_name, o_description, session):
         ontology_value = None
         
         try:
-            ontology_value = session.query(interaction_db_models.Ontology).filter_by(name=source_db).one()
-            print(f" ontology_value already exists for source_db {source_db} ")
+            ontology_value = session.query(interaction_db_models.Ontology).filter_by(name=o_name).one()
         except MultipleResultsFound:
-            ontology_value = session.query(interaction_db_models.Ontology).filter_by(name=source_db).first()
-            print(f" multiple ontologies for DB  {source_db}")
+            ontology_value = session.query(interaction_db_models.Ontology).filter_by(name=o_name).first()
         except NoResultFound:
-            ontology_value = interaction_db_models.Ontology(name=source_db, description=o_description)
-            print(f" A new ontology_value has been created with name {source_db} and description {o_description}")
-            self.add_stored_value('Ontology', [source_db])
+            ontology_value = interaction_db_models.Ontology(name=o_name, description=o_description)
+            self.add_stored_value('Ontology', [o_name])
         return ontology_value
 
     def get_ontology_term_value(self, session, onto_id, t_id, t_name):
+        onto_term_value = None
         try:
             onto_term_value = session.query(interaction_db_models.OntologyTerm).filter_by(accession=t_id).one()
         except MultipleResultsFound:
             print(f"ERROR: Multiple results found for {t_id}")
         except NoResultFound:
             onto_term_value = interaction_db_models.OntologyTerm(ontology_id=onto_id, accession=t_id, description=t_name)
-            
             if 'OntologyTerm' in self.param('entries_to_delete'):
                 added_values_list = self.param('entries_to_delete')['OntologyTerm']
-                added_values_list.append({"ontology_id":onto_id, "accession":t_id})   
+                added_values_list.append({"ontology_id":onto_id, "accession":t_id})
                 self.add_stored_value('OntologyTerm',added_values_list)
             else:
                 self.add_stored_value('OntologyTerm', [{"ontology_id":onto_id, "accession":t_id}])
+        except Exception as e:
+            print("ERROR in get ontology term value:" + e)
+        
         return onto_term_value
 
     def read_obo_entries(self):
@@ -143,19 +144,22 @@ class OntologiesLoader(eHive.BaseRunnable):
         obo_dict = {}
         term_id = None
         term_name = None
+        skip_line = False
         for line in Lines:
             if (line.startswith("[Term]")):
                 term_id = None
                 term_name = None
+                skip_line = False
             elif (line.startswith("id:")):
                 term_id = line[4:].rstrip()
             elif (line.startswith("name:")):
                 term_name = line[6:].rstrip()
+            elif (line.startswith("is_obsolete: true")):
+                skip_line = True
             elif (not line.strip()):
-                if term_id is not None:
+                if term_id is not None and not skip_line:
                     obo_dict[term_id] = term_name
         of.close()
-        #print(f"obo dict: {obo_dict}")
         return obo_dict
 
     def clean_entry(self, engine):
