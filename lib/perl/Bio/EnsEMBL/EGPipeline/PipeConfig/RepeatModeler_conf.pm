@@ -49,7 +49,7 @@ sub default_options {
     max_seqs_per_file       => 10_000,
     max_files_per_directory => 50,
     max_dirs_per_directory  => $self->o('max_files_per_directory'),
-    min_slice_length        => 5000,
+    min_slice_length        => 40_000,
 
     # Program paths
     builddatabase_exe => 'BuildDatabase',
