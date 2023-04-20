@@ -52,6 +52,27 @@ class ColumnMapper():
             ColumnMapper.interactor_B_interactor_type = "protein"
             ColumnMapper.interactor_B_curie_type = "uniprot"
 
+            # ******************  TO DO  ***************
+            # 
+            # Make ontologies a list of dictionaries to be able to load more than one ontology per source_db
+            # Ensure all get loaded by modifying the ontologyLoader analysis
+            # ie.- "PHIPO" and "PHIDO" (for PHI-base)
+            #
+            """
+            ColumnMapper.ontologiesList= [
+                {
+                ontology_name:"PHIPO",
+                ontology_description:"Pathogen Host Interactions Phenotype Ontology. Ontology of species-neutral phenotypes observed in pathogen-host interactions."
+                ontology_file:"/nfs/production/flicek/ensembl/microbes/mcarbajo/Phytopath_db/Obo_files/phipo-simple.obo"
+                },
+                {
+                ontology_name:"PHIDO",#https://github.com/PHI-base/phido/blob/master/phido.obo
+                ontology_description:"Pathogen Host Interactions Disease Ontology. Ontology of disease names developped for use in PHI-base (the Pathogen-Host Interactions Database) and its version of Canto, a community curation tool.",
+                ontology_file:"/nfs/production/flicek/ensembl/microbes/mcarbajo/Phytopath_db/Obo_files/phido.obo"
+                },
+            ]
+            """
+            # *******************************************
             ColumnMapper.ontology_name = "PHIPO"
             ColumnMapper.ontology_description = "Pathogen Host Interactions Phenotype Ontology. Ontology of species-neutral phenotypes observed in pathogen-host interactions."
             ColumnMapper.ontology_file = "/nfs/production/flicek/ensembl/microbes/mcarbajo/Phytopath_db/Obo_files/phipo-simple.obo"
