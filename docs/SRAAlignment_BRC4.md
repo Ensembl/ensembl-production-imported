@@ -30,6 +30,7 @@ init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::SRAAlignment_BRC4_conf \
 | `--index_dir` | {pipeline_dir}/index | temp directory where the genomes files are extracted
 | `--datasets_file` |  | List of datasets following the schema in brc4_rnaseq_schema.json
 | `--dna_seq` | 0 | Run the pipeline for DNA-Seq instead of RNA-Seq short reads
+| `--global_bw` | 0 | A global BigWig file will be created alongside the analysis
 | `--skip_cleanup` |  0, or 1 if using `--dna_seq` | Do not remove intermediate files from the results dir (that includes the bam files)
 | `--fallback_ncbi` | 0 | If download from ENA fails, try to download from SRA
 | `--force_ncbi` | 0 | Force download data from SRA instead of ENA
