@@ -52,18 +52,57 @@ sub run {
   print "Number of datasets: " . scalar(@$datasets) . "\n";
 
   for my $dataset (@$datasets) {
+    # Get the a list of run ids from the SRA id
+    $dataset->{runs} = $self->all_run_ids($dataset->{runs});
+
     # Check there is not already a directory for this dataset
     my $ds_dir = catdir($results_dir, $dataset->{name});
     my @files = glob("$ds_dir/*/*");
     
-    if (not -e $ds_dir) {
+    if (not -e $ds_dir or not @files) {
       $self->dataflow_output_id({ dataset_metadata => $dataset }, 2);
-    } elsif (!@files) {
-      die "Directory $ds_dir is empty, rerun!\n";
     } else {
       $self->dataflow_output_id({ dataset_metadata => $dataset }, 3);
     }
   }
+}
+
+sub all_run_ids {
+  my ($self, $runs) = @_;
+
+  for my $run (@$runs) {
+    my $accessions = $run->{accessions};
+
+    my @all_run_ids;
+    for my $accession (@$accessions) {
+      if ($accession =~ /^.RR/) {
+        push @all_run_ids, $accession;
+      } elsif ($accession =~ /^.RS/) {
+        my $adaptor = get_adaptor('Sample');
+        for my $sample (@{$adaptor->get_by_accession($accession)}) {
+          my @runs = map { $_->accession() } @{$sample->runs()};
+          if (not @runs) {
+            die("No runs extracted from sample '$accession'");
+          }
+          push @all_run_ids, @runs;
+        }
+      } elsif ($accession =~ /^.RP/) {
+        my $adaptor = get_adaptor('Study');
+        for my $study (@{$adaptor->get_by_accession($accession)}) {
+          my @runs = map { $_->accession() } @{$study->runs()};
+          if (not @runs) {
+            die("No runs extracted from study '$accession'");
+          }
+          push @all_run_ids, @runs;
+        }
+      } else {
+        die("Unknown SRA accession format: $accession");
+      }
+    }
+    $run->{accessions} = \@all_run_ids;
+  }
+
+  return $runs;
 }
 
 sub get_datasets {
