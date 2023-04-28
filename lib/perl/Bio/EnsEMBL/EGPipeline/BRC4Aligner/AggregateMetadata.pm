@@ -90,7 +90,7 @@ sub create_consensus_metadata {
     my $met = $metadata_hash->{$sample};
     for my $key (keys %$met) {
       my $value = $met->{$key};
-      if ($key eq 'stranded_ambiguous') {
+      if ($key eq 'stranded_ambiguous' and $value == 1) {
         push @stranded_ambiguous, $met;
       } else {
         $met_counts{$key}{$value}++;

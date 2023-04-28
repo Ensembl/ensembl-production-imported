@@ -32,7 +32,7 @@ sub param_defaults {
   my ($self) = @_;
   
   return {
-    keep_ambiguous => 0,  # If ambiguous, keep with a flag
+    keep_ambiguous => 1,  # If ambiguous, keep with a flag
     use_input_if_ambiguous => 0, # Or, use the input if any
     n_samples => 200000,
     infer_max => 0.80,  # Above this, infer stranded
@@ -75,7 +75,7 @@ sub run {
   open my $LOG, ">>", $log_file;
 
   print $LOG "Strandness inference: $output\n";
-  print $LOG "Sample = " . $self->param('sample_name');
+  print $LOG "Sample = " . $self->param('sample_name') . "\n";
 
   # Check inferred vs input
   if (defined $input_is_paired and $input_is_paired != $is_paired) {
@@ -87,6 +87,9 @@ sub run {
     my $input = "Input = " . ($input_is_stranded ? "strand-specific" : "unstranded");
     my $infer = "Infer = " . ($is_stranded ? "strand-specific" : "unstranded");
     print $LOG "WARNING: input and inferred strand-specificity differ: $input vs $infer\n";
+  }
+  if (defined $strand_direction) {
+    print $LOG "Inferred direction = $strand_direction\n";
   }
   if (not defined $is_paired) {
     if (defined $input_is_paired) {
@@ -112,6 +115,9 @@ sub run {
       die("Could not infer strand-specificity");
     }
   }
+  if ($is_ambiguous) {
+    print $LOG "WARNING: This inference in ambiguous\n";
+  }
   close $LOG;
 
   my $aligner_metadata = {
@@ -119,6 +125,9 @@ sub run {
       is_paired => $is_paired,
       strand_direction => $strand_direction,
   };
+  if ($is_ambiguous) {
+    $aligner_metadata->{stranded_ambiguous} = 1;
+  }
   $self->dataflow_output_id({
       aligner_metadata => $aligner_metadata
     },  2);
