@@ -55,7 +55,7 @@ my $logger = get_logger();
 
 our @EXPORT = qw(get_adaptor taxonomy_adaptor get_linked_objects);
 
-my $url = 'https://www.ebi.ac.uk/ena/browser/api/xml/%s';
+my $url = 'https://www.ebi.ac.uk/ena/browser/api/xml/%s?includeLinks=true';
 
 my $adaptor_classes = {
     'experiment' => 'Bio::EnsEMBL::ENA::SRA::ExperimentAdaptor',
@@ -178,6 +178,7 @@ sub get_by_accession_and_type {
         if ( !defined $obj ) {
 
 	    $logger->debug("Getting object using url " . sprintf( $url, $acc ));
+	    warn("Getting object using url " . sprintf( $url, $acc ));
 
             my $doc = $self->get_document( sprintf( $url, $acc ) );
             if(!$doc->{$key}) {
