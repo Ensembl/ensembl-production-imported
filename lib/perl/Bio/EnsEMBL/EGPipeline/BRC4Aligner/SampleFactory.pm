@@ -72,7 +72,7 @@ sub run {
     
     my $sample_dir = catdir($results_dir, $dataset->{name}, $sample_name);
     make_path($sample_dir);
-
+    
     my $sample_bam_file = catdir($sample_dir, "results.bam");
     (my $sorted_bam_file = $sample_bam_file) =~ s/\.bam/_name.bam/;
     (my $sample_sam_file = $sample_bam_file) =~ s/\.bam/.sam/;
@@ -115,29 +115,25 @@ sub run {
     # In all cases, output the runs metadata (useful for htseq-count)
     $self->dataflow_output_id(\%sample_data, 3);
     
-    # Don't remake an existing file
-    if (not -s $sorted_bam_file) {
-      
-      # Also check that the sample file (might have a different name) doesn't already exist
-      my $sample_dl_dir = $self->param_required('species_work_dir');
-      my $sample_full_name = $dataset->{name} . "_" . $sample_name;
-      my ($seq1, $seq2) = $self->has_sample_files($sample_dl_dir, $sample_full_name);
-      
-      if ($seq1) {
-        # No need to redownload the files
-        $sample_data{run_seq_files_1} = $seq1 ? [$seq1] : [];
-        $sample_data{run_seq_files_2} = $seq2 ? [$seq2] : [];
-        $self->dataflow_output_id(\%sample_data, 4);
-      } else {
-        for my $run_id (@run_ids) {
-          my %run_data = (
-            run_id => $run_id,
-          );
-          $self->dataflow_output_id(\%run_data, 2);
-        }
-      }
+    # Check that the sample file (might have a different name) doesn't already exist
+    my $sample_dl_dir = $self->param_required('species_work_dir');
+    my $sample_full_name = $dataset->{name} . "_" . $sample_name;
+    my ($seq1, $seq2) = $self->has_sample_files($sample_dl_dir, $sample_full_name);
+    
+    if ($seq1) {
+      # No need to redownload the files
+      $sample_data{run_seq_files_1} = $seq1 ? [$seq1] : [];
+      $sample_data{run_seq_files_2} = $seq2 ? [$seq2] : [];
       $self->dataflow_output_id(\%sample_data, 4);
+    } else {
+      for my $run_id (@run_ids) {
+        my %run_data = (
+          run_id => $run_id,
+        );
+        $self->dataflow_output_id(\%run_data, 2);
+      }
     }
+    $self->dataflow_output_id(\%sample_data, 4);
   }
 }
 
