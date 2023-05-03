@@ -348,6 +348,8 @@ If this is expected, simply rerun the failing job by adding the following parame
 
   ignore_single_paired = 1
 
+(NB: this is now the default)
+
 =item Force a consensus
 
 If for example there are mixed stranded/unstranded samples in a dataset, you can force all the
@@ -632,6 +634,8 @@ sub default_options {
 
     # Use input metadata, instead of inferring them (pair/strand)
     infer_metadata => 1,
+    # When aggregating samples for a dataset, don't mind if it's a mix of paired-end/single-end
+    ignore_single_paired => 1,
 
     # For heavy analyses, use multiple cpus
     threads    => 4,
@@ -1089,6 +1093,9 @@ sub pipeline_analyses {
     {
       -logic_name        => 'Aggregate_metadata',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::AggregateMetadata',
+      -parameters        => {
+        ignore_single_paired => $self->o('ignore_single_paired'),
+      },
       -failed_job_tolerance => 100,
       -analysis_capacity => 1,
       -max_retry_count => 0,
