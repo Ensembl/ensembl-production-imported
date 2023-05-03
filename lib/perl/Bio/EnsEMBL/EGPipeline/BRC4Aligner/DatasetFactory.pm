@@ -57,9 +57,27 @@ sub run {
 
     # Check there is not already a directory for this dataset
     my $ds_dir = catdir($results_dir, $dataset->{name});
-    my @files = glob("$ds_dir/*/*");
+    my @run_dirs = glob("$ds_dir/*");
     
-    if (not -e $ds_dir or not @files) {
+    my $no_existing_dir = 0;
+    if (not -e $ds_dir or not @run_dirs) {
+      warn("No existing dir for " . $dataset->{name});
+      $no_existing_dir = 1;
+    }
+
+    # Maybe the directories exists, but the samples have not been all been aligned completely?
+    # Check for the metadata json file
+    my $redo_alignment = 0;
+    for my $run_dir (@run_dirs) {
+      my $metadata_json = "$run_dir/metadata.json";
+      if (not -s $metadata_json) {
+        warn("No metadata in the run dir $run_dir for " . $dataset->{name});
+        $redo_alignment = 1;
+      }
+    }
+    
+    if ($no_existing_dir or $redo_alignment) {
+      warn("REDO");
       $self->dataflow_output_id({ dataset_metadata => $dataset }, 2);
     } else {
       $self->dataflow_output_id({ dataset_metadata => $dataset }, 3);
@@ -120,14 +138,33 @@ sub get_datasets {
   my @datasets;
 
   for my $dataset (@$data) {
-    if ($dataset->{species} eq $organism) {
+    $dataset = transform_bools($dataset);
+    if ($dataset->{species} and $dataset->{species} eq $organism) {
       push @datasets, $dataset;
-    } elsif ($dataset->{production_name} eq $organism) {
+    } elsif ($dataset->{production_name} and $dataset->{production_name} eq $organism) {
       push @datasets, $dataset;
     }
   }
 
   return \@datasets;
+}
+
+sub transform_bool {
+  my ($dataset) = @_;
+
+  for my $run ($dataset) {
+    if ($run->isStrandSpecific) {
+      $run->isStrandSpecific = 1;
+    } else {
+      $run->isStrandSpecific = 0;
+    }
+
+    if ($run->trim_reads) {
+      $run->trim_reads = 1;
+    } else {
+      $run->trim_reads = 0;
+    }
+  }
 }
 
 1;
