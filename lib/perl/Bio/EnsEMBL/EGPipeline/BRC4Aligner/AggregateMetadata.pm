@@ -66,7 +66,7 @@ sub check_metadata {
   
   my @errors;
   if (not $self->param('ignore_single_paired') and not defined $met->{is_paired}) {
-    push @errors, "No 'is_paired' value"
+    push @errors, "No 'is_paired' value";
   }
   push @errors, "No 'is_stranded' value" if not defined $met->{is_stranded};
   if ($met->{is_stranded}) {
