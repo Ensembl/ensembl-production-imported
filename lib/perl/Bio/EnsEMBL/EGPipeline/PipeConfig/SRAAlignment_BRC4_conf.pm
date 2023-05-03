@@ -1901,13 +1901,14 @@ sub pipeline_analyses {
 sub resource_classes {
   my ($self) = @_;
 
+  my %resources = %{$self->SUPER::resource_classes};
+
+  # Add resources for highly demanding processes
   my $queue = $self->o('queue_name');
   my @mems = (8, 16, 32, 64);
   my $tmem = 4;
-  my $time = "24:00:00";
+  my $time = "240:00:00";   # 10 days
   my $threads = $self->o("threads");
-
-  my %resources = %{$self->SUPER::resource_classes};
 
   for my $mem (@mems) {
     my $name = "${mem}GB_multicpu";
