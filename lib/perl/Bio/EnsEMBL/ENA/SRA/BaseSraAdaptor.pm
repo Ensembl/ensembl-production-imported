@@ -178,7 +178,6 @@ sub get_by_accession_and_type {
         if ( !defined $obj ) {
 
 	    $logger->debug("Getting object using url " . sprintf( $url, $acc ));
-	    warn("Getting object using url " . sprintf( $url, $acc ));
 
             my $doc = $self->get_document( sprintf( $url, $acc ) );
             if(!$doc->{$key}) {
