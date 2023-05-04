@@ -1554,7 +1554,7 @@ sub pipeline_analyses {
         aligner_metadata => '#aggregated_aligner_metadata#',
         threads       => $self->o('threads'),
       },
-      -rc_name           => '16GB_multicpu',
+      -rc_name           => '64GB_multicpu',
       -failed_job_tolerance => 100,
       -flow_into         => {
                                '2' => 'SamToBam',
