@@ -138,7 +138,7 @@ sub get_datasets {
   my @datasets;
 
   for my $dataset (@$data) {
-    $dataset = transform_bools($dataset);
+    transform_bools($dataset);
     if ($dataset->{species} and $dataset->{species} eq $organism) {
       push @datasets, $dataset;
     } elsif ($dataset->{production_name} and $dataset->{production_name} eq $organism) {
@@ -149,20 +149,20 @@ sub get_datasets {
   return \@datasets;
 }
 
-sub transform_bool {
+sub transform_bools {
   my ($dataset) = @_;
 
   for my $run ($dataset) {
-    if ($run->isStrandSpecific) {
-      $run->isStrandSpecific = 1;
+    if ($run->{isStrandSpecific}) {
+      $run->{isStrandSpecific} = 1;
     } else {
-      $run->isStrandSpecific = 0;
+      $run->{isStrandSpecific} = 0;
     }
 
-    if ($run->trim_reads) {
-      $run->trim_reads = 1;
+    if ($run->{trim_reads}) {
+      $run->{trim_reads} = 1;
     } else {
-      $run->trim_reads = 0;
+      $run->{trim_reads} = 0;
     }
   }
 }
