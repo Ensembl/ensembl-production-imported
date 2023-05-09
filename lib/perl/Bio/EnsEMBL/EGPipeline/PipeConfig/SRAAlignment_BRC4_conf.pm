@@ -348,6 +348,8 @@ If this is expected, simply rerun the failing job by adding the following parame
 
   ignore_single_paired = 1
 
+(NB: this is now the default)
+
 =item Force a consensus
 
 If for example there are mixed stranded/unstranded samples in a dataset, you can force all the
@@ -632,6 +634,8 @@ sub default_options {
 
     # Use input metadata, instead of inferring them (pair/strand)
     infer_metadata => 1,
+    # When aggregating samples for a dataset, don't mind if it's a mix of paired-end/single-end
+    ignore_single_paired => 1,
 
     # For heavy analyses, use multiple cpus
     threads    => 4,
@@ -1089,6 +1093,9 @@ sub pipeline_analyses {
     {
       -logic_name        => 'Aggregate_metadata',
       -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::AggregateMetadata',
+      -parameters        => {
+        ignore_single_paired => $self->o('ignore_single_paired'),
+      },
       -failed_job_tolerance => 100,
       -analysis_capacity => 1,
       -max_retry_count => 0,
@@ -1547,7 +1554,7 @@ sub pipeline_analyses {
         aligner_metadata => '#aggregated_aligner_metadata#',
         threads       => $self->o('threads'),
       },
-      -rc_name           => '16GB_multicpu',
+      -rc_name           => '64GB_multicpu',
       -failed_job_tolerance => 100,
       -flow_into         => {
                                '2' => 'SamToBam',
@@ -1894,13 +1901,14 @@ sub pipeline_analyses {
 sub resource_classes {
   my ($self) = @_;
 
+  my %resources = %{$self->SUPER::resource_classes};
+
+  # Add resources for highly demanding processes
   my $queue = $self->o('queue_name');
   my @mems = (8, 16, 32, 64);
   my $tmem = 4;
-  my $time = "24:00:00";
+  my $time = "240:00:00";   # 10 days
   my $threads = $self->o("threads");
-
-  my %resources = %{$self->SUPER::resource_classes};
 
   for my $mem (@mems) {
     my $name = "${mem}GB_multicpu";
