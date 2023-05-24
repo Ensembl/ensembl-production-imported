@@ -37,7 +37,7 @@ sub param_defaults {
     n_samples => 200000,
     infer_max => 0.80,  # Above this, infer stranded
     infer_min => 0.65,  # Between this and infer_max, ambiguous
-    infer_failed_max => 0.5 # Threshold for max failed reads
+    infer_failed_max => 0.2 # Threshold for max failed reads
   };
 }
 
@@ -74,8 +74,7 @@ sub run {
 
   open my $LOG, ">>", $log_file;
 
-  print $LOG "Strandness inference: $output\n";
-  print $LOG "Sample = " . $self->param('sample_name') . "\n";
+  print $LOG "Strandness inference for '".$self->param('sample_name')."': $output\n";
 
   # Check inferred vs input
   if (defined $input_is_paired and $input_is_paired != $is_paired) {
@@ -245,6 +244,7 @@ sub parse_inference {
   # Too much failed: can't infer strandness
   if ($stats{failed} > $max_failed) {
     $strandness = '';
+    die("Run contains too many reads failed to align ($stats{failed}). Please check.");
 
   # Stranded forward
   } elsif ($stats{ forward } > $min_ambiguous) {
