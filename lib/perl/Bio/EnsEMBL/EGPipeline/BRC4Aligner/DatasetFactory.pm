@@ -104,6 +104,15 @@ sub all_run_ids {
           }
           push @all_run_ids, @runs;
         }
+      } elsif ($accession =~ /^.RX/) {
+        my $adaptor = get_adaptor('Experiment');
+        for my $exp (@{$adaptor->get_by_accession($accession)}) {
+          my @runs = map { $_->accession() } @{$exp->runs()};
+          if (not @runs) {
+            die("No runs extracted from experiment '$accession'");
+          }
+          push @all_run_ids, @runs;
+        }
       } elsif ($accession =~ /^.RP/) {
         my $adaptor = get_adaptor('Study');
         for my $study (@{$adaptor->get_by_accession($accession)}) {
