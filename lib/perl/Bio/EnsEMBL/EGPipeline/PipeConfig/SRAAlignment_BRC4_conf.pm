@@ -1387,7 +1387,7 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -analysis_capacity => 1,
       -flow_into         => {
-        '1' => WHEN('#trim_poly_A#', 'TrimPolyA', ELSE 'GetMetadata')
+        '1' => WHEN('#trim_polyA#', 'TrimPolyA', ELSE 'GetMetadata')
       },
     },
 
