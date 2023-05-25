@@ -87,7 +87,7 @@ sub trim_reads_single {
   # Trim the reads:
   # Remove after the Ax10
   my $polyA = $self->param('polyA');
-  my $mind_read_length = $self->param('min_read_length');
+  my $min_read_length = $self->param('min_read_length');
   my $cmd = "$trim_bin -a $polyA -m $min_read_length -o $seq_trim $seq";
 
   my ($stdout, $stderr, $exit) = capture {
@@ -105,33 +105,17 @@ sub trim_reads_paired {
   my ($self, $seq1, $seq2, $seq_trim1, $seq_trim2) = @_;
   return if -s $seq_trim1 and -s $seq_trim2;
 
-  my $trim_bin = $self->param_required("trimmomatic_bin");
-  my $adapters = $self->param_required("trim_adapters_pe");
-  my $nthreads = $self->param("threads");
+  my $trim_bin = $self->param_required("cutadapt_bin");
 
-  my $unpaired_1 = $seq1 . "_unpaired";
-  my $unpaired_2 = $seq2 . "_unpaired";
-
-  my $cmd = "java -jar $trim_bin PE";
-  $cmd .= " -threads $nthreads";
-  $cmd .= " $seq1";
-  $cmd .= " $seq2";
-  $cmd .= " $seq_trim1";
-  $cmd .= " $unpaired_1";
-  $cmd .= " $seq_trim2";
-  $cmd .= " $unpaired_2";
-  $cmd .= " ILLUMINACLIP:$adapters:2:30:10";
-  $cmd .= " LEADING:3";
-  $cmd .= " TRAILING:3";
-  $cmd .= " SLIDINGWINDOW:4:15";
-  $cmd .= " MINLEN:20";
+  # Trim the reads:
+  # Remove after the Ax10
+  my $polyA = $self->param('polyA');
+  my $min_read_length = $self->param('min_read_length');
+  my $cmd = "$trim_bin -a $polyA -A $polyA -m $min_read_length -o $seq_trim1 -p $seq_trim2 $seq1 $seq2";
 
   my ($stdout, $stderr, $exit) = capture {
     system($cmd);
   };
-
-  unlink $unpaired_1;
-  unlink $unpaired_2;
 
   if ($exit != 0) {
     die("Trimming failed: $stderr");
