@@ -17,7 +17,7 @@ limitations under the License.
 
 =cut
 
-package Bio::EnsEMBL::EGPipeline::BRC4Aligner::Trim;
+package Bio::EnsEMBL::EGPipeline::BRC4Aligner::TrimPolyA;
 
 use strict;
 use warnings;
@@ -34,6 +34,9 @@ sub param_defaults {
   
   return {
     'threads' => 1,
+    'cutadapt_bin' => 'cutadapt',
+    'polyA' => 'A'x10,
+    'min_read_length' => 20,
   };
 }
 
@@ -79,19 +82,13 @@ sub trim_reads_single {
   my ($self, $seq, $seq_trim) = @_;
   return if -s $seq_trim;
 
-  my $trim_bin = $self->param_required("trimmomatic_bin");
-  my $adapters = $self->param_required("trim_adapters_se");
-  my $nthreads = $self->param("threads");
+  my $trim_bin = $self->param_required("cutadapt_bin");
 
-  my $cmd = "java -jar $trim_bin SE";
-  $cmd .= " -threads $nthreads";
-  $cmd .= " $seq";
-  $cmd .= " $seq_trim";
-  $cmd .= " ILLUMINACLIP:$adapters:2:30:10";
-  $cmd .= " LEADING:3";
-  $cmd .= " TRAILING:3";
-  $cmd .= " SLIDINGWINDOW:4:15";
-  $cmd .= " MINLEN:20";
+  # Trim the reads:
+  # Remove after the Ax10
+  my $polyA = $self->param('polyA');
+  my $mind_read_length = $self->param('min_read_length');
+  my $cmd = "$trim_bin -a $polyA -m $min_read_length -o $seq_trim $seq";
 
   my ($stdout, $stderr, $exit) = capture {
     system($cmd);

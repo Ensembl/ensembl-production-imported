@@ -1357,13 +1357,13 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -analysis_capacity => 1,
       -flow_into         => {
-        '1' => WHEN('#trim_reads#', 'Trim', ELSE 'GetMetadata')
+        '1' => WHEN('#trim_reads#', 'Trim', ELSE 'MidTrim')
       },
     },
 
     {
-      -logic_name        => 'Trim',
-      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::Trim',
+      -logic_name        => 'TrimAdaptors',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::TrimAdaptors',
       -analysis_capacity => 4,
       -max_retry_count => 0,
       -can_be_empty      => 1,
@@ -1374,6 +1374,32 @@ sub pipeline_analyses {
         trimmomatic_bin => $self->o('trimmomatic_bin'),
         trim_adapters_pe => $self->o('trim_adapters_pe'),
         trim_adapters_se => $self->o('trim_adapters_se'),
+      },
+      -rc_name           => '16Gb_mem',
+      -flow_into         => {
+        '2' => 'MidTrim',
+      },
+    },
+
+    {
+      -logic_name        => 'MidTrim',
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
+      -rc_name           => 'normal',
+      -analysis_capacity => 1,
+      -flow_into         => {
+        '1' => WHEN('#trim_poly_A#', 'TrimPolyA', ELSE 'GetMetadata')
+      },
+    },
+
+    {
+      -logic_name        => 'TrimPolyA',
+      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::TrimPolyA',
+      -analysis_capacity => 4,
+      -max_retry_count => 0,
+      -can_be_empty      => 1,
+      -parameters        => {
+        seq_file_1     => '#sample_seq_file_1#',
+        seq_file_2     => '#sample_seq_file_2#',
       },
       -rc_name           => '16Gb_mem',
       -flow_into         => {
