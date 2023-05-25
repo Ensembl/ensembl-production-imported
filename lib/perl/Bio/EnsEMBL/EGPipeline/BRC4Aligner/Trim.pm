@@ -27,6 +27,7 @@ use Capture::Tiny ':all';
 use Path::Tiny qw(path);
 use File::Basename qw(dirname);
 use File::Spec::Functions qw(catdir);
+use File::Copy qw(move);
 
 sub param_defaults {
   my ($self) = @_;
@@ -45,29 +46,32 @@ sub run {
   my $sub_seq1 = $seq1; $sub_seq1 =~ s/(\..+$)/_trim$1/;
   my $sub_seq2 = $seq2; $sub_seq2 =~ s/(\..+$)/_trim$1/;
 
+  my $old_seq1 = $seq1; $old_seq1 =~ s/(\..+$)/_old$1/;
+  my $old_seq2 = $seq2; $old_seq2 =~ s/(\..+$)/_old$1/;
+
+  # Trim then replace the file with the trimmed version,
+  # and keep the old file
   if ($seq2) {
     $self->trim_reads_paired($seq1, $seq2, $sub_seq1, $sub_seq2);
+    move $seq1, $old_seq1;
+    move $sub_seq1, $seq1;
+    move $seq2, $old_seq2;
+    move $sub_seq2, $seq2;
   } else {
     $self->trim_reads_single($seq1, $sub_seq1);
+    move $seq1, $old_seq1;
+    move $sub_seq1, $seq1;
   }
-
-  # Replace with the trimmed version
-
-  $self->param('trim_seq_file_1', $sub_seq1);
-  $self->param('trim_seq_file_2', $sub_seq2);
 }
 
 sub write_output {
   my ($self) = @_;
   
   my $output = {
-    seq_file_1 => $self->param('trim_seq_file_1'),
+    seq_file_1 => $self->param('seq_file_1'),
+    seq_file_2 => $self->param('seq_file_2'),
     sam_file => $self->param('sam_file'),
   };
-
-  if (defined $self->param('trim_seq_file_2')) {
-    $output->{seq_file_2} = $self->param('trim_seq_file_2');
-  }
   $self->dataflow_output_id($output,  2);
 }
 
