@@ -43,17 +43,18 @@ sub run {
   my $seq2 = $self->param('seq_file_2');
 
   my $sub_seq1 = $seq1; $sub_seq1 =~ s/(\..+$)/_trim$1/;
+  my $sub_seq2 = $seq2; $sub_seq2 =~ s/(\..+$)/_trim$1/;
 
   if ($seq2) {
-    my $sub_seq2 = $seq2; $sub_seq2 =~ s/(\..+$)/_trim$1/;
     $self->trim_reads_paired($seq1, $seq2, $sub_seq1, $sub_seq2);
-    $self->param('trim_seq_file_1', $sub_seq1);
-    $self->param('trim_seq_file_2', $sub_seq2);
   } else {
     $self->trim_reads_single($seq1, $sub_seq1);
-    $self->param('trim_seq_file_1', $sub_seq1);
-    $self->param('trim_seq_file_2', $seq2);
   }
+
+  # Replace with the trimmed version
+
+  $self->param('trim_seq_file_1', $sub_seq1);
+  $self->param('trim_seq_file_2', $sub_seq2);
 }
 
 sub write_output {
