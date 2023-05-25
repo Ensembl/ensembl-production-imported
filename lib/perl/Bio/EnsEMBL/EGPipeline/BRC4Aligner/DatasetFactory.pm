@@ -161,7 +161,7 @@ sub get_datasets {
 sub transform_bools {
   my ($dataset) = @_;
 
-  for my $run ($dataset) {
+  for my $run (@{$dataset->{runs}}) {
     if ($run->{isStrandSpecific}) {
       $run->{isStrandSpecific} = 1;
     } else {
@@ -172,6 +172,12 @@ sub transform_bools {
       $run->{trim_reads} = 1;
     } else {
       $run->{trim_reads} = 0;
+    }
+
+    if ($run->{trim_polyA}) {
+      $run->{trim_polyA} = 1;
+    } else {
+      $run->{trim_polyA} = 0;
     }
   }
 }

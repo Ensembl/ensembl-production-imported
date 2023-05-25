@@ -1357,7 +1357,7 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -analysis_capacity => 1,
       -flow_into         => {
-        '1' => WHEN('#trim_reads#', 'Trim', ELSE 'MidTrim')
+        '1' => WHEN('#trim_reads#', 'TrimAdaptors', ELSE 'MidTrim')
       },
     },
 
