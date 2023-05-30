@@ -70,6 +70,7 @@ sub default_options {
     max_seqs_per_file       => 1000,
     max_files_per_directory => 50,
     max_dirs_per_directory  => $self->o('max_files_per_directory'),
+    splitdump_resource_class => '8Gb_mem',
 
     max_hive_capacity => 50,
 
@@ -272,6 +273,7 @@ sub pipeline_wide_parameters {
    'run_trnascan' => $self->o('run_trnascan'),
    'load_mirbase' => $self->o('load_mirbase'),
    'cmsscan_resource_class' => $self->o('cmsscan_resource_class'),
+   'splitdump_resource_class' => $self->o('splitdump_resource_class'),
  };
 }
 
@@ -521,7 +523,7 @@ sub pipeline_analyses {
                               max_files_per_directory => $self->o('max_files_per_directory'),
                               max_dirs_per_directory  => $self->o('max_dirs_per_directory'),
                             },
-      -rc_name           => '8Gb_mem',
+      -rc_name           => $self->o('splitdump_resource_class'),
       -flow_into         => {
                               '3' => ['CMScanFactory'],
                               '4' => ['tRNAscan'],
