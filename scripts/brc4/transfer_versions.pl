@@ -457,15 +457,21 @@ sub update_xrefs {
       $new_count++;
       next;
     }
+    my $xrefs = $gene->get_all_DBEntries();
+    my %xref_dict = map { $_->dbname => $_ } @$xrefs;
+
     my $old_xrefs = $old_gene->{xrefs};
 
-    if ($update) {
-      for my $xref (@$old_xrefs) {
-        $logger->debug("Transfer gene $id xref: $xref");
-        $xa->store($xref, $gene->dbID, 'Gene');
+    use Data::Dumper;
+    for my $xref (@$old_xrefs) {
+      if (not exists $xref_dict{$xref->dbname}) {
+        $logger->debug("Transfer gene $id xref: " . $xref->dbname . " with ID " . $xref->primary_id);
+        $update_count++;
+        if ($update) {
+          $xa->store($xref, $gene->dbID, 'Gene');
+        }
       }
     }
-    $update_count += scalar(@$old_xrefs);
   }
   
   $logger->info("$update_count gene xrefs transferred");
