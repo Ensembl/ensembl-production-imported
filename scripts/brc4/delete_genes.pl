@@ -35,6 +35,7 @@ sub get_genes {
   open my $fh, "<", $path;
   while(my $line = readline $fh) {
     chomp $line;
+    $line =~ s/\s+//g;
     if ($line) {
       push @genes, $line;
     }
@@ -56,6 +57,7 @@ sub delete_genes {
     
     if (not $gene) {
       print STDERR "WARNING: No gene found with stable_id = '$id'\n";
+      next;
     }
     
     if ($update) {
