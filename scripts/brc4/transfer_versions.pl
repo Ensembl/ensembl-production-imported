@@ -461,6 +461,7 @@ sub update_xrefs {
   my $update_count = 0;
   my $new_count = 0;
   my %no_transfer = ();
+  my %yes_transfer = ();
 
   my $aa = $registry->get_adaptor($species, "core", 'analysis');
   
@@ -491,6 +492,7 @@ sub update_xrefs {
       $dbname = $ok_xrefs{$dbname};
       $xref->dbname($dbname);
       if (not exists $xref_dict{$dbname}) {
+        $yes_transfer{$dbname}++;
         $logger->debug("Transfer gene $id xref: $dbname with ID " . $xref->primary_id);
         $update_count++;
         if ($update) {
@@ -506,6 +508,10 @@ sub update_xrefs {
   
   $logger->info("$update_count gene xrefs transferred");
   $logger->info("$new_count new genes, without xref to transfer");
+  for my $dbname (sort keys %yes_transfer) {
+    my $count = $yes_transfer{$dbname};
+    $logger->info("Transfered: $count from external_db '$dbname'");
+  }
   for my $dbname (sort keys %no_transfer) {
     my $count = $no_transfer{$dbname};
     $logger->info("NOT transfered: $count from external_db '$dbname'");
