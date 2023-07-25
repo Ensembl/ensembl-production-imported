@@ -462,6 +462,7 @@ sub update_xrefs {
   my $new_count = 0;
   my %no_transfer = ();
   my %yes_transfer = ();
+  my $total_transfer = 0;
 
   my $aa = $registry->get_adaptor($species, "core", 'analysis');
   
@@ -501,6 +502,7 @@ sub update_xrefs {
           my $analysis = $aa->fetch_by_logic_name($analysis_name);
           $xref->analysis($analysis);
           $xa->store($xref, $gene->dbID, 'Gene', 1); # ignore release
+          $total_transfer++;
         }
       }
     }
@@ -510,13 +512,20 @@ sub update_xrefs {
   $logger->info("$new_count new genes, without xref to transfer");
   for my $dbname (sort keys %yes_transfer) {
     my $count = $yes_transfer{$dbname};
-    $logger->info("Transfered: $count from external_db '$dbname'");
+    $logger->info("Transfered: $count\t$dbname");
   }
   for my $dbname (sort keys %no_transfer) {
     my $count = $no_transfer{$dbname};
     $logger->info("NOT transfered: $count from external_db '$dbname'");
   }
-  $logger->info("(Use --write to update the descriptions in the database)") if $update_count > 0 and not $update;
+  $logger->info("$total_transfer written xref transfers") if $total_transfer > 0;
+  if ($update_count > 0) {
+    if (not $update) {
+      $logger->info("(Use --write to update the xrefs in the database)");
+    }
+  } else {
+    $logger->info("(No xrefs to update in the database)");
+  }
 }
 
 sub add_events {
