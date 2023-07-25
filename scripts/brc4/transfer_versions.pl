@@ -460,6 +460,7 @@ sub update_xrefs {
   
   my $update_count = 0;
   my $new_count = 0;
+  my %no_transfer = ();
 
   my $aa = $registry->get_adaptor($species, "core", 'analysis');
   
@@ -483,6 +484,7 @@ sub update_xrefs {
       # We only include dbnames that we expect
       if (not exists $ok_xrefs{$dbname}) {
         $logger->debug("NO TRANSFER for gene $id xref:\t$dbname\twith ID " . $xref->primary_id);
+        $no_transfer{$dbname}++;
         next;
       }
       # Rename the dbname in case we need to transfer old xrefs which had their name changed
@@ -504,6 +506,10 @@ sub update_xrefs {
   
   $logger->info("$update_count gene xrefs transferred");
   $logger->info("$new_count new genes, without xref to transfer");
+  for my $dbname (sort keys %no_transfer) {
+    my $count = $no_transfer{$dbname};
+    $logger->info("NOT transfered: $count from external_db '$dbname'");
+  }
   $logger->info("(Use --write to update the descriptions in the database)") if $update_count > 0 and not $update;
 }
 
