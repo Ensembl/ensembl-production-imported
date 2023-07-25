@@ -462,8 +462,6 @@ sub update_xrefs {
   my $new_count = 0;
 
   my $aa = $registry->get_adaptor($species, "core", 'analysis');
-  my $analysis = $aa->fetch_by_logic_name('brc4_community_annotation');
-  
   
   my $ga = $registry->get_adaptor($species, "core", 'gene');
   my $xa = $registry->get_adaptor($species, "core", 'DBentry');
@@ -483,9 +481,13 @@ sub update_xrefs {
     for my $xref (@$old_xrefs) {
       my $dbname = $xref->dbname;
       # We only include dbnames that we expect
-      next if not exists $ok_xrefs{$dbname};
+      if (not exists $ok_xrefs{$dbname}) {
+        $logger->debug("NO TRANSFER for gene $id xref:\t$dbname\twith ID " . $xref->primary_id);
+        next;
+      }
       # Rename the dbname in case we need to transfer old xrefs which had their name changed
       $dbname = $ok_xrefs{$dbname};
+      $xref->dbname($dbname);
       if (not exists $xref_dict{$dbname}) {
         $logger->debug("Transfer gene $id xref: $dbname with ID " . $xref->primary_id);
         $update_count++;
