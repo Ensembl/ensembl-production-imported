@@ -15,6 +15,19 @@ use Try::Tiny;
 use File::Path qw(make_path);
 use List::MoreUtils qw(uniq);
 
+my @current_xrefs = (
+  'BRC4_Community_Annotation',
+  'RefSeq_gene_name',
+  'PUBMED',
+  'EntrezGene',
+);
+my %alias_xrefs = (
+  VB_Community_Annotation => 'BRC4_Community_Annotation',
+);
+
+my %ok_xrefs = map { $_ => $_ } @current_xrefs;
+%ok_xrefs = (%ok_xrefs, %alias_xrefs);
+
 ###############################################################################
 # MAIN
 # Get command line args
@@ -442,6 +455,7 @@ sub update_descriptions {
 }
 
 sub update_xrefs {
+  # Transfer the xrefs from old gene entries to new gene entries, if those do not exist
   my ($registry, $species, $old_genes, $update) = @_;
   
   my $update_count = 0;
@@ -462,10 +476,14 @@ sub update_xrefs {
 
     my $old_xrefs = $old_gene->{xrefs};
 
-    use Data::Dumper;
     for my $xref (@$old_xrefs) {
-      if (not exists $xref_dict{$xref->dbname}) {
-        $logger->debug("Transfer gene $id xref: " . $xref->dbname . " with ID " . $xref->primary_id);
+      my $dbname = $xref->dbname;
+      # We only include dbnames that we expect
+      next if not exists $ok_xrefs{$dbname};
+      # Rename the dbname in case we need to transfer old xrefs which had their name changed
+      $dbname = $ok_xrefs{$dbname};
+      if (not exists $xref_dict{$dbname}) {
+        $logger->debug("Transfer gene $id xref: $dbname with ID " . $xref->primary_id);
         $update_count++;
         if ($update) {
           $xa->store($xref, $gene->dbID, 'Gene');
