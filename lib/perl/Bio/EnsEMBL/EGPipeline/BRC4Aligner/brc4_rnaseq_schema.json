@@ -48,7 +48,8 @@
         "isStrandSpecific" : { "type" : "boolean" },
         "strandDirection" : { "type" : "string" },
         "hasPairedEnds" : { "type" : "boolean" },
-        "trim_reads" : { "type" : "boolean" }
+        "trim_reads" : { "type" : "boolean" },
+        "trim_polyA" : { "type" : "boolean" }
       },
       "required": [
         "accessions"

@@ -104,6 +104,15 @@ sub all_run_ids {
           }
           push @all_run_ids, @runs;
         }
+      } elsif ($accession =~ /^.RX/) {
+        my $adaptor = get_adaptor('Experiment');
+        for my $exp (@{$adaptor->get_by_accession($accession)}) {
+          my @runs = map { $_->accession() } @{$exp->runs()};
+          if (not @runs) {
+            die("No runs extracted from experiment '$accession'");
+          }
+          push @all_run_ids, @runs;
+        }
       } elsif ($accession =~ /^.RP/) {
         my $adaptor = get_adaptor('Study');
         for my $study (@{$adaptor->get_by_accession($accession)}) {
@@ -152,7 +161,7 @@ sub get_datasets {
 sub transform_bools {
   my ($dataset) = @_;
 
-  for my $run ($dataset) {
+  for my $run (@{$dataset->{runs}}) {
     if ($run->{isStrandSpecific}) {
       $run->{isStrandSpecific} = 1;
     } else {
@@ -163,6 +172,12 @@ sub transform_bools {
       $run->{trim_reads} = 1;
     } else {
       $run->{trim_reads} = 0;
+    }
+
+    if ($run->{trim_polyA}) {
+      $run->{trim_polyA} = 1;
+    } else {
+      $run->{trim_polyA} = 0;
     }
   }
 }
