@@ -460,6 +460,10 @@ sub update_xrefs {
   
   my $update_count = 0;
   my $new_count = 0;
+
+  my $aa = $registry->get_adaptor($species, "core", 'analysis');
+  my $analysis = $aa->fetch_by_logic_name('brc4_community_annotation');
+  
   
   my $ga = $registry->get_adaptor($species, "core", 'gene');
   my $xa = $registry->get_adaptor($species, "core", 'DBentry');
@@ -486,7 +490,11 @@ sub update_xrefs {
         $logger->debug("Transfer gene $id xref: $dbname with ID " . $xref->primary_id);
         $update_count++;
         if ($update) {
-          $xa->store($xref, $gene->dbID, 'Gene');
+          # Ensure we use an up to date analysis
+          my $analysis_name = $xref->analysis->logic_name;
+          my $analysis = $aa->fetch_by_logic_name($analysis_name);
+          $xref->analysis($analysis);
+          $xa->store($xref, $gene->dbID, 'Gene', 1); # ignore release
         }
       }
     }
