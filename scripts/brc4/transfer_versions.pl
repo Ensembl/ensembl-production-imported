@@ -15,6 +15,19 @@ use Try::Tiny;
 use File::Path qw(make_path);
 use List::MoreUtils qw(uniq);
 
+my @current_xrefs = (
+  'BRC4_Community_Annotation',
+  'RefSeq_gene_name',
+  'PUBMED',
+  'EntrezGene',
+);
+my %alias_xrefs = (
+  VB_Community_Annotation => 'BRC4_Community_Annotation',
+);
+
+my %ok_xrefs = map { $_ => $_ } @current_xrefs;
+%ok_xrefs = (%ok_xrefs, %alias_xrefs);
+
 ###############################################################################
 # MAIN
 # Get command line args
@@ -54,6 +67,12 @@ for my $feat (@features) {
 if ($opt{descriptions}) {
   $logger->info("Gene descriptions transfer:");
   update_descriptions($registry, $species, $old_data{gene}, $opt{write});
+}
+
+# Transfer xrefs
+if ($opt{xrefs}) {
+  $logger->info("Gene xrefs transfer:");
+  update_xrefs($registry, $species, $old_data{gene}, $opt{write});
 }
 
 if ($opt{events}) {
@@ -311,8 +330,6 @@ sub check_multi_events {
   return \%events;
 }
 
-
-
 sub diff_events {
   my ($old, $new) = @_;
 
@@ -346,7 +363,8 @@ sub get_feat_data {
     if ($feature eq 'gene') {
       $description = $feat->description;
     }
-    $feats{$id} = { version => $version, description => $description };
+    my $xrefs = $feat->get_all_DBEntries();
+    $feats{$id} = { version => $version, description => $description, xrefs => $xrefs };
   }
   
   return \%feats;
@@ -432,8 +450,82 @@ sub update_descriptions {
   
   $logger->info("$update_count gene descriptions transferred");
   $logger->info("$empty_count genes without description remain");
-  $logger->info("$empty_count new genes, without description");
+  $logger->info("$new_count new genes, without description");
   $logger->info("(Use --write to update the descriptions in the database)") if $update_count > 0 and not $update;
+}
+
+sub update_xrefs {
+  # Transfer the xrefs from old gene entries to new gene entries, if those do not exist
+  my ($registry, $species, $old_genes, $update) = @_;
+  
+  my $update_count = 0;
+  my $new_count = 0;
+  my %no_transfer = ();
+  my %yes_transfer = ();
+  my $total_transfer = 0;
+
+  my $aa = $registry->get_adaptor($species, "core", 'analysis');
+  
+  my $ga = $registry->get_adaptor($species, "core", 'gene');
+  my $xa = $registry->get_adaptor($species, "core", 'DBentry');
+  for my $gene (@{$ga->fetch_all}) {
+    my $id = $gene->stable_id;
+
+    my $old_gene = $old_genes->{$id};
+    if (not $old_gene) {
+      $new_count++;
+      next;
+    }
+    my $xrefs = $gene->get_all_DBEntries();
+    my %xref_dict = map { $_->dbname => $_ } @$xrefs;
+
+    my $old_xrefs = $old_gene->{xrefs};
+
+    for my $xref (@$old_xrefs) {
+      my $dbname = $xref->dbname;
+      # We only include dbnames that we expect
+      if (not exists $ok_xrefs{$dbname}) {
+        $logger->debug("NO TRANSFER for gene $id xref:\t$dbname\twith ID " . $xref->primary_id);
+        $no_transfer{$dbname}++;
+        next;
+      }
+      # Rename the dbname in case we need to transfer old xrefs which had their name changed
+      $dbname = $ok_xrefs{$dbname};
+      $xref->dbname($dbname);
+      if (not exists $xref_dict{$dbname}) {
+        $yes_transfer{$dbname}++;
+        $logger->debug("Transfer gene $id xref: $dbname with ID " . $xref->primary_id);
+        $update_count++;
+        if ($update) {
+          # Ensure we use an up to date analysis
+          my $analysis_name = $xref->analysis->logic_name;
+          my $analysis = $aa->fetch_by_logic_name($analysis_name);
+          $xref->analysis($analysis);
+          $xa->store($xref, $gene->dbID, 'Gene', 1); # ignore release
+          $total_transfer++;
+        }
+      }
+    }
+  }
+  
+  $logger->info("$update_count gene xrefs transferred");
+  $logger->info("$new_count new genes, without xref to transfer");
+  for my $dbname (sort keys %yes_transfer) {
+    my $count = $yes_transfer{$dbname};
+    $logger->info("Transfered: $count\t$dbname");
+  }
+  for my $dbname (sort keys %no_transfer) {
+    my $count = $no_transfer{$dbname};
+    $logger->info("NOT transfered: $count from external_db '$dbname'");
+  }
+  $logger->info("$total_transfer written xref transfers") if $total_transfer > 0;
+  if ($update_count > 0) {
+    if (not $update) {
+      $logger->info("(Use --write to update the xrefs in the database)");
+    }
+  } else {
+    $logger->info("(No xrefs to update in the database)");
+  }
 }
 
 sub add_events {
@@ -587,6 +679,7 @@ sub usage {
     Transfer:
     --descriptions : Transfer the gene descriptions
     --versions     : Transfer and increment the gene versions, and init the others
+    --xrefs        : Transfer the xrefs associated with genes
     
     Use this to make actual changes:
     --write           : Do the actual changes (default is no changes to the database)
@@ -607,6 +700,7 @@ sub opt_check {
     "species=s",
     "descriptions",
     "versions",
+    "xrefs",
     "events=s",
     "deletes=s",
     "write",
