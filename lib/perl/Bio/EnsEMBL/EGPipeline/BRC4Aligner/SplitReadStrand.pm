@@ -58,11 +58,14 @@ sub run {
     }
 
     # Store align commands
-      my $align_cmds = {
-        cmds => $cmds,
+    for my $cmd ($cmds) {
+      print("Store command $cmd\n");
+      my $align_cmd = {
+        cmds => $cmd,
         sample_name => $self->param('sample_name'),
       };
-      $self->store_align_cmds($align_cmds);
+      $self->store_align_cmds($align_cmd);
+    }
 
   } else {
     print("The reads are not strand-specific: skip splitting");
