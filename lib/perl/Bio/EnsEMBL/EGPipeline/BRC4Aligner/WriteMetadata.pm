@@ -49,10 +49,7 @@ sub write_output {
   }
   if (defined $is_stranded) {
     $metadata{isStrandSpecific} = $is_stranded ? JSON::true : JSON::false;
-
-    if ($self->param('is_stranded')) {
-      $metadata{strandDirection} = $strand_direction;
-    }
+    $metadata{strandDirection} = $strand_direction;
   }
   if (defined $self->param("dnaseq")) {
     $metadata{dnaseq} = $self->param('dnaseq') ? JSON::true : JSON::false;
