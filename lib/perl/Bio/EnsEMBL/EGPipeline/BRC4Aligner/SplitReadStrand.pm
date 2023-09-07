@@ -32,7 +32,7 @@ sub run {
   
   my $bam_file = $self->param_required('bam_file');
   my $aligner_metadata = $self->param_required('aligner_metadata');
-  my $is_paired = $aligner_metadata->{'is_paired'} // $self->param{'is_paired'};
+  my $is_paired = $self->param_required('is_paired');
   my $is_stranded = $aligner_metadata->{'is_stranded'};
   my $strand_direction = $aligner_metadata->{'strand_direction'};
 
