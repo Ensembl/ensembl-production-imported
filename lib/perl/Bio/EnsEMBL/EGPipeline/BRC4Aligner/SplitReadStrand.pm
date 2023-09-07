@@ -58,7 +58,7 @@ sub run {
     }
 
     # Store align commands
-    for my $cmd ($cmds) {
+    for my $cmd (@$cmds) {
       print("Store command $cmd\n");
       my $align_cmd = {
         cmds => $cmd,
