@@ -286,7 +286,7 @@ class StableIdDB(object):
             raise Exception(f"Several rows in database loaded for db_name {db_name}")
         elif len(rows) == 1:
             row = rows[0]
-            db_id = row["db_id"]
+            db_id = row.db_id
         else:
             db_stmt = insert(Db).values(db_name=db_name, production_name=prod_name)
             result = conn.execute(db_stmt)
