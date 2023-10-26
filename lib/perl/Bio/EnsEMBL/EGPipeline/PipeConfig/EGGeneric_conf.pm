@@ -199,7 +199,7 @@ sub resource_classes {
   my %resources = (
     'default'           => $self->make_resource({"queue" => $queue, "memory" => 4_000, "time" => $short}),
     'normal'            => $self->make_resource({"queue" => $queue, "memory" => 4_000, "time" => $long}),
-    'datamove'          => $self->make_resource({"queue" => $data_queue, "time" => $short}),
+    'datamove'          => $self->make_resource({"queue" => $data_queue, "memory" => 100, "time" => $short}),
     'datamove_4Gb_mem'  => $self->make_resource({"queue" => $data_queue, "memory" => 4_000, "time" => $long}),
     'datamove_32Gb_mem' => $self->make_resource({"queue" => $data_queue, "memory" => 32_000, "time" => $long}),
   );
