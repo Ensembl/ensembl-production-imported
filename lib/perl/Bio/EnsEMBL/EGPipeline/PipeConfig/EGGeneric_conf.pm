@@ -160,6 +160,12 @@ sub _slurm_resource {
   my $queue = $conf->{queue};
   my $time = $conf->{time};
 
+  # Remove queues if they are not special so that Slurm can schedule the right queue itself
+  my %special_queue = map { $_ => 1 } qw(datamover debug gpu short_gpu);
+  if (not exists $special_queue{$queue}) {
+    $queue = undef;
+  }
+
   # Prepare memory string
   my $rmem;
   if ($mem) {
