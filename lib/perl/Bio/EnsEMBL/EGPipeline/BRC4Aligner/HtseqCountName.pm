@@ -171,6 +171,10 @@ sub run_htseq_count {
     }
   }
 
+  if (not -s $htseq_file) {
+    die("Generated htseq-count file is empty: $htseq_file");
+  }
+
   return $cmd;
 }
 
