@@ -1,4 +1,3 @@
-#!/usr/env perl
 use v5.14.00;
 use strict;
 use warnings;
@@ -34,6 +33,9 @@ my $reg_path = $opt{registry};
 $registry->load_all($reg_path);
 
 my $sps = $registry->get_all_species();
+
+# Hash to track unique key-value pairs
+my %unique_abbrevs;
 
 my @genomes;
 for my $sp (sort @$sps) {
@@ -78,13 +80,25 @@ for my $genome (sort {
     $a->{'BRC4.component'} cmp $b->{'BRC4.component'}
       or $a->{'species.scientific_name'} cmp $b->{'species.scientific_name'}
       or $a->{'BRC4.organism_abbrev'} cmp $b->{'BRC4.organism_abbrev'}
-  } @genomes) {
-  say join("\t", map { $genome->{$_} // "" } @fields);
-}
+  } @genomes){
+  # Check if BRC4.organism_abbrev is unique
+  my $abbrev = $genome->{'BRC4.organism_abbrev'};
+  my $prod_name = $genome->{'species.scientific_name'};
 
+  if (defined $abbrev && !$unique_abbrevs{$abbrev}) {
+      # BRC4.organism_abbrev is unique
+      $unique_abbrevs{$abbrev}=$prod_name;
+  }
+  else{
+    die "Error: Non-unique abbreviation encountered: $abbrev $prod_name\n";
+  }
+  say join("\t", map { $genome->{$_} // "" } @fields);
+  }
+
+# Return the value for all the keys
 sub get_meta_value {
   my ($meta, $key) = @_;
-  my ($value) = @{ $meta->list_value_by_key($key) };
+  my ($value) =@{ $meta->list_value_by_key($key) };
   return $value;
 }
 
@@ -100,6 +114,7 @@ sub usage {
     Create a list of all species metadata in BRC4 prod.
 
     --registry <path> : Ensembl registry
+    
     
     --help            : show this help message
     --verbose         : show detailed progress
@@ -124,6 +139,3 @@ sub opt_check {
   Log::Log4perl->easy_init($DEBUG) if $opt{debug};
   return \%opt;
 }
-
-__END__
-
