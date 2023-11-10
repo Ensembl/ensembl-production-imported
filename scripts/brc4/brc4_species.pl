@@ -114,8 +114,7 @@ sub usage {
     Create a list of all species metadata in BRC4 prod.
 
     --registry <path> : Ensembl registry
-    
-    
+
     --help            : show this help message
     --verbose         : show detailed progress
     --debug           : show even more information (for debugging purposes)
