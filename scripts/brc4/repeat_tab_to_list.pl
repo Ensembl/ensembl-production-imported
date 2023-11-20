@@ -228,6 +228,7 @@ sub opt_check {
   usage("tab file needed") if not $opt{tab};
   usage("registry needed") if not $opt{registry};
   usage("ref_registry needed") if not $opt{ref_registry};
+  usage("libs_dir needed") if not $opt{libs_dir};
   usage()                if $opt{help};
   Log::Log4perl->easy_init($INFO) if $opt{verbose};
   Log::Log4perl->easy_init($DEBUG) if $opt{debug};
