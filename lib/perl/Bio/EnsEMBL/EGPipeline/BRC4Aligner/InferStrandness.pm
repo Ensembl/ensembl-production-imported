@@ -37,7 +37,8 @@ sub param_defaults {
     n_samples => 200000,
     infer_max => 0.80,  # Above this, infer stranded
     infer_min => 0.65,  # Between this and infer_max, ambiguous
-    infer_failed_max => 0.2 # Threshold for max failed reads
+    infer_failed_max => 0.2, # Threshold for max failed reads
+    infer_mean_reads => 1_000, # Minimum number of usable reads to make an inference
   };
 }
 
@@ -157,20 +158,24 @@ sub get_strandness {
     };
 
     die("No inference output: $stderr") if not $stdout;
-
+    
+    # Check number of usable reads
+    my $n_reads = 0;
+    if ($stderr =~ /Total (\d+) usable reads were sampled/) {
+      $n_reads = $1;
+    }
+    my $min_reads = $self->param('infer_mean_reads');
+    if ($n_reads < $min_reads) {
+      die("Inference failed (number of usable reads is too small: $n_reads < $min_reads): $stderr");
+    }
+    
+    # Check success
     if ($exit != 0) {
-      if ($stderr =~ /Total 0 usable reads were sampled/) {
-        return undef, undef, 1;
-      }
       die("Inference failed ($exit): $stderr");
     } else {
       my $output = "$stdout\n$stderr";
       my ($strandness, $is_paired, $is_ambiguous) = $self->parse_inference($stdout, $stderr, $input_is_stranded);
-      my $no_reads = 0;
-      if ($stderr =~ /Total (\d+) usable reads/) {
-        $no_reads = $1;
-      }
-      return ($strandness, $is_paired, $is_ambiguous, $no_reads, $output);
+      return ($strandness, $is_paired, $is_ambiguous, $n_reads, $output);
     }
   } catch {
     # Nothing could be determined? Return nothing but continue
