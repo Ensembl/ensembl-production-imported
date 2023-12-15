@@ -61,7 +61,7 @@ sub run {
     $metadata{$key} = $data->{$value} ? 1 : 0 if exists $data->{$value};
   }
 
-  $self->dataflow_output_id(\%metadata, 2);
+  $self->dataflow_output_id({aligner_metadata => \%metadata}, 2);
 }
 
 1;
