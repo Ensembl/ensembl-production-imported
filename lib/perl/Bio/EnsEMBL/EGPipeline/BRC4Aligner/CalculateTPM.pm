@@ -20,6 +20,7 @@ limitations under the License.
 package Bio::EnsEMBL::EGPipeline::BRC4Aligner::CalculateTPM;
 use strict;
 use warnings;
+use autodie;
 use base ('Bio::EnsEMBL::EGPipeline::BRC4Aligner::Base');
 
 
@@ -34,7 +35,7 @@ sub run {
   my @rpk_args = ( "bash", "-c", "join <(sort -k1,1 $sum_htseq_file) <(sort -k1,1 $fl_file) | awk '{print \$1\"\t\"\$2/(\$3/1000)}' > $rpk_htseq_file" );
   system(@rpk_args);
 
-  open my $fh, '<', $rpk_htseq_file or die $!;
+  open my $fh, '<', $rpk_htseq_file;
 
   my $total = 0;
 
