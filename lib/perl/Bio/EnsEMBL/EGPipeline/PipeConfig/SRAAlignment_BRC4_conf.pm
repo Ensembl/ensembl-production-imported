@@ -908,7 +908,7 @@ sub pipeline_analyses {
       -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
       -rc_name           => 'normal',
       -flow_into         => {
-        2 => [
+        1 => [
           WHEN('not -s #genome_bed_file#', 'Dump_gff3'),
           WHEN('not -s #genome_gtf_file#', 'Dump_gtf'),
         ]
