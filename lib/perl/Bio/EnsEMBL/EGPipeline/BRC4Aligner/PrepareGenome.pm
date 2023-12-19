@@ -36,6 +36,9 @@ sub write_output {
   my $results_dir = $self->param_required('results_dir');
   my $pipeline_dir = $self->param_required('pipeline_dir');
 
+  my $dba = $self->core_dba();
+  my $has_genes = $self->has_genes($dba);
+
   my %genome_metadata = (
       species             => $species,
 
@@ -49,6 +52,7 @@ sub write_output {
       genome_gff_file     => catdir($genome_dir, $species . ".gff"),
       genome_gtf_file     => catdir($genome_dir, $species . ".gtf"),
       genome_fl_file      => catdir($genome_dir, $species . ".feature_length_per_gene.tsv"),
+      has_genes           => $has_genes,
   );
 
   $self->dataflow_output_id(\%genome_metadata, 1);

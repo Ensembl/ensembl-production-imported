@@ -878,6 +878,7 @@ sub pipeline_analyses {
       -rc_name           => 'normal',
       -flow_into         => [
        'GenesCheck',
+        WHEN('#has_genes#', 'GenesCheck'),
         WHEN('not -f #genome_file# . ".indexed"', 'Dump_and_index'),
       ],
     },
@@ -904,9 +905,7 @@ sub pipeline_analyses {
 
     {
       -logic_name        => 'GenesCheck',
-      -module            => 'Bio::EnsEMBL::EGPipeline::BRC4Aligner::GenesCheck',
-      -analysis_capacity => 1,
-      -max_retry_count => 0,
+      -module            => 'Bio::EnsEMBL::Hive::RunnableDB::Dummy',
       -rc_name           => 'normal',
       -flow_into         => {
         2 => [
@@ -1708,7 +1707,7 @@ sub pipeline_analyses {
         bam_file => '#sorted_bam_file#',
         results_dir => '#sample_dir#',
       },
-      -flow_into         => WHEN("#do_htseqcount# and -s #genome_gtf_file#", "HtseqFactory"),
+      -flow_into         => WHEN("#do_htseqcount# and #has_genes#", "HtseqFactory"),
       -rc_name           => 'normal',
       -analysis_capacity => 25,
       -max_retry_count => 0,
