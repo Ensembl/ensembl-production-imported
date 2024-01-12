@@ -80,7 +80,7 @@ for my $genome (sort {
     $a->{'BRC4.component'} cmp $b->{'BRC4.component'}
       or $a->{'species.scientific_name'} cmp $b->{'species.scientific_name'}
       or $a->{'BRC4.organism_abbrev'} cmp $b->{'BRC4.organism_abbrev'}
-  } @genomes){
+  } @genomes) {
   # Check if BRC4.organism_abbrev is unique
   my $abbrev = $genome->{'BRC4.organism_abbrev'};
   my $prod_name = $genome->{'species.scientific_name'};
