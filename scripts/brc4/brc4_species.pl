@@ -85,12 +85,16 @@ for my $genome (sort {
   my $abbrev = $genome->{'BRC4.organism_abbrev'};
   my $prod_name = $genome->{'species.scientific_name'};
 
-  if (defined $abbrev && !$unique_abbrevs{$abbrev}) {
-      # BRC4.organism_abbrev is unique
-      $unique_abbrevs{$abbrev}=$prod_name;
+  if (defined $abbrev) {
+    if (! $unique_abbrevs{$abbrev}) {
+      $unique_abbrevs{$abbrev} = $prod_name;
+    }
+    else {
+      die "Error: Non-unique abbreviation encountered for $prod_name: $abbrev\n";
+    }
   }
-  else{
-    die "Error: Non-unique abbreviation encountered: $abbrev $prod_name\n";
+  else {
+    die "Error: Organism abbreviation missing for $prod_name\n";
   }
   say join("\t", map { $genome->{$_} // "" } @fields);
   }
