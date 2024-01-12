@@ -97,7 +97,7 @@ for my $genome (sort {
     die "Error: Organism abbreviation missing for $prod_name\n";
   }
   say join("\t", map { $genome->{$_} // "" } @fields);
-  }
+}
 
 # Return the value for all the keys
 sub get_meta_value {
