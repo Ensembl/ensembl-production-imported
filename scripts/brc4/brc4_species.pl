@@ -98,7 +98,7 @@ for my $genome (sort {
 # Return the value for all the keys
 sub get_meta_value {
   my ($meta, $key) = @_;
-  my ($value) =@{ $meta->list_value_by_key($key) };
+  my ($value) = @{ $meta->list_value_by_key($key) };
   return $value;
 }
 
