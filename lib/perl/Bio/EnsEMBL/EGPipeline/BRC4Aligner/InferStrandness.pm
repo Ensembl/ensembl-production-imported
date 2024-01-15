@@ -244,7 +244,7 @@ sub parse_inference {
   # Too much failed: can't infer strandness
   if ($stats{failed} > $max_failed) {
     $strandness = '';
-    die("Run contains too many reads failed to align ($stats{failed}). Please check.");
+    die("Run contains too many reads failed to align ($stats{failed}). Please check: $text");
 
   # Stranded forward
   } elsif ($stats{ forward } > $min_ambiguous) {
