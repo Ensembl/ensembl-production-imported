@@ -90,11 +90,11 @@ for my $genome (sort {
       $unique_abbrevs{$abbrev} = $prod_name;
     }
     else {
-      die "Error: Non-unique abbreviation encountered for $prod_name: $abbrev\n";
+      warn "Error: Non-unique abbreviation encountered for $prod_name: $abbrev\n";
     }
   }
   else {
-    die "Error: Organism abbreviation missing for $prod_name\n";
+    warn "Error: Organism abbreviation missing for $prod_name\n";
   }
   say join("\t", map { $genome->{$_} // "" } @fields);
 }
