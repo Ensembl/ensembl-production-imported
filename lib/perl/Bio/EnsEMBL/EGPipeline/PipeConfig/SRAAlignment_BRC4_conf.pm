@@ -1308,7 +1308,7 @@ sub pipeline_analyses {
       -max_retry_count => 3,
       -failed_job_tolerance => 10,
       -parameters        => {
-        work_dir => '#species_work_dir#',
+        work_dir => '#species_work_dir#/#expr(#dataset_metadata#->{name})expr#',
         fallback_ncbi => $self->o('fallback_ncbi'),
       },
       -rc_name           => 'normal',
