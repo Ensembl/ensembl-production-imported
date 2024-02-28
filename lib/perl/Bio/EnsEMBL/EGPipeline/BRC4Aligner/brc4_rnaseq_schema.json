@@ -16,6 +16,7 @@
         "production_name" : { "type" : "string" },
         "name" : { "type" : "string" },
         "no_spliced" : { "type" : "boolean" },
+        "release" : { "type" : "integer" },
 
         "runs" : {
           "type" : "array",
