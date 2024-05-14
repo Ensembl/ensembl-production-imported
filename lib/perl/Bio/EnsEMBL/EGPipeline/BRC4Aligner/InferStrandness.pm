@@ -38,7 +38,7 @@ sub param_defaults {
     infer_max => 0.80,  # Above this, infer stranded
     infer_min => 0.65,  # Between this and infer_max, ambiguous
     infer_failed_max => 0.2, # Threshold for max failed reads
-    infer_mean_reads => 1_000, # Minimum number of usable reads to make an inference
+    infer_min_reads => 1_000, # Minimum number of usable reads to make an inference
   };
 }
 
@@ -164,7 +164,7 @@ sub get_strandness {
     if ($stderr =~ /Total (\d+) usable reads were sampled/) {
       $n_reads = $1;
     }
-    my $min_reads = $self->param('infer_mean_reads');
+    my $min_reads = $self->param('infer_min_reads');
     if ($n_reads < $min_reads) {
       die("Inference failed (number of usable reads is too small: $n_reads < $min_reads): $stderr");
     }
