@@ -7,7 +7,7 @@ Storing pathogen-host interactions data from different source DBs including [PHI
 
 A registry file with the urls of the interspecies_interactions_db, the ncbi_tax, and meta_db database servers specified.
 
-A .csv file from the source_DB from whioch the interactions are sourced.
+A .csv file from the source_DB from which the interactions are sourced.
 
 A .obo file with the descritption of the controlled terms used to describe different aspects of the interactions (optional)
 
