@@ -101,7 +101,8 @@ sub _get_repeat_script_path {
   # Get to the util dir
   my $rm_dir = dirname($rm_path);
 
-  my $util_dir = catdir($rm_dir, '../lib/util');
+  my $util_dir = catdir($rm_dir, '../libexec/util');
+  $util_dir = catdir($rm_dir, '../lib/util') if not -d $util_dir;
   die "Could not find RepeatMasker util dir at $util_dir" if not -d $util_dir;
   
   my $script_path = catfile($util_dir, 'queryRepeatDatabase.pl');
