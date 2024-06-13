@@ -431,7 +431,7 @@ sub pipeline_analyses {
                                repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
                                dust_wd => catdir('#work_dir#', '#species#', 'dust_wd'),
                                trf_wd => catdir('#work_dir#', '#species#', 'trf_wd'),
-                               cmd => 'find #repeat_masker_wd# #dust_wd# #trf_wd# -type f -print0 | xargs -r -0 rm',
+                               cmd => 'find #repeat_masker_wd# #dust_wd# #trf_wd# -type f -print0 | xargs -r -0 rm -f',
       },
       -rc_name           => 'normal',
       -max_retry_count => 0,
