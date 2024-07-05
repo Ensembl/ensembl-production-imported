@@ -44,61 +44,62 @@ class FileReader(eHive.BaseRunnable):
 
     def read_lines(self):
         self.warning("read_lines running")
-        int_db_url, ncbi_tax_url, meta_db_url = self.read_registry()
+        int_db_url, ncbi_tax_url, meta_db_url, vertebrate_url, non_vertebrate_url, bacteria_url  = self.read_registry()
         self.param("interactions_db_url",int_db_url)
         
         source_db = self.param('source_db')
         cm = col_map.ColumnMapper(source_db)
-        print (f"COLUMN Mapper cm.source_db_label {cm.source_db_label}")
+        print (f"COLUMN Mapper cm.source_db_label {source_db}")
         with open(self.param('inputfile'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
             lines_list = []
             for row in reader:
-                entry_line_dict = {
-                    "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
-                    "PHI_id": row[0],
-                    "patho_uniprot_id": row[cm.patho_uniprot_id],
-                    "patho_sequence": row[cm.patho_sequence],
-                    "patho_interactor_name": row[cm.patho_interactor_name],
-                    "patho_other_names": row[cm.patho_other_names],
-                    "patho_species_taxon_id": row[cm.patho_species_taxon_id],
-                    "patho_species_strain": row[cm.patho_species_strain],
-                    "host_uniprot_id": self.get_uniprot_id(row[cm.host_uniprot_id]),
-                    "host_interactor_name": row[cm.host_interactor_name],
-                    "host_other_names": row[cm.host_other_names],
-                    "host_species_taxon_id": row[cm.host_species_taxon_id],
-                    "litterature_id": row[cm.litterature_id],
-                    "litterature_source": row[cm.litterature_source],
-                    "doi": row [cm.doi],
-                    "interactions_db_url": int_db_url,
-                    "ncbi_taxonomy_url": ncbi_tax_url,
-                    "meta_ensembl_url": meta_db_url,
-                    "source_db_label": cm.source_db_label,
-                    }
-                keys_rows_dict = col_map.ColumnMapper.keys_rows
-                for key in keys_rows_dict:
-                    row_number = keys_rows_dict[key]                  
-                    row_entry = row[row_number]
-                    if row_entry != '':
-                        entry_line_dict[key] = self.limit_string_length(row_entry)
-                lines_list.append(entry_line_dict)
+                try:
+                    entry_line_dict = {
+                        "branch_to_flow_on_fail" : self.param('branch_to_flow_on_fail'),
+                        "entry_id": row[cm.entry_id],
+                        "interactor_A_molecular_id": row[cm.interactor_A_molecular_id],#either uniprot or chebi
+                        "interactor_A_interactor_type": cm.interactor_A_interactor_type,
+                        "interactor_A_curie_type": cm.interactor_A_curie_type,
+                        "interactor_A_sequence": row[cm.interactor_A_sequence],
+                        "interactor_A_ensembl_id": row[cm.interactor_A_ensembl_id],
+                        "interactor_A_species_taxon_id": row[cm.interactor_A_species_taxon_id],
+                        "interactor_A_species_strain": row[cm.interactor_A_species_strain],
+                        "interactor_A_origin_name": row[cm.interactor_A_origin_name], #either species name or chebi
+                        "interactor_B_molecular_id": row[cm.interactor_B_molecular_id],#either uniprot or chebi
+                        "interactor_B_interactor_type": cm.interactor_B_interactor_type,
+                        "interactor_B_curie_type": cm.interactor_B_curie_type,
+                        "interactor_B_sequence": row[cm.interactor_B_sequence],
+                        "interactor_B_ensembl_id": row[cm.interactor_B_ensembl_id],
+                        "interactor_B_species_taxon_id": row[cm.interactor_B_species_taxon_id],
+                        "interactor_B_species_strain": row[cm.interactor_B_species_strain],
+                        "interactor_B_origin_name": row[cm.interactor_B_origin_name], #either species name or chebi
+                        "litterature_id": row[cm.litterature_id],
+                        "litterature_source": cm.litterature_source,
+                        "doi": row [cm.litterature_id],
+                        "interactions_db_url": int_db_url,
+                        "ncbi_taxonomy_url": ncbi_tax_url,
+                        "meta_ensembl_url": meta_db_url,
+                        "vertebrate_url":vertebrate_url,
+                        "non_vertebrate_url": non_vertebrate_url,
+                        "bacteria_url":bacteria_url,
+                        "source_db_label": cm.source_db_label,
+                        "source_db_description": cm.source_db_description,
+                        "obo_file": cm.ontology_file,
+                        }
+                    keys_rows_dict = col_map.ColumnMapper.keys_rows
+                    for key in keys_rows_dict:
+                        row_number = keys_rows_dict[key]                  
+                        row_entry = row[row_number]
+                        if row_entry != '':
+                            entry_line_dict[key] = self.limit_string_length(row_entry)
+                    lines_list.append(entry_line_dict)
+                except Exception as e:
+                    print(e)
+                    pass
         return lines_list
 
-    def get_uniprot_id(self,accessions):
-        result = None
-        reported = False
-        accessions_list = accessions.split(';')
-        for ac in accessions_list:
-            if "Uniprot: " in ac:
-                result = ac.replace('Uniprot: ','')
-                reported = True
-        try:
-            if not reported:
-                raise (AssertionError)
-        except AssertionError:
-            print("Uniprot id not found. Thi interactor needs an Uniprot accession: " + accessions)
-        return result
 
     def get_db_label(self):
         source_db = self.param('source_db')
@@ -118,6 +119,12 @@ class FileReader(eHive.BaseRunnable):
                     ncbi_tax_url=url[1]
                 elif url[0] == 'meta_db_url':
                     meta_db_url=url[1]
-
-            return int_db_url, ncbi_tax_url, meta_db_url
+                elif url[0] == 'vertebrate_url': 
+                    vertebrate_url=url[1]
+                elif url[0] == 'non_vertebrate_url': 
+                    non_vertebrate_url=url[1] 
+                elif url[0] == 'bacteria_url': 
+                    bacteria_url=url[1] 
+                    
+        return int_db_url, ncbi_tax_url, meta_db_url,vertebrate_url, non_vertebrate_url, bacteria_url
 

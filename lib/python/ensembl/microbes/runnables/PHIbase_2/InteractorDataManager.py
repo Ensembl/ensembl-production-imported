@@ -25,55 +25,52 @@ class InteractorDataManager(eHive.BaseRunnable):
     def fetch_input(self):
         self.warning("Fetch InteractorDataManager")
         self.param('failed_job', '')
-        phi_id = self.param_required('PHI_id')
-        self.check_param('patho_ensembl_gene_stable_id')
-        self.check_param('patho_molecular_structure')
-        self.check_param('host_ensembl_gene_stable_id')
-        self.check_param('host_molecular_structure')   
+        entry_id = self.param_required('entry_id')
+        self.check_param('interactor_A_ensembl_id')
+        self.check_param('interactor_A_molecular_structure')
+        if self.param('interactor_B_interactor_type') != 'synthetic':
+            self.check_param('interactor_B_ensembl_id')
+            self.check_param('interactor_B_molecular_structure')   
 
     def run(self):
         self.warning("InteractorDataManager run")
         self.get_interactor_fields()
         
     def get_interactor_fields(self):
-        patho_interactor_type = self.get_interactor_type()
-        host_interactor_type = self.get_interactor_type()
-        patho_curie = 'prot:' + self.param('patho_uniprot_id')
-        host_curie = 'prot:' + self.param('host_uniprot_id')
-        self.param('patho_interactor_type', patho_interactor_type)
-        self.param('host_interactor_type', host_interactor_type)
-        self.param('patho_curie', patho_curie)
-        self.param('host_curie', host_curie)
-
-
-    def get_interactor_type(self):
-        #TODO Properly implement this for non PHI-base interactors
-        source_db = self.param('source_db_label')
-        if  source_db == 'PHI-base':
-            return 'protein'
+        interactor_A_curie_type = self.param("interactor_A_curie_type")
+        interactor_B_curie_type = self.param("interactor_B_curie_type")
+        interactor_A_curie = interactor_A_curie_type + ":" + self.param('interactor_A_molecular_id')
+        if self.param('interactor_B_interactor_type') != 'synthetic':
+            if self.param('interactor_B_molecular_id'):
+                interactor_B_curie = interactor_B_curie_type + ":" + self.param('interactor_B_molecular_id')
+            else:
+                interactor_B_curie = interactor_B_curie_type + ":UNDETERMINED"
         else:
-            raise ValueError ("Unkonwn interactor type")
+            interactor_B_curie = self.param('interactor_B_molecular_id')
+        self.param('interactor_A_curie', interactor_A_curie)
+        self.param('interactor_B_curie', interactor_B_curie)
+
 
     def build_output_hash(self):
         lines_list = []
         entry_line_dict = {
-                "patho_interactor_type": self.param("patho_interactor_type"),
-                "host_interactor_type": self.param("host_interactor_type"),
-                "patho_curie": self.param("patho_curie"),
-                "host_curie": self.param("host_curie"),
+                "interactor_A_interactor_type": self.param("interactor_A_interactor_type"),
+                "interactor_B_interactor_type": self.param("interactor_B_interactor_type"),
+                "interactor_A_curie": self.param("interactor_A_curie"),
+                "interactor_B_curie": self.param("interactor_B_curie"),
                 }
         lines_list.append(entry_line_dict)
         return lines_list
 
     def write_output(self):
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         if self.param('failed_job') == '':
             entries_list = self.build_output_hash()
             for entry in entries_list:
                 self.dataflow(entry, 1)
         else:
             #output_hash = [{"uncomplete_entry": self.param('failed_job')} ]
-            print(f"{phi_id} written to FailedJob")
+            print(f"{entry_id} written to FailedJob")
             self.dataflow({"uncomplete_entry": self.param('failed_job')}, self.param('branch_to_flow_on_fail'))
             return 
 
@@ -81,6 +78,6 @@ class InteractorDataManager(eHive.BaseRunnable):
         try:
             self.param_required(param)
         except:
-            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            error_msg = self.param('entry_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
             self.param('failed_job', error_msg)
             print(error_msg)

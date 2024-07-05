@@ -16,6 +16,7 @@ import os
 import subprocess
 import eHive
 import requests
+import hashlib
 
 class SequenceFinder(eHive.BaseRunnable):
     """Finds the molecular structure of the interactor"""
@@ -26,39 +27,54 @@ class SequenceFinder(eHive.BaseRunnable):
     def fetch_input(self):
         self.warning("Fetch Sequence Finder")
         self.param('failed_job', '')
-        phi_id = self.param('PHI_id')
-        self.check_param("patho_ensembl_gene_stable_id")
-        self.check_param("host_ensembl_gene_stable_id")
-        self.check_param("patho_uniprot_id")
-        self.check_param("host_uniprot_id")
+        entry_id = self.param('entry_id')
+        self.check_param("interactor_A_ensembl_id")
+        self.check_param("interactor_A_molecular_id")
+        self.check_param("interactor_B_molecular_id")
+        if self.param('interactor_B_interactor_type') != 'synthetic':
+            self.check_param("interactor_B_ensembl_id")
 
     def run(self):
         self.warning("Sequence finder run")
         self.get_values()
 
     def get_values(self):
-        phi_id = self.param('PHI_id')
-        patho_ensembl_gene_stable_id = self.param("patho_ensembl_gene_stable_id")
-        host_ensembl_gene_stable_id = self.param("host_ensembl_gene_stable_id")
-        patho_uniprot_id = self.param("patho_uniprot_id")
-        host_uniprot_id = self.param("host_uniprot_id")
+        entry_id = self.param('entry_id')
+        interactor_A_ensembl_gene_stable_id = self.param("interactor_A_ensembl_id")
+        interactor_A_molecular_id = self.param("interactor_A_molecular_id")
 
-        patho_molecular_structure = self.get_molecular_structure(patho_uniprot_id, patho_ensembl_gene_stable_id)
-        host_molecular_structure = self.get_molecular_structure(host_uniprot_id, host_ensembl_gene_stable_id)
-        self.param("patho_molecular_structure",patho_molecular_structure)
-        self.param("host_molecular_structure",host_molecular_structure)
+        interactor_A_molecular_structure = self.get_molecular_structure(interactor_A_molecular_id, interactor_A_ensembl_gene_stable_id)
+        if self.param('interactor_B_interactor_type') == 'synthetic':
+            interactor_B_molecular_structure = ""
+        else:
+            interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
+            if "UNDETERMINED" in interactor_B_ensembl_gene_stable_id:
+                interactor_B_molecular_structure = "UNDETERMINED"
+            else:
+                interactor_B_molecular_id = self.param("interactor_B_molecular_id")
+                interactor_B_molecular_structure = self.get_molecular_structure(interactor_B_molecular_id, interactor_B_ensembl_gene_stable_id)
+        
+        self.param("interactor_A_molecular_structure",interactor_A_molecular_structure)
+        self.param("interactor_B_molecular_structure",interactor_B_molecular_structure)
 
     def get_molecular_structure(self, uniprot_id, ensembl_gene_id):
+        #TO DO: Either redefine with a checksum value of the sequence or remove the sequence completely (we probably don't need it)
+        #uniprot_seq = 'TO_BE_DEFINED'
+        
         uniprot_seq = self.get_uniprot_sequence(uniprot_id)
-        ensembl_seqs = self.get_ensembl_sequences(ensembl_gene_id)
-        phi_id = self.param('PHI_id')
+        #ensembl_seqs = self.get_ensembl_sequences(ensembl_gene_id)
+        uniprot_seq = self.create_digest(uniprot_seq)
+        '''
+        entry_id = self.param('entry_id')
         try:
             if not self.check_equals(uniprot_seq,ensembl_seqs):
                 raise (AssertionError)
             else:
-                print(f" {phi_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
+                uniprot_seq = self.create_digest(uniprot_seq)
+                #print(f" {entry_id} Sequence match for  uniprot accession {uniprot_id} and ensembl_accession: {ensembl_gene_id}")
         except AssertionError:
-            print(f" {phi_id} NO SEQUENCE MATCH for uniprot accession {uniprot_id} and ensembl_accession {ensembl_gene_id}")
+            print(f" {entry_id} NO SEQUENCE MATCH for uniprot accession {uniprot_id} and ensembl_accession {ensembl_gene_id}")
+        '''
         return uniprot_seq
 
     def check_equals(self, uniprot_seq, ensembl_seqs):
@@ -88,20 +104,25 @@ class SequenceFinder(eHive.BaseRunnable):
                 ensembl_seq_list.append(dc_l.replace("<AAseq>",''))
         return ensembl_seq_list
 
+    def create_digest(self,input_string):
+        digest = hashlib.sha256(str(input_string).encode('utf-8')).hexdigest()
+        short_digest=digest[0:20]
+        return short_digest
+
     def build_output_hash(self):
         lines_list = []
         entry_line_dict = {
-                "patho_molecular_structure": self.param("patho_molecular_structure"),
-                "host_molecular_structure": self.param("host_molecular_structure"),
+                "interactor_A_molecular_structure": self.param("interactor_A_molecular_structure"),
+                "interactor_B_molecular_structure": self.param("interactor_B_molecular_structure"),
                 }
         lines_list.append(entry_line_dict)
         return lines_list
 
     def write_output(self):
-        phi_id = self.param('PHI_id')
+        entry_id = self.param('entry_id')
         if self.param('failed_job') == '':
             entries_list = self.build_output_hash()
-            print(f"{phi_id} written to DBwriter")
+            print(f"{entry_id} written to DBwriter")
             for entry in entries_list:
                 self.dataflow(entry, 1)
         else:
@@ -111,7 +132,7 @@ class SequenceFinder(eHive.BaseRunnable):
         try:
             self.param_required(param)
         except:
-            error_msg = self.param('PHI_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
+            error_msg = self.param('entry_id') + " entry doesn't have the required field " + param + " to attempt writing to the DB"
             self.param('failed_job', error_msg)
             print(error_msg)
 

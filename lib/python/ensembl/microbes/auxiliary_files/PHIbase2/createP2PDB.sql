@@ -49,7 +49,7 @@ CREATE TABLE `predicted_interactor` (
 
 CREATE TABLE `ensembl_gene` (
 	`ensembl_gene_id` INT NOT NULL AUTO_INCREMENT,
-	`species_id` INT NOT NULL,
+	`species_id` INT,
 	`ensembl_stable_id` VARCHAR(255),
 	`import_time_stamp` TIMESTAMP NOT NULL,
 	PRIMARY KEY (`ensembl_gene_id`)
@@ -62,7 +62,7 @@ CREATE TABLE `curated_interactor` (
 	`name` VARCHAR(255),
 	`molecular_structure` VARCHAR(10000) ,
 	`import_timestamp` TIMESTAMP NOT NULL,
-	`ensembl_gene_id` INT NOT NULL,
+	`ensembl_gene_id` INT,
 	PRIMARY KEY (`curated_interactor_id`)
 );
 

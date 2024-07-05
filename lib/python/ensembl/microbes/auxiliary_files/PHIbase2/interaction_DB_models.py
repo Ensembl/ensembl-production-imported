@@ -80,7 +80,7 @@ class CuratedInteractor(Base):
     name = Column(String(255), nullable=True)
     molecular_structure = Column(String(10000), nullable=False)
     import_timestamp = Column(TIMESTAMP, nullable=False)
-    ensembl_gene_id = Column(INTEGER(11), ForeignKey("ensembl_gene.ensembl_gene_id"), nullable=False, index=True)
+    ensembl_gene_id = Column(INTEGER(11), ForeignKey("ensembl_gene.ensembl_gene_id"), nullable=True, index=True)
 
     predicted_interactors = relationship("PredictedInteractor", back_populates="curated_interactors")
     interactors_1 = relationship("Interaction", primaryjoin="CuratedInteractor.curated_interactor_id == Interaction.interactor_1")
@@ -100,9 +100,9 @@ class EnsemblGene(Base):
     __tablename__ = 'ensembl_gene'
 
     ensembl_gene_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
-    species_id = Column(INTEGER(11), ForeignKey("species.species_id"), nullable=False, index=True)
+    species_id = Column(INTEGER(11), ForeignKey("species.species_id"), nullable=True, index=True)
     ensembl_stable_id = Column(String(255))
-    import_time_stamp = Column(TIMESTAMP, nullable=False)
+    import_timestamp = Column(TIMESTAMP, nullable=False)
 
     predicted_interactors = relationship("PredictedInteractor", back_populates="ensembl_genes")
     curated_interactors = relationship("CuratedInteractor", back_populates="ensembl_genes")
@@ -111,11 +111,11 @@ class EnsemblGene(Base):
     def __repr__(self):
         try:
             eg_id = self.gene_id
-            return "<EnsemblGene(gene_id='%d', ensembl_stable_id='%s', species_id='%d', import_time_stamp='%s')>" % (
-                eg_id, self.ensembl_stable_id, self.species_id, str(self.import_time_stamp))
+            return "<EnsemblGene(gene_id='%d', ensembl_stable_id='%s', species_id='%d', import_timestamp='%s')>" % (
+                eg_id, self.ensembl_stable_id, self.species_id, str(self.import_timestamp))
         except NameError:
-            return "<EnsemblGene(gene_id=Null-until-stored, ensembl_stable_id='%s', species_id='%d', import_time_stamp='%s')>" % (
-                self.ensembl_stable_id, self.species_id, str(self.import_time_stamp))
+            return "<EnsemblGene(gene_id=Null-until-stored, ensembl_stable_id='%s', species_id='%d', import_timestamp='%s')>" % (
+                self.ensembl_stable_id, self.species_id, str(self.import_timestamp))
 
 class Interaction(Base):
     __tablename__ = 'interaction'
@@ -192,7 +192,7 @@ class OntologyTerm(Base):
     ontology_term_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     ontology_id = Column(INTEGER(11), ForeignKey("ontology.ontology_id"), nullable=False, index=True)
     accession = Column(String(255), nullable=False, unique=True)
-    description = Column(String(255), nullable=False, unique=True)
+    description = Column(String(255), nullable=False)
 
     ontologies = relationship("Ontology", back_populates="ontology_terms")
     key_value_pairs = relationship("KeyValuePair", back_populates="ontology_terms")
@@ -219,11 +219,11 @@ class Ontology(Base):
     def __repr__(self):
         try:
             o_id = self.ontology_id
-            return "<Ontology(ontology_id='%d', ontology_name='%s', ontology_description='%s')>" % (
-                o_id, self.ontology_name, self.ontology_description)
+            return "<Ontology(ontology_id='%d', name='%s', description='%s')>" % (
+                o_id, self.name, self.description)
         except NameError:
-            return "<Ontology(ontology_id=Null-until-stored, ontology_name='%s', ontology_description='%s')>" % (
-                self.ontology_name, self.ontology_description)
+            return "<Ontology(ontology_id=Null-until-stored, name='%s', description='%s')>" % (
+                self.name, self.description)
 
 class PredictionMethod(Base):
     __tablename__ = 'prediction_method'
@@ -246,37 +246,42 @@ class PredictionMethod(Base):
 
 class SourceDb(Base):
     __tablename__ = 'source_db'
+    __table_args__ = (
+        Index('external_db_original_curator_db', 'external_db', 'original_curator_db', unique=True),
+    )
 
     source_db_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     label = Column(String(255), nullable=False)
     external_db = Column(String(255), nullable=False)
-
+    original_curator_db = Column(String(255), nullable=False)
+    
     interactions= relationship("Interaction", back_populates="source_dbs")
 
     def __repr__(self):
         try:
             sdb_id = self.source_db_id
-            return "<SourceDb(source_db_id='%d', label='%s', external_db='%s')>" % (
-                sdb_id, self.label, self.external_db)
+            return "<SourceDb(source_db_id='%d', label='%s', external_db='%s', original_curator_db='%s')>" % (
+                sdb_id, self.label, self.external_db, self.original_curator_db)
         except NameError:
-            return "<SourceDb(source_db_id=Null-until-stored, label='%s', external_db='%s')>" % (
-                self.label, self.external_db)
+            return "<SourceDb(source_db_id=Null-until-stored, label='%s', external_db='%s', original_curator_db='%s')>" % (
+                self.label, self.external_db, self.original_curator_db)
 
 class Species(Base):
     __tablename__ = 'species'
 
     species_id = Column(INTEGER(11), primary_key=True, autoincrement=True)
+    production_name = Column(String(255), unique=True, nullable=True)
+    scientific_name = Column(String(255), nullable=False)
     ensembl_division = Column(String(255), nullable=False)
-    production_name = Column(String(255), nullable=False)
-    taxon_id = Column(INTEGER(11), nullable=False, unique=True)
+    taxon_id = Column(INTEGER(11), nullable=False)
 
     ensembl_genes = relationship("EnsemblGene", back_populates="species_ids_r")
 
     def __repr__(self):
         try:
             s_id = self.species_id
-            return "<Species(species_id='%d', ensembl_division='%s', production_name='%s', taxon_id='%d')>" % (
-                s_id, self.ensembl_division, self.production_name, self.taxon_id)
+            return "<Species(species_id='%d', ensembl_division='%s', production_name='%s', taxon_id='%d', scientific_name='%s')>" % (
+                s_id, self.ensembl_division, self.production_name, self.taxon_id, self.scientific_name)
         except NameError:
-            return "<Species(species_id=Null-until-stored, ensembl_division='%s', production_name='%s', taxon_id='%d')>" % (
-                self.ensembl_division, self.production_name, self.taxon_id)
+            return "<Species(species_id=Null-until-stored, ensembl_division='%s', production_name='%s', taxon_id='%d', scientific_name='%s')>" % (
+                self.ensembl_division, self.production_name, self.taxon_id, self.scientific_name)
