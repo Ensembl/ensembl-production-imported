@@ -36,8 +36,9 @@ class MetaEnsemblReader(eHive.BaseRunnable):
     def fetch_input(self):
         self.param('failed_job', '')
         meta_db_url = self.param_required('meta_ensembl_url')
-        jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
-        (m_user,m_pwd,m_host,m_port,m_db) = re.compile(jdbc_pattern).findall(meta_db_url)[0]
+        meta_db_url = "mysql://ensro@mysql-ens-meta-prod-1:4483/ensembl_metadata"
+        jdbc_pattern = 'mysql://(.*?)@(.*?):(\d*)'
+        (m_user,m_host,m_port) = re.compile(jdbc_pattern).findall(meta_db_url)[0]
         self.param('meta_user',m_user)
         self.param('meta_host',m_host)
         self.param('meta_port',int(m_port))
@@ -63,7 +64,7 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             db_connection = pymysql.connect(host=self.param('meta_host'),user=self.param('meta_user'),db='ensembl_metadata',port=self.param('meta_port'))
             
             species_strain = self.get_strain_taxon('interactor_A_species_strain')
-            species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
+            species_taxon_id = self.param('interactor_A_species_taxon_id')
             interactor_A_division, interactor_A_dbnames_set, interactor_A_taxon_ref = self.get_meta_values(db_connection, species_taxon_id,species_strain)        
 
             self.param("interactor_A_division",interactor_A_division)
@@ -74,14 +75,15 @@ class MetaEnsemblReader(eHive.BaseRunnable):
             # Same for interactor B
             interactor_B_division = ""
             interactor_B_taxon_ref = ""
-            #interactor_B_dbnames_set = set()
+            interactor_B_dbnames_set = set()
             if self.param('interactor_B_interactor_type') == 'synthetic':
                 interactor_B_division = "NA"
                 interactor_B_taxon_ref = "NA"
                 interactor_B_dbnames_set = set()
             else:
                 species_strain = self.get_strain_taxon('interactor_B_species_strain') 
-                species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
+                species_taxon_id = self.param('interactor_B_species_taxon_id')
+            
                 interactor_B_division, interactor_B_dbnames_set, interactor_B_taxon_ref = self.get_meta_values(db_connection, species_taxon_id, species_strain)
             
             db_connection.close()

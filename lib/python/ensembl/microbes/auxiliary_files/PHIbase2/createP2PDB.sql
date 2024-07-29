@@ -68,10 +68,12 @@ CREATE TABLE `curated_interactor` (
 
 CREATE TABLE `species` (
 	`species_id` INT NOT NULL AUTO_INCREMENT,
-	`ensembl_division` varchar(255) NOT NULL,
-	`production_name` varchar(255) NOT NULL,
-	`taxon_id` INT NOT NULL UNIQUE,
-	PRIMARY KEY (`species_id`)
+	`ensembl_division` VARCHAR(255) NOT NULL,
+	`production_name` VARCHAR(255),
+	`scientific_name` VARCHAR(255) NOT NULL,
+	`taxon_id` INT NOT NULL,
+	PRIMARY KEY (`species_id`),
+	UNIQUE KEY `scientific_name_taxon_id` (`scientific_name`,`taxon_id`)
 );
 
 CREATE TABLE `key_value_pair` (
@@ -95,6 +97,7 @@ CREATE TABLE `source_db` (
 	`source_db_id` INT NOT NULL AUTO_INCREMENT,
 	`label` varchar(255) NOT NULL,
 	`external_db` VARCHAR(255) NOT NULL,
+	`original_curator_db` VARCHAR(255) NOT NULL,
 	PRIMARY KEY (`source_db_id`)
 );
 

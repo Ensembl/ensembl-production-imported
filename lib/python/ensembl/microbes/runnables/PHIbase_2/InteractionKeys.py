@@ -36,9 +36,10 @@ class InteractionKeys(eHive.BaseRunnable):
 
     def param_defaults(self):
         return {
-            'inputfile' : '#inputfile#',
-            'registry'  : '#registry#',
-            'source_db' : '#source_db#',
+            'inputfile'     : '#inputfile#',
+            'registry'      : '#registry#',
+            'source_db'     : '#source_db#',
+            'fails_folder'  : '#fails_folder#',
         }
 
     def fetch_input(self):
@@ -63,6 +64,7 @@ class InteractionKeys(eHive.BaseRunnable):
         key_dict = cm.keys_descriptions
         key_list = []
         for k_name in key_dict:
+            self.warning("adding key " + k_name )
             key_value = self.get_key_value(session, k_name, key_dict[k_name])
             session.add(key_value)
             key_list.append(k_name)
@@ -70,6 +72,7 @@ class InteractionKeys(eHive.BaseRunnable):
         self.param('key_list', key_list)
         try:
             session.commit()
+            self.warning("session commited")
         except pymysql.err.IntegrityError as e:
             print(e)
             session.rollback()
@@ -142,10 +145,12 @@ class InteractionKeys(eHive.BaseRunnable):
                 "key_list": self.param('key_list'),
                 "inputfile": self.param('inputfile'),
                 "obo_file": obo_file,
+                "fails_folder": self.param('fails_folder'),
             },1)
         except Exception as e:
             self.dataflow({
                 "key_list": self.param('key_list'),
                 "inputfile": self.param('inputfile'),
+                "fails_folder": self.param('fails_folder'), 
             },1)
 

@@ -64,16 +64,16 @@ class FileReader(eHive.BaseRunnable):
                         "interactor_A_curie_type": cm.interactor_A_curie_type,
                         "interactor_A_sequence": row[cm.interactor_A_sequence],
                         "interactor_A_ensembl_id": row[cm.interactor_A_ensembl_id],
-                        "interactor_A_species_taxon_id": row[cm.interactor_A_species_taxon_id],
-                        "interactor_A_species_strain": row[cm.interactor_A_species_strain],
+                        "interactor_A_species_taxon_id": self.safe_convert_to_int(row[cm.interactor_A_species_taxon_id]),
+                        "interactor_A_species_strain": self.safe_convert_to_int(row[cm.interactor_A_species_strain]),
                         "interactor_A_origin_name": row[cm.interactor_A_origin_name], #either species name or chebi
                         "interactor_B_molecular_id": row[cm.interactor_B_molecular_id],#either uniprot or chebi
                         "interactor_B_interactor_type": cm.interactor_B_interactor_type,
                         "interactor_B_curie_type": cm.interactor_B_curie_type,
                         "interactor_B_sequence": row[cm.interactor_B_sequence],
                         "interactor_B_ensembl_id": row[cm.interactor_B_ensembl_id],
-                        "interactor_B_species_taxon_id": row[cm.interactor_B_species_taxon_id],
-                        "interactor_B_species_strain": row[cm.interactor_B_species_strain],
+                        "interactor_B_species_taxon_id": self.safe_convert_to_int(row[cm.interactor_B_species_taxon_id]),
+                        "interactor_B_species_strain": self.safe_convert_to_int(row[cm.interactor_B_species_strain]),
                         "interactor_B_origin_name": row[cm.interactor_B_origin_name], #either species name or chebi
                         "litterature_id": row[cm.litterature_id],
                         "litterature_source": cm.litterature_source,
@@ -88,6 +88,9 @@ class FileReader(eHive.BaseRunnable):
                         "source_db_description": cm.source_db_description,
                         "obo_file": cm.ontology_file,
                         }
+                    print("============================")
+                    for entry in entry_line_dict:
+                        print(entry+ ": " + str(entry_line_dict[entry])) 
                     keys_rows_dict = col_map.ColumnMapper.keys_rows
                     for key in keys_rows_dict:
                         row_number = keys_rows_dict[key]                  
@@ -108,6 +111,16 @@ class FileReader(eHive.BaseRunnable):
     def limit_string_length(self, string):
         value = "%.255s" % string
         return value
+     
+    def safe_convert_to_int(self, value):
+    #PHI-base formatting is sometimes unconsistent. We need to check for different possibilities here
+        #print("safe_convert_to_int(" + value + ")")
+        #print("type of " + value + " : " + str(type(value)))
+        try:
+            result = int(float(value))
+        except ValueError:
+            result = ''
+        return result  
 
     def read_registry(self):
         with open(self.param('registry'), newline='') as reg_file:
