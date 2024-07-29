@@ -46,12 +46,15 @@ sub run {
   my $gtf = $self->param_required('gtf_file');
   my $strand = $self->param_required('strand');
   my $number = $self->param_required('number');
-  my $strand_direction = $self->param('strand_direction');
   my $feature = $self->param('feature');
+
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  my $strand_direction = $aligner_metadata->{'strand_direction'};
 
   my $results_dir = dirname($bam);
 
   my $htseq_file = 'genes.htseq-union.' . $feature . '.' . $strand;
+  $htseq_file = 'genes.htseq-union.' . $strand if $feature eq 'exon';
   if ($number eq 'total') {
     $htseq_file .= '.nonunique';
   }
@@ -98,12 +101,26 @@ sub run {
   my $cmd = $self->run_htseq_count($bam, $gtf, $htseq_file, $params);
   
   $self->param("cmd", $cmd);
+  $self->param("htseq_file", $htseq_file);
+  $self->param("strand", $strand);
+  $self->param("feature", $feature);
+  $self->param("number", $number);
 }
 
 sub write_output {
   my ($self) = @_;
   
   my $cmd = $self->param("cmd");
+  my $htseq_file = $self->param("htseq_file");
+  my $strand = $self->param("strand");
+  my $feature = $self->param("feature");
+  my $number = $self->param("number");
+
+  my %case =  ( "htseq_file" => $htseq_file,
+      "strand"               => $strand,
+      "feature"              => $feature,
+      "number"               => $number,
+  );
   
   my $version = $self->get_htseq_version();
 
@@ -115,6 +132,7 @@ sub write_output {
   $self->store_align_cmds($align_cmds);
   
   $self->dataflow_output_id({ cmds => $cmd },  2);
+  $self->dataflow_output_id({ case => \%case },  3);
 }
 
 sub get_htseq_version {
@@ -151,6 +169,10 @@ sub run_htseq_count {
     } else {
       die("Index failed: $stderr");
     }
+  }
+
+  if (not -s $htseq_file) {
+    die("Generated htseq-count file is empty: $htseq_file");
   }
 
   return $cmd;

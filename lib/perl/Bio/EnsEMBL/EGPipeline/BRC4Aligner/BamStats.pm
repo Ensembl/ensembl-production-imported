@@ -86,7 +86,8 @@ sub run_bam_stats {
     number_reads_mapped => $number_mapped,
     average_read_length => $average_read_length,
   );
-  $stats{number_pairs_mapped} = $stats->{'reads properly paired'} if $self->param_required('is_paired');
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  $stats{number_pairs_mapped} = $stats->{'reads properly paired'} if $aligner_metadata->{'is_paired'};
 
   return \%stats;
 }

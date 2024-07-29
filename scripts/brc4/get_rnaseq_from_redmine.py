@@ -1,27 +1,82 @@
 #!env python3
 
-from redminelib import Redmine
+# See the NOTICE file distributed with this work for additional information
+# regarding copyright ownership.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import Dict, List, Tuple
 import argparse
-import os, json, re, time
-import requests
-import xml.etree.ElementTree as ET
+import json
+import re
 from unidecode import unidecode
 from pathlib import Path
- 
+from redminelib import Redmine
+from redminelib.resources import Issue as RedmineIssue
+from redminelib.managers import ResourceManager as RedmineResource
+
 url = 'https://redmine.apidb.org'
 default_fields = dict(
-        status_name = 'Data Processing (EBI)',
-        cf_17 = "Data Processing (EBI)",
-        )
-insdc_pattern = "^GC[AF]_\d{9}(\.\d+)?$"
+    status_name='Data Processing (EBI)',
+    cf_17="Data Processing (EBI)",
+)
+insdc_pattern = r'^GC[AF]_\d{9}(\.\d+)?$'
 accession_api_url = "https://www.ebi.ac.uk/ena/browser/api/xml/%s"
 veupathdb_id = 1976
 
-def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
+
+def load_abbrevs(path: str) -> List[str]:
+    """
+    Load a list of organism abbrevs from a file. Expected to be one per line.
+
+    Args:
+        path: Path to the organism abbrevs file.
+
+    Returns:
+        A list of all organism_abbrevs.
+
+    """
+    if not path:
+        print("Warning: I don't have a list of older abbrevs to compare with.")
+        return []
+    abbrevs = []
+    with open(path, "r") as abbr_file:
+        for line in abbr_file:
+            line = line.rstrip()
+            if line:
+                fields = line.split("\t")
+                if len(fields) == 1:
+                    abbrevs.append(line)
+                else:
+                    raise Exception(
+                        "Can't load current abbrevs from a multicolumn string")
+    return abbrevs
+
+
+def retrieve_rnaseq_datasets(redmine: Redmine, output_dir_path: str, build: int = None,
+                             abbrevs_file: str = None) -> None:
     """
     Get RNA-Seq metadata from Redmine, store them in json files.
-    Each issue/dataset is stored as one file in the output dir
+    Each issue/dataset is stored as one file in the output dir.
+
+    Args:
+        redmine: A connected Redmine object.
+        output_dir_path: Directory where the dataset files are to be stored.
+        build: BRC build number.
+        abbrevs_file: Path to a list of organism_abbrevs that are already in use.
     """
+
+    all_abbrevs = load_abbrevs(abbrevs_file)
+
     issues = get_issues(redmine, "RNA-seq", build)
     if not issues:
         print("No files to create")
@@ -32,15 +87,18 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
     output_dir.mkdir(exist_ok=True)
     
     # Write all datasets in files
-    failed_issues = []
     all_datasets = []
     used_names = []
+
+    problems = []
+    ok_datasets = []
+    warn_abbrevs = []
     
     for issue in issues:
-        dataset = parse_dataset(issue)
-        if not dataset:
-            print("\tSkipped issue %d (%s). Not enough metadata." % (issue.id, issue.subject))
-            failed_issues.append(issue)
+        dataset, problem = parse_dataset(issue)
+        
+        if problem:
+            problems.append({"issue": issue, "desc": problem})
             continue
 
         try:
@@ -49,10 +107,17 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             dataset_name = dataset["name"]
             
             if dataset_name in used_names:
-                print("\tWARNING: dataset name is already used! Please change it: %s" % dataset_name)
+                problems.append(
+                    {"issue": issue, "desc": f"Dataset name already used: {dataset_name}"}
+                )
                 continue
             else:
                 used_names.append(dataset_name)
+            
+            if abbrevs_file and organism not in all_abbrevs:
+                warn_abbrevs.append({"issue": issue, "desc": organism})
+                
+            ok_datasets.append({"issue": issue, "desc": organism})
             
             # Create directory
             dataset_dir = output_dir / component
@@ -61,53 +126,84 @@ def retrieve_rnaseq_datasets(redmine, output_dir_path, build=None):
             # Create file
             file_name = organism + "_" + dataset_name + ".json"
             dataset_file = dataset_dir / file_name
-            print("\tFile written in %s" % dataset_file)
             with open(dataset_file, "w") as f:
                 json.dump([dataset], f, indent=True)
         except Exception as error:
-            print("Skipped issue %d (%s). %s." % (issue.id, issue.subject, error))
-            failed_issues.append(issue)
+            problems.append({"issue": issue, "desc": str(error)})
             pass
         all_datasets.append(dataset)
 
     print("%d issues total" % len(issues))
-    if failed_issues:
-        print("%d issues loaded" % (len(all_datasets)))
-        print("%d issues failed to load" % (len(failed_issues)))
-        for issue in failed_issues:
-            print("\t%s/issues/%s = %s" % (url, issue.id, issue.subject))
+    print_summaries(problems, "issues with problems")
+    print_summaries(
+        warn_abbrevs,
+        "issues using unknown organism_abbrevs (maybe new ones). Those are still imported"
+    )
+    print_summaries(ok_datasets, "datasets imported correctly")
 
     # Create a single merged file as well
     merged_file = Path(output_dir) / "all.json"
     with open(merged_file, "w") as f:
         json.dump(all_datasets, f, indent=True)
- 
-def parse_dataset(issue):
+
+       
+def print_summaries(summaries: Dict, description: str) -> None:
+    """Print a summary of various counts.
+
+    This will print one line for each issue in the dict, with its description, the issue id
+    and the issue subject.
+
+    Args:
+        summaries: Dict with 2 keys:
+            issue: A Redmine Issue object.
+            desc: A description for that issue.
     """
-    Extract RNA-Seq dataset metadata from a Redmine issue
-    Return a nested dict
+    desc_length = 64
+    
+    if summaries:
+        print()
+        print(f"{len(summaries)} {description}:")
+        for summary in summaries:
+            desc = summary["desc"]
+            issue = summary["issue"]
+            print(f"\t{desc:{desc_length}}\t{issue.id}\t({issue.subject})")
+    
+ 
+def parse_dataset(issue: RedmineIssue) -> Tuple[Dict, str]:
+    """
+    Extract RNA-Seq dataset metadata from a Redmine issue.
+
+    Args:
+        issue: A Redmine issue.
+
+    Returns:
+        A tuple of 2 objects:
+            datasets: A dict representing a dataset, with the following keys:
+                component: String for the BRC component DB.
+                species: String for the organism abbrev.
+                name: String for the internal dataset name.
+            problem: A string description if there was a parsing problem
+            (empty string otherwise).
     """
     customs = get_custom_fields(issue)
     dataset = {
-            "component": "",
-            "species": "",
-            "name": "",
-            "runs": [],
-            }
+        "component": "",
+        "species": "",
+        "name": "",
+        "runs": [],
+    }
+    problem = ""
 
     dataset["component"] = get_custom_value(customs, "Component DB")
-    dataset["species"] = get_custom_value(customs, "Organism Abbreviation")
-    dataset["name"] = get_custom_value(customs, "Internal dataset name")
+    dataset["species"] = get_custom_value(customs, "Organism Abbreviation").strip()
+    dataset["name"] = get_custom_value(customs, "Internal dataset name").strip()
 
-    print("\n%s\tParsing issue %s (%s)" % (dataset["component"], issue.id, issue.subject))
-    
-    failed = False
     if not dataset["species"]:
-        print("\tMissing Organism Abbreviation")
-        failed = True
-    if not dataset["name"]:
-        print("\tMissing Internal dataset name")
-        failed = True
+        problem = "Missing Organism Abbreviation"
+    elif not check_organism_abbrev(dataset["species"]):
+        problem = f"Wrong Organism Abbreviation format: '{dataset['species']}'"
+    elif not dataset["name"]:
+        problem = "Missing Internal dataset name"
     else:
         dataset["name"] = normalize_name(dataset["name"])
     
@@ -117,21 +213,37 @@ def parse_dataset(issue):
         samples = parse_samples(samples_str)
         
         if not samples:
-            print("\tMissing Samples")
-            failed = True
+            problem = "Missing Samples"
         
         dataset["runs"] = samples
     except Exception as e:
-        print("\tErrors: %s" % e)
-        failed = True
+        problem = str(e)
     
-    if not failed:
-        return dataset
-    else:
-        return
+    return dataset, problem
+
+
+def check_organism_abbrev(name: str) -> bool:
+    """Check the organism_abbrevs string format to avoid special characters.
+
+    Args:
+        name: organism_abbrev to check.
     
-def normalize_name(old_name):
-    """Remove special characters, keep ascii only"""
+    Returns:
+        True if the organism_abbrev format is correct.
+        False otherwise.
+    """
+    return not re.search(r'[ \/\(\)#\[\]:]', name)
+
+
+def normalize_name(old_name: str) -> str:
+    """Remove special characters from an organism_abbrev, keep ascii only.
+
+    Args:
+        old_name: the organism_abbrev to format.
+    
+    Returns:
+        The formatted organism_abbrev.
+    """
     
     # Remove any diacritics
     name = old_name.strip()
@@ -148,7 +260,18 @@ def normalize_name(old_name):
     
     return name
 
-def parse_samples(sample_str):
+
+def parse_samples(sample_str: str) -> List[Dict]:
+    """Parse a list of samples from a Redmine task.
+
+    Args:
+        sample_str: The value of the field 'Sample Names' from an RNA-Seq Redmine task.
+    
+    Returns:
+        A list of samples dicts, with the following keys:
+            name: the name of the sample.
+            accessions: a list of string representing the SRA accessions for that sample.
+    """
     samples = []
     
     # Parse each line
@@ -157,36 +280,70 @@ def parse_samples(sample_str):
     sample_names = dict()
     for line in lines:
         line = line.strip()
-        if line == "": continue
+        if line == "":
+            continue
 
-        # Assuming only one :
+        # Get sample_name -> accessions
         parts = line.split(":")
+        if len(parts) > 2:
+            end = parts[-1]
+            start = ":".join(parts[:-1])
+            parts = [start, end]
+        
         if len(parts) == 2:
             sample_name = parts[0].strip()
             
             if sample_name in sample_names:
                 raise Exception("Several samples have the same name '%s'" % sample_name)
             else:
-                sample_names[sample_name] = True;
+                sample_names[sample_name] = True
             
             accessions_str = parts[1].strip()
             accessions = [x.strip() for x in accessions_str.split(",")]
+            
+            if not validate_accessions(accessions):
+                if validate_accessions(sample_name.split(",")):
+                    raise Exception("Sample name and accessions are switched?")
+                else:
+                    raise Exception(f"Invalid accession among '{accessions}'")
+            
             sample = {
-                    "name": normalize_name(sample_name),
-                    "accessions": accessions
-                    }
+                "name": normalize_name(sample_name),
+                "accessions": accessions
+            }
             samples.append(sample)
-        elif len(parts) > 2:
-            raise Exception("More than two parts (sample name may have a ':' in it)")
         else:
             raise Exception("Sample line doesn't have 2 parts: '%s'" % line)
     
     return samples
 
-def get_custom_fields(issue):
+
+def validate_accessions(accessions: str) -> bool:
+    """Check SRA accessions format, to make sure we get proper ones.
+
+    Args:
+        accessions: a list of strings to check
+
+    Return:
+        True if all strings are proper SRA accessions.
+        False if at least one is not a proper SRA accession.
     """
-    Put all Redmine custom fields in a dict instead of an array
-    Return a dict
+    if "" in accessions:
+        return False
+    for acc in accessions:
+        if not re.search(r'^[SE]R[RSXP]\d+$', acc):
+            return False
+    return True
+
+
+def get_custom_fields(issue: RedmineIssue) -> Dict:
+    """Put all Redmine custom fields in a dict instead of an array.
+
+    Args:
+        issue: A Redmine issue.
+    
+    Returns:
+        A dict where each key is a custom field.
     """
     
     cfs = {}
@@ -194,69 +351,100 @@ def get_custom_fields(issue):
         cfs[c["name"]] = c
     return cfs
 
-def get_custom_value(customs, key):
+
+def get_custom_value(customs: Dict, key: str) -> str:
+    """Retrieve a custom value from a customs dict.
+
+    Args:
+        customs: Dict of customs values gotten from get_custom_fields.
+        key: Key to extract the value from the custom dict.
+    
+    Returns:
+        A single value.
+        Throws an exception if there are more than 1 value.
+        If there is no such key in the dict, return an empty string.
+    """
    
     try:
         value = customs[key]["value"]
         if isinstance(value, list):
             if len(value) == 1:
                 value = value[0]
-            elif len(components) > 1:
+            elif len(value) > 1:
                 raise Exception("More than 1 values for key %s" % (key))
         return value
-    except:
+    except KeyError:
         print("No field %s" % (key))
         return ""
     
 
-def get_issues(redmine, datatype, build=None):
-    """
-    Retrieve all issue for new genomes, be they with or without gene sets
-    Return a Redmine ResourceSet
+def get_issues(redmine: Redmine, datatype: str, build: int = None) -> List[RedmineIssue]:
+    """Retrieve all issue for new genomes, be they with or without gene sets.
+
+    Args:
+        redmine: A Redmine connected object.
+        datatype: What datatype to use to filter the issues.
+        build: The BRC build to use to filter.
+
+    Returns:
+        A list of Redmine issues.
     """
     
-    other_fields = { "cf_94" : datatype }
+    other_fields = {"cf_94": datatype}
     if build:
         version_id = get_version_id(redmine, build)
         other_fields["fixed_version_id"] = version_id
 
     return list(get_ebi_issues(redmine, other_fields))
 
-def get_version_id(redmine, build):
-    """
-    Given a build number, get the version id for it
+
+def get_version_id(redmine: Redmine, build: int) -> int:
+    """Given a build number, get the Redmine version id for it.
+
+    Args:
+        redmine: A Redmine connected object.
+        build: The BRC build to use to filter.
+
+    Returns:
+        The version id from Redmine for that build.
     """
     versions = redmine.version.filter(project_id=veupathdb_id)
     version_name = "Build " + str(build)
     version_id = [version.id for version in versions if version.name == version_name]
     return version_id
-    
-def get_ebi_issues(redmine, other_fields=dict()):
-    """
-    Get EBI issues from Redmine, add other fields if provided
-    Return a Redmine ResourceSet
-    """
 
+   
+def get_ebi_issues(redmine, other_fields=dict()) -> RedmineResource:
+    """Get EBI issues from Redmine, add other fields if provided.
+
+    Args:
+        redmine: A Redmine connected object.
+        other_fields: A dict of fields to provide to filter the issues.
+
+    Returns:
+        A Redmine resource set.
+    """
     # Other fields replace the keys that already exist in default_fields
-    search_fields = { **default_fields, **other_fields }
+    search_fields = {**default_fields, **other_fields}
     
     return redmine.issue.filter(**search_fields)
     
 
 def main():
-    # Parse command line arguments
     parser = argparse.ArgumentParser(description='Retrieve metadata from Redmine')
     
     parser.add_argument('--key', type=str, required=True,
-                help='Redmine authentification key')
+                        help='Redmine authentification key')
     parser.add_argument('--output_dir', type=str, required=True,
-                help='Output_dir')
+                        help='Output_dir')
     # Choice
     parser.add_argument('--get', choices=['rnaseq', 'dnaseq'], required=True,
-                help='Get rnaseq, or dnaseq issues')
+                        help='Get rnaseq, or dnaseq issues')
     # Optional
     parser.add_argument('--build', type=int,
-                help='Restrict to a given build')
+                        help='Restrict to a given build')
+    parser.add_argument('--current_abbrevs', type=str,
+                        help='File that contains the list of current organism_abbrevs')
     args = parser.parse_args()
     
     # Start Redmine API
@@ -264,11 +452,14 @@ def main():
     
     # Choose which data to retrieve
     if args.get == 'rnaseq':
-        retrieve_rnaseq_datasets(redmine, args.output_dir, args.build)
+        retrieve_rnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
     elif args.get == 'dnaseq':
-        retrieve_dnaseq_datasets(redmine, args.output_dir, args.build)
+        # TODO
+        # retrieve_dnaseq_datasets(redmine, args.output_dir, args.build, args.current_abbrevs)
+        print("Not yet implemented")
     else:
         print("Need to say what data you want to --get: rnaseq? dnaseq?")
+
 
 if __name__ == "__main__":
     main()

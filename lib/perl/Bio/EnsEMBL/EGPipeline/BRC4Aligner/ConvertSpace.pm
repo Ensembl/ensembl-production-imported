@@ -33,6 +33,7 @@ sub param_defaults {
   
   return {
     'threads' => 1,
+    'max_read_length' => 1000,
   };
 }
 
@@ -50,6 +51,9 @@ sub run {
     convert_to_base_space($seq2) if $seq2;
   }
   
+  my $reads_to_check = 10;
+  $self->read_length_check($seq1, $self->param('max_read_length'), $reads_to_check);
+  
   my $output = {
     seq_file_1 => $seq1,
     seq_file_2 => $seq2,
@@ -64,7 +68,7 @@ sub space_check {
   my $id_line = readline $fh;
   my $sequence_line = readline $fh;
   close $fh;
-  
+ 
   return sequence_space($sequence_line);
 }
 
@@ -81,7 +85,7 @@ sub sequence_space {
 }
 
 sub convert_to_base_space {
-  my ($inpath) = @_;
+  my ($self, $inpath) = @_;
   return if not $inpath;
   
   my $outpath = $inpath . ".base";
@@ -90,14 +94,18 @@ sub convert_to_base_space {
   open my $infh, '<:gzip', $inpath;
   open my $outfh, '>:gzip', $outpath;
   
+  my $max_length = 0;
   while (my $id_line1 = readline $infh) {
     # Get the 4 lines of the read
     my $color_sequence = readline $infh;
     my $id_line2 = readline $infh;
     my $color_quality = readline $infh;
     
-    my $base_sequence = convert_sequence($color_sequence);
-    my $base_quality = convert_quality($color_quality);
+    my $base_sequence = $self->convert_sequence($color_sequence);
+    my $base_quality = $self->convert_quality($color_quality);
+    
+    my $read_length = length($base_sequence);
+    $max_length = $read_length if $read_length > $max_length;
     
     print $outfh $id_line1;
     print $outfh $base_sequence;
@@ -106,11 +114,15 @@ sub convert_to_base_space {
   }
   close $infh;
   
+  if ($max_length > $self->param("max_read_length")) {
+    die("Max read length is too much: $max_length");
+  }
+  
   rename $outpath, $inpath;
 }
 
 sub convert_sequence {
-  my ($cseq) = @_;
+  my ($self, $cseq) = @_;
   
   chomp $cseq;
   my $bseq;
@@ -144,12 +156,38 @@ sub convert_sequence {
 }
 
 sub convert_quality {
-  my ($cqual) = @_;
+  my ($self, $cqual) = @_;
   
   my $bqual = $cqual;
   $bqual =~ s/^.//;
   
   return $bqual;
+}
+
+sub read_length_check {
+  my ($self, $path, $max_read_length, $number) = @_;
+  
+  my $max_length = 0;
+  open my $fh, '<:gzip', $path;
+  
+  my $count = 0;
+  while (my $id_line = readline $fh) {
+    my $sequence_line = readline $fh;
+    my $id_line2 = readline $fh;
+    my $base_quality = readline $fh;
+    
+    my $length = length($sequence_line);
+    if ($length > $max_length) {
+      $max_length = $length;
+    }
+    
+    last if $count++ > $number;
+  }
+  close $fh;
+ 
+  if ($max_length > $max_read_length) {
+    die("Some reads that are too long: $max_length (> $max_read_length)");
+  }
 }
 
 1;

@@ -25,6 +25,7 @@ use Capture::Tiny qw(capture);
 use Log::Log4perl qw( :easy );
 Log::Log4perl->easy_init($WARN);
 my $logger = get_logger();
+use File::Spec::Functions qw(rel2abs catfile);
 
 use Bio::EnsEMBL::Registry;
 
@@ -33,6 +34,7 @@ use Bio::EnsEMBL::Registry;
 # Get command line args
 my %opt = %{ opt_check() };
 
+my $ref_libs = get_libs($opt{libs_dir});
 my $tab = get_references($opt{tab});
 my $map = get_ref_map($opt{ref_registry}, $opt{verbose});
 
@@ -61,7 +63,8 @@ for my $species (sort @$sps) {
       my $ref_name = $map->{$ref_org};
       $new_map{$ref_name} = $ref_org;
     } else {
-      warn("No reference core genome found for $ref_org (reference for $org)\n");
+      warn("No reference core genome found for $ref_org (reference for $org). Using itself.\n");
+      $new_map{$species} = $org;
     }
   } else {
     warn("The organism $org is not in the tab file\n");
@@ -69,11 +72,49 @@ for my $species (sort @$sps) {
   $meta->dbc->disconnect_if_idle();
 }
 
-for my $map_ref (sort keys %new_map) {
-  print "$map_ref\t$new_map{$map_ref}\n";
+# Output the list, filtered
+my $outfh;
+if ($opt{output_to_model}) {
+  open $outfh, ">", $opt{output_to_model};
+} else {
+  $outfh = *STDOUT;
 }
+my $nlibs = 0;
+for my $map_ref (sort keys %new_map) {
+  next if exists $ref_libs->{$map_ref};
+  print $outfh "$map_ref\t$new_map{$map_ref}\n";
+  $nlibs++;
+}
+close($outfh) if $opt{output_to_model};
+print STDERR "$nlibs new libraries to build\n";
 
 ###############################################################################
+sub get_libs {
+  my ($dir_path) = @_;
+
+  opendir(my $dir, $dir_path);
+  my @files = sort grep { not $_ =~ /^\./ } readdir $dir;
+  closedir $dir;
+  
+  # Only keep the filtered version, or unfiltered if there is no filtered version
+  my %libs = map { $_ => 1 } @files;
+  for my $lib (keys %libs) {
+    next if not $lib =~ /\.rm|\.lib|\.filtered/;
+    if (exists $libs{$lib . ".filtered"}) {
+      delete $libs{$lib};
+    }
+  }
+  
+  my %ref_libs;
+  for my $lib (keys %libs) {
+    my $name = $lib;
+    $name =~ s/([^\.]+).*$/$1/;
+    $ref_libs{$name} = catfile(rel2abs($dir_path), $lib);
+  }
+  
+  return \%ref_libs;
+}
+
 sub get_ref_map {
   my ($reg_path, $verbose) = @_;
 
@@ -90,7 +131,8 @@ sub get_ref_map {
       }
 
       my ($org) = @{ $meta->list_value_by_key("brc4.organism_abbrev") };
-      $map{$org} = $species;
+      my ($prod_name) = @{ $meta->list_value_by_key("species.production_name") };
+      $map{$org} = $prod_name;
       $meta->dbc->disconnect_if_idle();
     }
   };
@@ -159,6 +201,8 @@ sub usage {
     --tab <path>      : repeat tab file
     --registry <path> : Ensembl registry for the new genomes
     --ref_registry <path> : Ensembl registry for the reference genomes
+    --libs_dir <path> : Path to existing repeat libraries
+    --output_to_model <path> : List of species to provide to the modeler
 
     --help            : show this help message
     --verbose         : show detailed progress
@@ -174,6 +218,8 @@ sub opt_check {
     "tab=s",
     "registry=s",
     "ref_registry=s",
+    "libs_dir=s",
+    "output_to_model=s",
     "help",
     "verbose",
     "debug",
@@ -182,6 +228,7 @@ sub opt_check {
   usage("tab file needed") if not $opt{tab};
   usage("registry needed") if not $opt{registry};
   usage("ref_registry needed") if not $opt{ref_registry};
+  usage("libs_dir needed") if not $opt{libs_dir};
   usage()                if $opt{help};
   Log::Log4perl->easy_init($INFO) if $opt{verbose};
   Log::Log4perl->easy_init($DEBUG) if $opt{debug};

@@ -100,7 +100,7 @@ sub add_seqregions_meta {
     my $attribs = $slice->get_all_Attributes();
     my $synonyms = $slice->get_all_synonyms();
     
-    my ($cur_ebi_name, $cur_brc4_name);
+    my ($cur_ebi_name, $cur_brc4_name) = ('', '');
     for my $at (@$attribs) {
       $cur_ebi_name = $at->value if $at->code eq 'EBI_seq_region_name';
       $cur_brc4_name = $at->value if $at->code eq 'BRC4_seq_region_name';
@@ -108,19 +108,19 @@ sub add_seqregions_meta {
     
     my ($refseq_name, $insdc_name);
     for my $syn (@$synonyms) {
-      $insdc_name = $syn->name if $syn->dbname eq 'INSDC';
-      $refseq_name = $syn->name if $syn->dbname eq 'RefSeq';
+      if ($syn->dbname) {
+        $insdc_name = $syn->name if $syn->dbname eq 'INSDC';
+        $refseq_name = $syn->name if $syn->dbname eq 'RefSeq' or $syn->dbname eq 'RefSeq_genomic';
+      }
     }
-    my $new_brc4_name = $insdc_name // $refseq_name;
     
     # Check EBI name
     if ($cur_ebi_name) {
       if ($cur_ebi_name ne $seq_name) {
         say STDERR "WARNING: current EBI_seq_region_name does not match the seq_region name: $cur_ebi_name vs $seq_name";
-      } else {
-        say "The EBI name for $seq_name is already properly defined";
       }
     } else {
+      say STDERR "No EBI name: will add $seq_name";
       if ($update) {
         say STDERR "Insert new EBI_seq_region_name as $seq_name";
         insert_attrib($ata, $slice, 'EBI_seq_region_name', $seq_name);
@@ -128,6 +128,12 @@ sub add_seqregions_meta {
     }
 
     # Check BRC4 name
+    my $new_brc4_name = $insdc_name // $refseq_name;
+    if (not $new_brc4_name) {
+      say STDERR "Warning: no possible BRC4 name for $seq_name (no INSDC or RefSeq synonyms)";
+      next;
+    }
+
     if ($cur_brc4_name) {
       if ($cur_brc4_name ne $new_brc4_name) {
         say STDERR "WARNING: current BRC_seq_region_name does not match the expected seq_region name: $cur_brc4_name vs $new_brc4_name";
@@ -135,6 +141,7 @@ sub add_seqregions_meta {
         say "The BRC4 name for $seq_name is already properly defined as $new_brc4_name";
       }
     } else {
+      say STDERR "No BRC4 name: will add $new_brc4_name";
       if ($update) {
         say STDERR "Insert new BRC4_seq_region_name as $new_brc4_name";
         insert_attrib($ata, $slice, 'BRC4_seq_region_name', $new_brc4_name);
@@ -172,7 +179,7 @@ sub usage {
     --component <str> : BRC4 component for that species
     --organism <str>  : BRC4 organism_abbrev for that species
     
-    --update          : Do the actual deletion (default is no changes to the database)
+    --update          : Do the actual update (default is no changes to the database)
     
     --help            : show this help message
     --verbose         : show detailed progress

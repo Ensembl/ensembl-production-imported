@@ -31,9 +31,10 @@ sub run {
   $self->dbc and $self->dbc->disconnect_if_idle();
   
   my $bam_file = $self->param_required('bam_file');
-  my $is_paired = $self->param('is_paired');
-  my $is_stranded = $self->param('is_stranded');
-  my $strand_direction = $self->param('strand_direction');
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  my $is_paired = $self->param_required('is_paired');
+  my $is_stranded = $aligner_metadata->{'is_stranded'};
+  my $strand_direction = $aligner_metadata->{'strand_direction'};
 
   # Split in two strand files
   if ($is_stranded) {
@@ -57,11 +58,14 @@ sub run {
     }
 
     # Store align commands
-      my $align_cmds = {
-        cmds => $cmds,
+    for my $cmd (@$cmds) {
+      print("Store command $cmd\n");
+      my $align_cmd = {
+        cmds => $cmd,
         sample_name => $self->param('sample_name'),
       };
-      $self->store_align_cmds($align_cmds);
+      $self->store_align_cmds($align_cmd);
+    }
 
   } else {
     print("The reads are not strand-specific: skip splitting");

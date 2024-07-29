@@ -71,15 +71,15 @@ sub fetch_input {
 
   my $trinomial_name;
   my $binomial_name;
-  if($source_species=~m/^([a-z]+_[a-z]+)_[a-z0-9]+$/){
-	$trinomial_name = $source_species;
-	$binomial_name  = $1;
-	$trinomial_name=~s/_/ /g;
-	$trinomial_name = ucfirst($trinomial_name);
-  }elsif($source_species=~m/^([a-z]+_[a-z]+)$/){
-	$binomial_name  = $1;
-  }else{
-  	  $self->throw("Naming pattern was not recognised, you must specify a new pattern for the code to work.");
+  if ($source_species=~m/^([a-z]+_[a-z]+)_[a-z0-9]+$/) {
+    $trinomial_name = $source_species;
+    $binomial_name  = $1;
+    $trinomial_name=~s/_/ /g;
+    $trinomial_name = ucfirst($trinomial_name);
+  } elsif ($source_species=~m/^([a-z]+_[a-z]+)$/) {
+    $binomial_name  = $1;
+  } else {
+    $self->throw("Naming pattern was not recognised, you must specify a new pattern for the code to work. Source species: '$source_species'");
   }
 
   $binomial_name=~s/_/ /g;

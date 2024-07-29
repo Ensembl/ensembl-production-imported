@@ -73,6 +73,7 @@ sub default_options {
     max_seqs_per_file       => undef,
     max_files_per_directory => 50,
     max_dirs_per_directory  => $self->o('max_files_per_directory'),
+    splitdump_resource_class => '8Gb_mem',
     
     # Dust and TRF can handle large files; this size should mean that
     # jobs take a few minutes.
@@ -114,6 +115,8 @@ sub default_options {
     
     # Instead, use the species classification to find the closest species in Repbase
     guess_repbase_species => 0,
+
+    trf_resource_class => 'normal',
 
     # The ensembl-analysis Dust and TRF modules take a parameters hash
     # which is parsed, rather than requiring explicit command line
@@ -270,6 +273,8 @@ sub pipeline_wide_parameters {
    'repeatmasker_sensitivity'       => $self->o('repeatmasker_sensitivity'),
    'repeatmasker_logic_name'        => $self->o('repeatmasker_logic_name'),
    'repeatmasker_resource_class'    => $self->o('repeatmasker_resource_class'),
+   'trf_resource_class'             => $self->o('trf_resource_class'),
+   'splitdump_resource_class'       => $self->o('splitdump_resource_class'),
  };
 }
 
@@ -426,7 +431,7 @@ sub pipeline_analyses {
                                repeat_masker_wd => catdir('#work_dir#', '#species#', 'repeat_masker_wd'),
                                dust_wd => catdir('#work_dir#', '#species#', 'dust_wd'),
                                trf_wd => catdir('#work_dir#', '#species#', 'trf_wd'),
-                               cmd => 'find #repeat_masker_wd# #dust_wd# #trf_wd# -type f -print0 | xargs -r -0 rm',
+                               cmd => 'find #repeat_masker_wd# #dust_wd# #trf_wd# -type f -print0 | xargs -r -0 rm -f',
       },
       -rc_name           => 'normal',
       -max_retry_count => 0,
@@ -459,7 +464,7 @@ sub pipeline_analyses {
                               out_dir                 => catdir('#work_dir#', '#species#', 'dust_trf'),
                               file_varname            => 'queryfile',
                             },
-      -rc_name           => '8Gb_mem',
+      -rc_name           => $self->o('splitdump_resource_class'),
       -flow_into         => {
                               '2' => [
                                 WHEN('#dust#' => ['Dust']),
@@ -481,7 +486,7 @@ sub pipeline_analyses {
                               out_dir                 => catdir('#work_dir#', '#species#', 'repeatmasker'),
                               file_varname            => 'queryfile',
                             },
-      -rc_name           => '8Gb_mem',
+      -rc_name           => $self->o('splitdump_resource_class'),
       -flow_into         => {
                               '2' => [
                                 WHEN('#repeatmasker#'      => ['RepeatMaskerFactory']),
@@ -517,7 +522,7 @@ sub pipeline_analyses {
                               parameters_hash => $self->o('trf_parameters_hash'),
                               workdir         => catdir('#work_dir#', '#species#', 'trf_wd'),
                             },
-      -rc_name           => 'normal',
+      -rc_name           => $self->o('trf_resource_class'),
     },
 
     {

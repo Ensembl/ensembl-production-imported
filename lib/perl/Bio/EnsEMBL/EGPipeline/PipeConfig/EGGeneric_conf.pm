@@ -76,13 +76,115 @@ sub default_options {
     # LinuxBrew home path
     linuxbrew_home  => $self->o('ENV', 'LINUXBREW_HOME'),
 
-    # default LSF queueu name
+    # default LSF queue name
     queue_name =>  $self->private_conf('ENSEMBL_QUEUE_NAME'),
     datamove_queue_name =>  $self->private_conf('ENSEMBL_DATAMOVE_QUEUE_NAME'),
 
     # pipeline tag
     pipeline_tag => '',
   }
+}
+
+=head2 make_resources
+
+Description: Method to generate a resource class for all available meadows (LSF, SLURM), instead of hardcopding the resources.
+
+It should return a hash like { LSF => '', SLURM => '' }
+
+Args: A hash with the following keys:
+
+=over
+
+=item * queue = name of the queue/partition to use
+
+=item * memory = integer in MB
+
+=item * time = time limit in the form 0:00:00 (h:mm:ss)
+
+=item * cpus = number of cores
+
+=item * temp_memory = reserve this amount of temp memory
+
+=item * lsf_param = a string for specific LSF parameters
+
+=item * slurm_param = a string for specific SLURM parameters
+
+=back
+             
+=cut
+
+
+sub make_resource {
+  my ($self, $conf) = @_;
+
+  my $res = {
+    'LSF' => _lsf_resource($conf),
+    'SLURM' => _slurm_resource($conf),
+  };
+  return $res;
+}
+
+sub _lsf_resource {
+  my ($conf) = @_;
+
+  my $mem = $conf->{memory};
+  my $tmem = $conf->{temp_memory};
+  my $cpus = $conf->{cpus};
+  my $queue = $conf->{queue};
+  my $time = $conf->{time};
+
+  if ($time and $time =~ /(\d+):(\d\d):(\d\d)/) {
+    $time = "$1:$2";
+  }
+
+  my @rusage = ();
+  push @rusage, "mem=$mem" if $mem;
+  push @rusage, "tmp=$tmem" if $tmem;
+  
+  my @res_params;
+  push @res_params, "-M $mem" if $mem;
+  push @res_params, ('-R "rusage[' . join(',', @rusage) . ']"') if @rusage;
+  push @res_params, "-q $queue" if $queue;
+  push @res_params, "-We $time" if $time;
+  push @res_params, "-n $cpus" if $cpus;
+  push @res_params, $conf->{lsf_params} if $conf->{lsf_params};
+  my $res_string = join(" ", @res_params);
+  return $res_string;
+}
+
+sub _slurm_resource {
+  my ($conf) = @_;
+
+  my $mem = $conf->{memory};
+  my $cpus = $conf->{cpus};
+  my $queue = $conf->{queue};
+  my $time = $conf->{time};
+
+  # Remove queues if they are not special so that Slurm can schedule the right queue itself
+  my %special_queue = map { $_ => 1 } qw(datamover debug gpu short_gpu);
+  if (not exists $special_queue{$queue}) {
+    $queue = undef;
+  }
+
+  # Prepare memory string
+  my $rmem;
+  if ($mem) {
+    if ($mem > 1000) {
+      $mem = int($mem/1000);
+      $rmem = $mem . 'g';
+    } else {
+      $rmem = $mem . "m";
+    }
+  }
+  
+  my @res_params;
+  push @res_params, "--mem=$rmem" if $rmem;
+  push @res_params, "--time=$time" if $time;
+  push @res_params, "-c $cpus" if $cpus;
+  push @res_params, "--partition=$queue" if $queue;
+  push @res_params, $conf->{slurm_params} if $conf->{slurm_params};
+  my $res_string = join(" ", @res_params);
+  return $res_string;
 }
 
 =head2 resource_classes
@@ -94,29 +196,34 @@ Description: Interface method that should return a hash of
 
 sub resource_classes {
   my ($self) = @_;
-  return {
-    'datamove'          => {'LSF' => '-q ' . $self->o('datamove_queue_name')},
-    'datamove_4Gb_mem'  => {'LSF' => '-q ' . $self->o('datamove_queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-    'datamove_32Gb_mem' => {'LSF' => '-q ' . $self->o('datamove_queue_name') . ' -M 32000 -R "rusage[mem=32000]"'},
 
-    'default'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-    'normal'            => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-    '2Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  2000 -R "rusage[mem=2000]"'},
-    '4Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000]"'},
-    '8Gb_mem'           => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  8000 -R "rusage[mem=8000]"'},
-    '12Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 12000 -R "rusage[mem=12000]"'},
-    '16Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 16000 -R "rusage[mem=16000]"'},
-    '24Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 24000 -R "rusage[mem=24000]"'},
-    '32Gb_mem'          => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 32000 -R "rusage[mem=32000]"'},
-    '2Gb_mem_4Gb_tmp'   => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  2000 -R "rusage[mem=2000,tmp=4000]"'},
-    '4Gb_mem_4Gb_tmp'   => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  4000 -R "rusage[mem=4000,tmp=4000]"'},
-    '8Gb_mem_4Gb_tmp'   => {'LSF' => '-q ' . $self->o('queue_name') . ' -M  8000 -R "rusage[mem=8000,tmp=4000]"'},
-    '12Gb_mem_4Gb_tmp'  => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 12000 -R "rusage[mem=12000,tmp=4000]"'},
-    '16Gb_mem_4Gb_tmp'  => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 16000 -R "rusage[mem=16000,tmp=4000]"'},
-    '16Gb_mem_16Gb_tmp' => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 16000 -R "rusage[mem=16000,tmp=16000]"'},
-    '24Gb_mem_4Gb_tmp'  => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 24000 -R "rusage[mem=24000,tmp=4000]"'},
-    '32Gb_mem_4Gb_tmp'  => {'LSF' => '-q ' . $self->o('queue_name') . ' -M 32000 -R "rusage[mem=32000,tmp=4000]"'},
+  my $data_queue = $self->o('datamove_queue_name');
+  my $queue = $self->o('queue_name');
+  my $short = "1:00:00";
+  my $long = "24:00:00";
+
+  my %resources = (
+    'default'           => $self->make_resource({"queue" => $queue, "memory" => 4_000, "time" => $short}),
+    'normal'            => $self->make_resource({"queue" => $queue, "memory" => 4_000, "time" => $long}),
+    'datamove'          => $self->make_resource({"queue" => $data_queue, "memory" => 100, "time" => $short}),
+    'datamove_4Gb_mem'  => $self->make_resource({"queue" => $data_queue, "memory" => 4_000, "time" => $long}),
+    'datamove_32Gb_mem' => $self->make_resource({"queue" => $data_queue, "memory" => 32_000, "time" => $long}),
+  );
+
+  my @mems = (2, 4, 8, 12, 16, 32);
+  my $tmem = 4;
+  my $time = $long;
+
+  for my $mem (@mems) {
+    my $name = "${mem}Gb_mem";
+    my $tname = "${name}_${tmem}Gb_tmp";
+
+    $resources{$name} = $self->make_resource({"queue" => $queue, "memory" => $mem * 1000, "time" => $time});
+    $resources{$tname} = $self->make_resource({"queue" => $queue, "memory" => $mem * 1000, "time" => $time, "temp_memory" => $tmem * 1000});
   }
+  $resources{'16Gb_mem_16Gb_tmp'} = $self->make_resource({"queue" => $queue, "memory" => 16_000, "time" => $long, "temp_memory" => 16_000});
+
+  return \%resources;
 }
 
 =head2 check_exe_in_cellar

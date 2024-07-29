@@ -31,9 +31,7 @@ sub run {
   my ($self) = @_;
   
   my $bam_file = $self->param_required('bam_file');
-  my $is_paired = $self->param('is_paired');
-  my $is_stranded = $self->param('is_stranded');
-  my $strand_direction = $self->param('strand_direction');
+  my $aligner_metadata = $self->param_required('aligner_metadata');
 
   # Junction file
   my $bam_results_dir = $self->param_required('results_dir');

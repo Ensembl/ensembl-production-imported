@@ -36,6 +36,7 @@ sub write_output {
 
   my $input_bam = $self->param_required('input_bam');
   my $sorted_bam = $self->param_required('sorted_bam');
+  my $aligner_metadata = $self->param_required('aligner_metadata');
   my $is_paired = $self->param_required('is_paired');
 
   # Filter out unmapped reads or pairs

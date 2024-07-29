@@ -28,15 +28,7 @@ use JSON;
 sub run {
   my ($self) = @_;
   
-  my $species = $self->param("species");
-  
-  my $dba = $self->core_dba();
-  my $ma = $dba->get_adaptor('MetaContainer');
-  my ($organism) = @{ $ma->list_value_by_key("BRC4.organism_abbrev") };
-  my ($component) = @{ $ma->list_value_by_key("BRC4.component") };
-  $dba->dbc->disconnect_if_idle();
-  
-  # Slurp json
+  # Get datasets data
   my $json;
   {
     local $/; #enable slurp
@@ -44,16 +36,52 @@ sub run {
     $json = <$fh>;
   }
   my $data = decode_json($json);
-
-  # Check there is at least one dataset for this species
-  my ($dataset) = grep { $_->{species} eq $organism } @$data;
-  if ($dataset) {
-    my $data = {
-      species => $species,
-      component => $component,
-      organism => $organism
-    };
-    $self->dataflow_output_id($data, 2);
+  my %organisms = map { $_->{species} => 1 } @$data;
+  my %prod_names = map { $_->{production_name} => 1 } @$data;
+  
+  # Get registry species
+  my $reg = 'Bio::EnsEMBL::Registry';
+  if ($self->param_is_defined('registry_file')) {
+    $reg->load_all($self->param('registry_file'));
+  }
+  my $all_dbas = $reg->get_all_DBAdaptors(-GROUP => 'core');
+  for my $dba (@$all_dbas) {
+    my $ma = $dba->get_adaptor('MetaContainer');
+    my ($organism) = @{ $ma->list_value_by_key("BRC4.organism_abbrev") };
+    my ($component) = @{ $ma->list_value_by_key("BRC4.component") };
+    my ($prod_name) = $dba->species;
+    
+    if (defined $organisms{$organism}) {
+      my $data = {
+        species => $prod_name,
+        component => $component,
+        organism => $organism
+      };
+      $self->dataflow_output_id($data, 2);
+      unless ($self->has_genes($dba)) {
+        $self->dataflow_output_id($data, 4);
+      }
+      delete $organisms{$organism};
+    } elsif (defined $prod_names{$prod_name}) {
+      my $data = {
+        species => $prod_name,
+        organism => $prod_name,
+        component => 'component'
+      };
+      $self->dataflow_output_id($data, 2);
+      unless ($self->has_genes($dba)) {
+        $self->dataflow_output_id($data, 4);
+      }
+    }
+  
+    $dba->dbc->disconnect_if_idle();
+  }
+  
+  # Flows the organisms not found in the registry to another place
+  if (%organisms) {
+    for my $organism (sort keys %organisms) {
+      $self->dataflow_output_id({ organism => $organism }, 3);
+    }
   }
 }
 

@@ -113,7 +113,11 @@ sub search_for_upi {
 
   my $sql = 'SELECT upi FROM protein WHERE md5 = ?';
   my $sth = $uniparc_dba->dbc->db_handle->prepare($sql);
-  $sth->execute($checksum);
+  eval { $sth->execute($checksum) };
+  if ($sth->err) {
+    $self->warning("Unable to search for UPI(s) of protein with MD5 $checksum, DB error: $sth->err : $sth->errstr");
+    return;
+  }
 
   my $upi;
   my $results = $sth->fetchall_arrayref();

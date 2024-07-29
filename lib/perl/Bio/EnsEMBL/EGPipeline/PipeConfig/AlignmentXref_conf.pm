@@ -812,12 +812,24 @@ sub resource_classes {
 
   my $blast_threads = $self->o('blast_threads');
 
-  return {
-    %{$self->SUPER::resource_classes},
-    '8GB_threads' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n ' . ($blast_threads + 1) . ' -M 8000 -R "rusage[mem=8000,tmp=8000]"'},
-    '16GB_threads' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n ' . ($blast_threads + 1) . ' -M 16000 -R "rusage[mem=16000,tmp=16000]"'},
-    '32GB_threads' => {'LSF' => '-q ' . $self->o('queue_name') . ' -n ' . ($blast_threads + 1) . ' -M 32000 -R "rusage[mem=32000,tmp=32000]"'},
+  my $queue = $self->o('queue_name');
+  my @mems = (8, 16, 32);
+  my $cpu = $blast_threads + 1;
+  my $time = "24:00:00";
+
+  my %resources = %{$self->SUPER::resource_classes};
+
+  for my $mem (@mems) {
+    my $name = "${mem}GB_threads";
+    $resources{$name} = $self->make_resource({
+      queue => $queue,
+      "memory" => $mem * 1000,
+      "temp_memory" => $mem * 1000,
+      "cpus" => $cpu,
+      "time" => $time
+    });
   }
+  return \%resources;
 }
 
 1;

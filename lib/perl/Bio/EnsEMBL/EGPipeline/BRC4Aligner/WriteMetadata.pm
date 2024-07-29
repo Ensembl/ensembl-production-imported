@@ -35,23 +35,27 @@ sub write_output {
   my $results_dir = $self->param_required('results_dir');
   my $meta_file = catdir($results_dir, 'metadata.json');
 
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  my $is_paired = $aligner_metadata->{'is_paired'};
+  my $is_stranded = $aligner_metadata->{'is_stranded'};
+  my $strand_direction = $aligner_metadata->{'strand_direction'};
+
   my %metadata = (
     studyName => $self->param_required("study_name"),
     sraQueryString => $self->param_required("sample_name"),
   );
-  if (defined $self->param("is_paired")) {
-    $metadata{hasPairedEnds} = $self->param('is_paired') ? JSON::true : JSON::false;
+  if (defined $is_paired) {
+    $metadata{hasPairedEnds} = $is_paired ? JSON::true : JSON::false;
   }
-  if (defined $self->param("is_stranded")) {
-    $metadata{isStrandSpecific} = $self->param('is_stranded') ? JSON::true : JSON::false;
-
-    if ($self->param('is_stranded')) {
-      my $strand_direction = $self->param('strand_direction');
-      $metadata{strandDirection} = $strand_direction;
-    }
+  if (defined $is_stranded) {
+    $metadata{isStrandSpecific} = $is_stranded ? JSON::true : JSON::false;
+    $metadata{strandDirection} = $strand_direction;
   }
   if (defined $self->param("dnaseq")) {
     $metadata{dnaseq} = $self->param('dnaseq') ? JSON::true : JSON::false;
+  }
+  if (defined $self->param("accessions")) {
+    $metadata{accessions} = $self->param('accessions');
   }
 
   open my $meta_fh, '>', $meta_file;

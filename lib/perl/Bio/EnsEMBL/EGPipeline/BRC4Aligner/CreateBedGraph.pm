@@ -31,6 +31,7 @@ sub param_defaults {
     'bedtools_dir'  => undef,
     'ucscutils_dir' => undef,
     'clean_up'      => 1,
+    'throw_empty_bed' => 1
   };
 }
 
@@ -40,14 +41,15 @@ sub run {
   my $bamutils_dir  = $self->param('bamutils_dir');
   my $bam_file      = $self->param_required('bam_file');
   my $strand  = $self->param('strand');
-  my $direction  = $self->param('strand_direction');
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  my $strand_direction = $aligner_metadata->{'strand_direction'};
   
   my $bamutils = 'bamutils';
   if (defined $bamutils_dir) {
     $bamutils = "$bamutils_dir/$bamutils";
   }
 
-  my ($bed_file, $bed_cmd) = $self->convert_to_bed($bam_file, $strand, $direction);
+  my ($bed_file, $bed_cmd) = $self->convert_to_bed($bam_file, $strand, $strand_direction);
   
   $self->param('bed_file', $bed_file);
   $self->param('cmds',    $bed_cmd);
@@ -98,7 +100,7 @@ sub convert_to_bed {
   }
 
   my $bed_tmp = "$bed.unsorted";
-  my $cmd = "bedtools genomecov $filter -ibam $bam -bg > $bed_tmp && bedSort $bed_tmp $bed";
+  my $cmd = "bedtools genomecov $filter -ibam $bam -bg -split > $bed_tmp && bedSort $bed_tmp $bed";
   
   my ($stdout, $stderr, $exit) = capture {
     system($cmd);
@@ -109,7 +111,7 @@ sub convert_to_bed {
   unlink $bed_tmp;
   
   # Check the bed file is not empty
-  if (not -s $bed) {
+  if ($self->param('throw_empty_bed') and not -s $bed) {
     $self->throw("Bed file '$bed' is empty. Made with strand='$strand' and direction='$filter'. Command: $cmd");
   }
 

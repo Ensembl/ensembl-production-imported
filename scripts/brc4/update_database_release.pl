@@ -23,6 +23,7 @@ our %opt = %{ opt_check() };
 
 my $update = $opt{update};
 my $server = $opt{server};
+my $prefix = $opt{prefix};
 
 my $release = software_version();
 die("Can't find the release of the current Perl API!") if not $release;
@@ -42,7 +43,7 @@ my $connect_string = join(";", @connect_list);
 my $dbh = DBI->connect($connect_string, $opt{user}, $opt{pass}) or die("Can't connect to the server");
 
 # Get the lists of databases: core and variation
-my $databases = get_databases($dbh);
+my $databases = get_databases($dbh, $prefix);
 my @core_dbs = grep { $_ =~ /_core_\d+_\d+_\d+/ } @$databases;
 my @var_dbs  = grep { $_ =~ /_variation_\d+_\d+_\d+/ } @$databases;
 $logger->info(scalar(@$databases) . " databases in $opt{host}");
@@ -55,9 +56,15 @@ update_dbs($server, \@var_dbs,  $release, $var_sql_dir,  $update);
 
 ###############################################################################
 sub get_databases {
-  my ($dbh) = @_;
+  my ($dbh, $prefix) = @_;
   
-  my $db_array = $dbh->selectcol_arrayref("SHOW DATABASES;");
+  my $db_array;
+  if ($prefix) {
+    say("Search dbs with prefix '$prefix':");
+    $db_array = $dbh->selectcol_arrayref("SHOW DATABASES LIKE '${prefix}_%';");
+  } else {
+    $db_array = $dbh->selectcol_arrayref("SHOW DATABASES;");
+  }
   
   return $db_array;
 }
@@ -183,6 +190,7 @@ sub usage {
     --server <str>    : server short name from mysql-cmd
     
     Optional:
+    --prefix          : only update dbs with this prefix
     --update          : Actually rename databases
     
     --help            : show this help message
@@ -201,6 +209,7 @@ sub opt_check {
     "user=s",
     "pass=s",
     "server=s",
+    "prefix=s",
     "update",
     "help",
     "verbose",

@@ -48,11 +48,22 @@ my $logger = get_logger();
 
 sub get_by_accession {
   my ($self, $url, $acc) = @_;
-
+  
   # As in the Experiment (or Run) xml the links are not correct, we correct here
   # Means it is now hardcoded, not ideal, but at least it is working
-
-  $url = "https://www.ebi.ac.uk/ena/portal/api/filereport?accession=$acc&result=read_run";
+  my @fields = qw(
+    run_accession
+    fastq_ftp
+    fastq_md5
+    fastq_bytes
+    library_layout
+    secondary_study_accession
+    secondary_sample_accession
+    experiment_accession
+    run_accession
+  );
+  my $fields_str = join(",", @fields);
+  $url = "https://www.ebi.ac.uk/ena/portal/api/filereport?accession=$acc&result=read_run&fields=$fields_str";
   
   $logger->info("Get read files by accession, $acc, using url, '$url'...");
 

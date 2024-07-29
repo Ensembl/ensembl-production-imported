@@ -35,6 +35,7 @@ sub get_genes {
   open my $fh, "<", $path;
   while(my $line = readline $fh) {
     chomp $line;
+    $line =~ s/\s+//g;
     if ($line) {
       push @genes, $line;
     }
@@ -56,12 +57,21 @@ sub delete_genes {
     
     if (not $gene) {
       print STDERR "WARNING: No gene found with stable_id = '$id'\n";
+      next;
     }
     
     if ($update) {
       $ga->remove($gene);
       $delete_count++;
     }
+  }
+  
+  # Aftermath: remove dangling object_xrefs, ontology_xrefs, dependent_xrefs
+  if ($update) {
+    my $dbc = $ga->dbc;
+    $dbc->do("DELETE object_xref FROM object_xref LEFT JOIN transcript ON ensembl_id=transcript_id WHERE ensembl_object_type=\"transcript\" AND ensembl_id IS NOT NULL AND transcript_id IS NULL;");
+    $dbc->do("DELETE ontology_xref FROM ontology_xref LEFT JOIN object_xref USING(object_xref_id) WHERE ensembl_id IS NULL;");
+    $dbc->do("DELETE dependent_xref FROM dependent_xref LEFT JOIN object_xref USING(object_xref_id) WHERE ensembl_id IS NULL;");
   }
   
   print STDERR "$delete_count genes deleted\n";

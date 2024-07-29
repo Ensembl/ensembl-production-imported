@@ -32,7 +32,13 @@ sub param_defaults {
   my ($self) = @_;
   
   return {
-    n_samples => 200000
+    keep_ambiguous => 1,  # If ambiguous, keep with a flag
+    use_input_if_ambiguous => 0, # Or, use the input if any
+    n_samples => 200000,
+    infer_max => 0.80,  # Above this, infer stranded
+    infer_min => 0.65,  # Between this and infer_max, ambiguous
+    infer_failed_max => 0.2, # Threshold for max failed reads
+    infer_min_reads => 1_000, # Minimum number of usable reads to make an inference
   };
 }
 
@@ -42,8 +48,10 @@ sub run {
   my $bed_file = $self->param_required('bed_file');
   my $sam_file = $self->param_required('sam_file');
   my $n_samples = $self->param_required('n_samples');
-  my $input_is_paired = $self->param('input_is_paired');
-  my $input_is_stranded = $self->param('input_is_stranded');
+  
+  my $input_metadata = $self->param('input_metadata');
+  my $input_is_paired = $input_metadata->{'is_paired'};
+  my $input_is_stranded = $input_metadata->{'is_stranded'};
 
   my $sample_1 = $self->param('sample_seq_file_1');
   my $sample_2 = $self->param('sample_seq_file_2');
@@ -51,7 +59,7 @@ sub run {
   my $res_dir = $self->param_required('results_dir');
   my $log_file = catdir($res_dir, 'log.txt');
   
-  my ($strandness, $is_paired, $no_reads, $output) = get_strandness($bed_file, $sam_file, $n_samples, $input_is_stranded);
+  my ($strandness, $is_paired, $is_ambiguous, $no_reads, $output) = $self->get_strandness($bed_file, $sam_file, $n_samples, $input_is_stranded);
 
   my $is_stranded = 0;
   my $strand_direction = "";
@@ -67,7 +75,7 @@ sub run {
 
   open my $LOG, ">>", $log_file;
 
-  print $LOG "Strandness inference: $output\n";
+  print $LOG "Strandness inference for '".$self->param('sample_name')."': $output\n";
 
   # Check inferred vs input
   if (defined $input_is_paired and $input_is_paired != $is_paired) {
@@ -79,6 +87,9 @@ sub run {
     my $input = "Input = " . ($input_is_stranded ? "strand-specific" : "unstranded");
     my $infer = "Infer = " . ($is_stranded ? "strand-specific" : "unstranded");
     print $LOG "WARNING: input and inferred strand-specificity differ: $input vs $infer\n";
+  }
+  if (defined $strand_direction) {
+    print $LOG "Inferred direction = $strand_direction\n";
   }
   if (not defined $is_paired) {
     if (defined $input_is_paired) {
@@ -104,14 +115,22 @@ sub run {
       die("Could not infer strand-specificity");
     }
   }
+  if ($is_ambiguous) {
+    print $LOG "WARNING: This inference in ambiguous\n";
+  }
   close $LOG;
 
-  $self->dataflow_output_id({
+  my $aligner_metadata = {
       is_stranded => $is_stranded,
       is_paired => $is_paired,
       strand_direction => $strand_direction,
-      strandness => $strandness,
-    },  1);
+  };
+  if ($is_ambiguous) {
+    $aligner_metadata->{stranded_ambiguous} = 1;
+  }
+  $self->dataflow_output_id({
+      aligner_metadata => $aligner_metadata
+    },  2);
 
   cleanup_file($sam_file);
   cleanup_file($self->param('sample_seq_file_1'));
@@ -119,7 +138,7 @@ sub run {
 }
 
 sub get_strandness {
-  my ($bed_file, $sam_file, $n_samples, $input_is_stranded) = @_;
+  my ($self, $bed_file, $sam_file, $n_samples, $input_is_stranded) = @_;
 
   # Default empty = unstranded
   my $strandness = '';
@@ -138,24 +157,29 @@ sub get_strandness {
       system( $cmd );
     };
 
+    die("No inference output: $stderr") if not $stdout;
+    
+    # Check number of usable reads
+    my $n_reads = 0;
+    if ($stderr =~ /Total (\d+) usable reads were sampled/) {
+      $n_reads = $1;
+    }
+    my $min_reads = $self->param('infer_min_reads');
+    if ($n_reads < $min_reads) {
+      die("Inference failed (number of usable reads is too small: $n_reads < $min_reads): $stderr");
+    }
+    
+    # Check success
     if ($exit != 0) {
-      if ($stderr =~ /Total 0 usable reads were sampled/) {
-        return undef, undef, 1;
-      }
       die("Inference failed ($exit): $stderr");
     } else {
       my $output = "$stdout\n$stderr";
-      my ($strandness, $is_paired) = parse_inference($stdout, $stderr, $input_is_stranded);
-      my $no_reads = 0;
-      if ($stderr =~ /Total (\d+) usable reads/) {
-        $no_reads = $1;
-      }
-      return ($strandness, $is_paired, $no_reads, $output);
+      my ($strandness, $is_paired, $is_ambiguous) = $self->parse_inference($stdout, $stderr, $input_is_stranded);
+      return ($strandness, $is_paired, $is_ambiguous, $n_reads, $output);
     }
   } catch {
     # Nothing could be determined? Return nothing but continue
     die("Inference failed with command:\n$cmd\nOutput: $_");
-    return;
   };
 }
 
@@ -166,7 +190,7 @@ sub cleanup_file {
 }
 
 sub parse_inference {
-  my ($text, $err, $input_is_stranded) = @_;
+  my ($self, $text, $err, $input_is_stranded) = @_;
 
   my $is_paired;
   my %strand = (
@@ -177,6 +201,7 @@ sub parse_inference {
   );
 
   my %stats;
+  my $is_ambiguous = 0;
 
   for my $line (split /[\r\n]+/, $text) {
     # Single or paired-end
@@ -203,7 +228,7 @@ sub parse_inference {
   $stats{failed} //= 0;
 
   if (not defined $is_paired) {
-    die("Could not determine the library: single or paired-end");
+    die("Could not determine the library: single or paired-end from:\n$text");
   }
 
   if (not $stats{ forward }) {
@@ -217,21 +242,28 @@ sub parse_inference {
   my $strandness = '';
 
   my $aligned = (1 - $stats{failed});
-  my $max = $aligned * 0.85; # Anything above 85% is considered stranded
-  my $min_ambiguous = 0.65;
-  my $max_failed = 0.25;
+  my $max_failed = $self->param('infer_failed_max');
+  my $max_ambiguous = $aligned * $self->param('infer_max'); # Anything above is considered stranded
+  my $min_ambiguous = $aligned * $self->param('infer_min');
   
   # Too much failed: can't infer strandness
   if ($stats{failed} > $max_failed) {
     $strandness = '';
+    die("Run contains too many reads failed to align ($stats{failed}). Please check: $text");
 
   # Stranded forward
   } elsif ($stats{ forward } > $min_ambiguous) {
     $strandness = $is_paired ? 'FR' : 'F';
     
-    # Not enough power to infer: use input
-    if ($stats{ forward } < $max and not $input_is_stranded) {
-      $strandness = '';
+    # Not enough power to infer: die or use input
+    if ($stats{ forward } < $max_ambiguous and not $input_is_stranded) {
+      if ($self->param('keep_ambiguous')) {
+        $is_ambiguous = 1;
+      } elsif ($self->param('use_input_if_ambiguous')) {
+        $strandness = '';
+      } else {
+        die("Ambiguous strand inference: $stats{ forward } < $max_ambiguous:\n$text");
+      }
     }
 
   # Stranded reverse
@@ -239,12 +271,18 @@ sub parse_inference {
     $strandness = $is_paired ? 'RF' : 'R';
 
     # Not enough power to infer: use input
-    if ($stats{ reverse } < $max and not $input_is_stranded) {
-      $strandness = '';
+    if ($stats{ reverse } < $max_ambiguous and not $input_is_stranded) {
+      if ($self->param('keep_ambiguous')) {
+        $is_ambiguous = 1;
+      } elsif ($self->param('use_input_if_ambiguous')) {
+        $strandness = '';
+      } else {
+        die("Ambiguous strand inference: $stats{ reverse } < $max_ambiguous:\n$text");
+      }
     }
   }
 
-  return ($strandness, $is_paired);
+  return ($strandness, $is_paired, $is_ambiguous);
 }
 
 1;

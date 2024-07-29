@@ -13,16 +13,25 @@
       "properties": {
         "component" : { "type" : "string" },
         "species" : { "type" : "string" },
+        "production_name" : { "type" : "string" },
         "name" : { "type" : "string" },
+        "no_spliced" : { "type" : "boolean" },
+        "release" : { "type" : "integer" },
 
         "runs" : {
           "type" : "array",
           "items" :  { "$ref" : "#/definitions/sample_info" }
         }
       },
+      "oneOf": [
+        {
+          "required": ["component", "species"]
+        },
+        {
+          "required": ["production_name"]
+        }
+      ],
       "required": [
-        "component",
-        "species",
         "name",
         "runs"
         ]
@@ -40,7 +49,8 @@
         "isStrandSpecific" : { "type" : "boolean" },
         "strandDirection" : { "type" : "string" },
         "hasPairedEnds" : { "type" : "boolean" },
-        "trim_reads" : { "type" : "boolean" }
+        "trim_reads" : { "type" : "boolean" },
+        "trim_polyA" : { "type" : "boolean" }
       },
       "required": [
         "accessions"
@@ -48,7 +58,7 @@
     },
     "sra_accession_info": {
       "type" : "string",
-      "pattern" : "^[SE]R[RSXP][0-9]+$",
+      "pattern" : "^[SED]R[RSXP][0-9]+$",
       "additionalProperties": false
     }
   },

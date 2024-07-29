@@ -45,6 +45,7 @@ use base ('Bio::EnsEMBL::EGPipeline::Common::RunnableDB::Base');
 
 use Bio::EnsEMBL::DBSQL::DBAdaptor;
 use File::Copy qw(copy);
+use IO::Uncompress::Gunzip qw(gunzip);
 use Time::Local;
 
 sub param_defaults {
@@ -96,7 +97,13 @@ sub import_required {
 sub import_uniparc {
   my ($self, $ftp_file, $tmp_dir, $uniparc_dba) = @_;
 
-  copy $ftp_file, "$tmp_dir/protein.txt";
+  if ($ftp_file =~ m/\.gz$/) {
+    gunzip $ftp_file => "$tmp_dir/protein.txt"
+      or $self->throw("Failed to gunzip ".$ftp_file);
+  } else {
+    copy $ftp_file, "$tmp_dir/protein.txt";
+  }
+
 
   my $uniparc_dbh = $uniparc_dba->dbc->db_handle();
 

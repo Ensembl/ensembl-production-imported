@@ -38,7 +38,8 @@ sub write_output {
   my ($self) = @_;
 
   my $bam = $self->param_required('bam_file');
-  my $is_stranded = $self->param_required('is_stranded');
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  my $is_stranded = $aligner_metadata->{'is_stranded'};
   my $features = $self->param_required('features');
 
   my @strands = qw(firststrand secondstrand);

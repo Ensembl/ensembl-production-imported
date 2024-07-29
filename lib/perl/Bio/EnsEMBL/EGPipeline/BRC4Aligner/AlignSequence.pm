@@ -52,15 +52,23 @@ sub fetch_input {
   my $samtools_dir  = $self->param('samtools_dir');
   my $max_intron    = $self->param('max_intron');
   my $gtf_file      = $self->param('gtf_file');
-  my $strandness    = $self->param('strandness');
   my $dnaseq        = $self->param('dnaseq');
+  my $aligner_metadata = $self->param_required('aligner_metadata');
+  my $strand_direction = $aligner_metadata->{strand_direction};
+  my $is_paired     = $self->param('is_paired');
+  my $no_spliced    = $self->param('no_spliced');
 
   # DNA-Seq special changes
-  $strandness = undef if $dnaseq;
-  my $no_spliced = $dnaseq ? 1 : 0;
+  $strand_direction = undef if $dnaseq;
+  if ($dnaseq) {
+    $no_spliced = 1;
+  }
   my $number_primary = $dnaseq ? 1 : undef;
-  
-  my $max_intron_length = $self->max_intron_length() if $max_intron;
+
+  my $max_intron_length;
+  if (not $no_spliced and $max_intron) {
+    $max_intron_length = $self->max_intron_length();
+  }
   
   eval "require $aligner_class";
   
@@ -71,7 +79,8 @@ sub fetch_input {
     -run_mode          => $run_mode,
     -gtf_file          => $gtf_file,
     -max_intron_length => $max_intron_length,
-    -strandness        => $strandness,
+    -strand_direction  => $strand_direction,
+    -is_paired         => $is_paired,
     -no_spliced        => $no_spliced,
     -number_primary    => $number_primary,
   );
