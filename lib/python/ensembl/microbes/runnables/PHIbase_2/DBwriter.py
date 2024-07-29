@@ -46,12 +46,13 @@ class DBwriter(eHive.BaseRunnable):
         self.warning("Fetch WRAPPED dbWriter!" + entry_id)
         self.param('branch_to_flow_on_fail', -1)
         self.param('failed_job', '')
-        
-        p2p_db_url = "mysql://admin:6es4M0L1@mysql-molintxs-prod-hl.ebi.ac.uk:4716/MolIntXS_DEV"
-        self.param('interactions_db_url', p2p_db_url)
+        failed_entries = self.param('failed_entries',"/nfs/production/flicek/ensembl/microbes/mcarbajo/Projects/Interactions_Mapping_May_2024/failed_entries") 
+        #p2p_db_url = "mysql://admin:6es4M0L1@mysql-molintxs-prod-hl.ebi.ac.uk:4716/MolIntXS_DEV"
+        #self.param('interactions_db_url', p2p_db_url)
 
-        #p2p_db_url = self.param_required('interactions_db_url')
-        jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
+        p2p_db_url = self.param_required('interactions_db_url')
+        self.param('interactions_db_url', p2p_db_url) 
+        jdbc_pattern = r'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
         (i_user,i_pwd,i_host,i_port,i_db) = re.compile(jdbc_pattern).findall(p2p_db_url)[0]
         self.param('p2p_user',i_user)
         self.param('p2p_pwd',i_pwd)
@@ -82,106 +83,120 @@ class DBwriter(eHive.BaseRunnable):
 
     def insert_new_value(self):
         p2p_db_url = self.param_required('interactions_db_url')
-
         engine = db.create_engine(p2p_db_url)
         print ("P2P DB: " + p2p_db_url)
         Session = sessionmaker(bind=engine)
         session = Session()
 
         entry_id = self.param('entry_id')
+        failed_entries = self.param('failed_entries')
+        failed_entries_folder = str(failed_entries) + "/" + str(entry_id)
+        os.makedirs(os.path.dirname(failed_entries_folder), exist_ok=True)
         print(entry_id)
-        interactor_A_species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
-        interactor_A_molecular_id = self.param('interactor_A_molecular_id')
-        interactor_A_production_name = self.param('interactor_A_production_name')
-        interactor_A_scientific_name = self.param('interactor_A_scientific_name')
-        interactor_A_division = self.param('interactor_A_division')
-        interactor_A_ensembl_gene_stable_id = self.param('interactor_A_ensembl_id')
-        interactor_A_structure = self.param('interactor_A_molecular_structure')
-        interactor_A_interactor_type = self.param("interactor_A_interactor_type")
-        interactor_A_curie = self.param("interactor_A_curie")
-        interactor_A_origin_name = self.param("interactor_A_origin_name")
-        interactor_B_interactor_type = self.param("interactor_B_interactor_type")
-        interactor_B_molecular_id = self.param('interactor_B_molecular_id')
-        interactor_B_curie = self.param("interactor_B_molecular_id")
-        interactor_B_origin_name = self.param("interactor_B_origin_name")
-        doi = self.param("doi")
-        source_db_label = self.param('source_db_label')
-        cm = col_map.ColumnMapper(source_db_label)
-        original_curator_db = cm.original_curator_db
-        #source_db_label = self.param('source_db_label') + " (curated by " + original_curator_db + ")"
-        
-        if self.param('interactor_B_interactor_type') != 'synthetic':
-            interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
-            interactor_B_production_name = self.param('interactor_B_production_name')
-            interactor_B_scientific_name = self.param('interactor_B_scientific_name')
-            interactor_B_division = self.param('interactor_B_division')
-            interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
-            interactor_B_structure = self.param('interactor_B_molecular_structure')
-            interactor_B_curie = self.param("interactor_B_curie")
+        print(failed_entries_folder)
+        with open(failed_entries_folder, 'w') as f:  
+            with session.no_autoflush:
 
-        source_db_value = self.get_source_db_value(session, source_db_label, original_curator_db)
-        session.add(source_db_value)
-        session.flush()
-        source_db_id = source_db_value.source_db_id
-        
-        interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_production_name, interactor_A_scientific_name)
-        #print(entry_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)  
-        try:
-            session.add(interactor_A_species_value)
-            if self.param('interactor_B_interactor_type') != 'synthetic':
-                interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name, interactor_B_scientific_name)
-                session.add(interactor_B_species_value)
-            session.flush()
-
-            interactor_A_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_A_ensembl_gene_stable_id, interactor_A_species_value.species_id)
-            session.add(interactor_A_ensembl_gene_value)
-            if self.param('interactor_B_interactor_type') != 'synthetic':
-                interactor_B_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_B_ensembl_gene_stable_id, interactor_B_species_value.species_id)
-                session.add(interactor_B_ensembl_gene_value)
-            session.flush()
+                f.write(entry_id)
+                interactor_A_species_taxon_id = int(self.param('interactor_A_species_taxon_id'))
+                interactor_A_molecular_id = self.param('interactor_A_molecular_id')
+                interactor_A_production_name = self.param('interactor_A_production_name')
+                interactor_A_scientific_name = self.param('interactor_A_scientific_name')
+                interactor_A_division = self.param('interactor_A_division')
+                interactor_A_ensembl_gene_stable_id = self.param('interactor_A_ensembl_id')
+                interactor_A_structure = self.param('interactor_A_molecular_structure')
+                interactor_A_interactor_type = self.param("interactor_A_interactor_type")
+                interactor_A_curie = self.param("interactor_A_curie")
+                interactor_A_origin_name = self.param("interactor_A_origin_name")
+                interactor_B_interactor_type = self.param("interactor_B_interactor_type")
+                interactor_B_molecular_id = self.param('interactor_B_molecular_id')
+                interactor_B_curie = self.param("interactor_B_molecular_id")
+                interactor_B_origin_name = self.param("interactor_B_origin_name")
+                doi = self.param("doi")
+                source_db_label = self.param('source_db_label')
+                cm = col_map.ColumnMapper(source_db_label)
+                source_db = self.param('source_db')
+                cm = col_map.ColumnMapper(source_db)
+                original_curator_db = cm.original_curator_db
+                source_db_name = cm.source_db_name
+                if "curated" in source_db_label:
+                    source_db_label = source_db_name + "/(" + original_curator_db + " curated)"
                 
-            interactor_A_curated_interactor = self.get_interactor_value(session, interactor_A_interactor_type, interactor_A_curie, interactor_A_molecular_id, interactor_A_structure, interactor_A_ensembl_gene_value.ensembl_gene_id)
-            session.add(interactor_A_curated_interactor)
-            if self.param('interactor_B_interactor_type') != 'synthetic':
-                interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_molecular_id, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
-            else:
-                interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_origin_name, None, None)
-            session.add(interactor_B_curated_interactor)
-            session.flush()
-            
-            interactor_A_intctr_id = interactor_A_curated_interactor.curated_interactor_id
-            interactor_B_intctr_id = interactor_B_curated_interactor.curated_interactor_id
-            interaction_value = self.get_interaction_value(session, interactor_A_intctr_id, interactor_B_intctr_id, doi, source_db_value.source_db_id)    
-            session.add(interaction_value)
-            session.flush()
-            
-            interaction_id = interaction_value.interaction_id
-            key_value_pairs_dict = self.get_key_value_pairs(session)
-            
-            for key_v in key_value_pairs_dict:
-                meta_key_id = self.get_meta_key_id(session, key_v)
-                kvp_value = self.get_kv_pair_value(session, interaction_id, meta_key_id,key_value_pairs_dict[key_v])
-                session.add(kvp_value)
-            
-            session.commit()
-        except pymysql.err.IntegrityError as e:
-            print(e)
-            session.rollback()
-            self.clean_entry(engine)
-            error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
-            self.param('failed_job', error_msg)
-        except exc.IntegrityError as e:
-            print(e)
-            session.rollback()
-            self.clean_entry(engine)
-            error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
-            self.param('failed_job', error_msg)
-        except Exception as e:
-            print(e)
-            session.rollback()
-            self.clean_entry(engine)
-            error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
-            self.param('failed_job', error_msg)
+                if self.param('interactor_B_interactor_type') != 'synthetic':
+                    interactor_B_species_taxon_id = int(self.param('interactor_B_species_taxon_id'))
+                    interactor_B_production_name = self.param('interactor_B_production_name')
+                    interactor_B_scientific_name = self.param('interactor_B_scientific_name')
+                    interactor_B_division = self.param('interactor_B_division')
+                    interactor_B_ensembl_gene_stable_id = self.param('interactor_B_ensembl_id')
+                    interactor_B_structure = self.param('interactor_B_molecular_structure')
+                    interactor_B_curie = self.param("interactor_B_curie")
+        
+                source_db_value = self.get_source_db_value(session, source_db_label, original_curator_db)
+                session.add(source_db_value)
+                session.flush()
+                source_db_id = source_db_value.source_db_id
+                
+                interactor_A_species_value = self.get_species_value(session, interactor_A_species_taxon_id, interactor_A_division, interactor_A_production_name, interactor_A_scientific_name)
+                #print(entry_id + " interactor_A_production_name:" + interactor_A_production_name + " interactor_B_production_name:" + interactor_B_production_name)  
+                try:
+                    session.add(interactor_A_species_value)
+                    if self.param('interactor_B_interactor_type') != 'synthetic':
+                        interactor_B_species_value = self.get_species_value(session, interactor_B_species_taxon_id, interactor_B_division, interactor_B_production_name, interactor_B_scientific_name)
+                        session.add(interactor_B_species_value)
+                    session.flush()
+        
+                    interactor_A_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_A_ensembl_gene_stable_id, interactor_A_species_value.species_id)
+                    session.add(interactor_A_ensembl_gene_value)
+                    if self.param('interactor_B_interactor_type') != 'synthetic':
+                        interactor_B_ensembl_gene_value = self.get_ensembl_gene_value(session, interactor_B_ensembl_gene_stable_id, interactor_B_species_value.species_id)
+                        session.add(interactor_B_ensembl_gene_value)
+                    session.flush()
+                        
+                    interactor_A_curated_interactor = self.get_interactor_value(session, interactor_A_interactor_type, interactor_A_curie, interactor_A_molecular_id, interactor_A_structure, interactor_A_ensembl_gene_value.ensembl_gene_id)
+                    session.add(interactor_A_curated_interactor)
+                    if self.param('interactor_B_interactor_type') != 'synthetic':
+                        interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_molecular_id, interactor_B_structure, interactor_B_ensembl_gene_value.ensembl_gene_id)
+                    else:
+                        interactor_B_curated_interactor = self.get_interactor_value(session, interactor_B_interactor_type, interactor_B_curie, interactor_B_origin_name, None, None)
+                    session.add(interactor_B_curated_interactor)
+                    session.flush()
+                    
+                    interactor_A_intctr_id = interactor_A_curated_interactor.curated_interactor_id
+                    interactor_B_intctr_id = interactor_B_curated_interactor.curated_interactor_id
+                    interaction_value = self.get_interaction_value(session, interactor_A_intctr_id, interactor_B_intctr_id, doi, source_db_value.source_db_id)    
+                    session.add(interaction_value)
+                    session.flush()
+                    
+                    interaction_id = interaction_value.interaction_id
+                    key_value_pairs_dict = self.get_key_value_pairs(session)
+                    
+                    for key_v in key_value_pairs_dict:
+                        meta_key_id = self.get_meta_key_id(session, key_v)
+                        kvp_value = self.get_kv_pair_value(session, interaction_id, meta_key_id,key_value_pairs_dict[key_v])
+                        session.add(kvp_value)
+                    
+                    session.commit()
+                except pymysql.err.IntegrityError as e:
+                    print(e)
+                    session.rollback()
+                    self.clean_entry(engine)
+                    error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
+                    self.param('failed_job', error_msg)
+                    f.write(error_msg)
+                except exc.IntegrityError as e:
+                    print(e)
+                    session.rollback()
+                    self.clean_entry(engine)
+                    error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
+                    self.param('failed_job', error_msg)
+                    f.write(error_msg)
+                except Exception as e:
+                    print(e)
+                    session.rollback()
+                    self.clean_entry(engine)
+                    error_msg = self.param('entry_id') + " DBWriter fail: " + str(e)
+                    self.param('failed_job', error_msg)
+                    f.write(error_msg)
 
     def get_meta_key_id(self, session, key_v):
         meta_key_value = None

@@ -1,4 +1,3 @@
-
 # See the NOTICE file distributed with this work for additional information
 # regarding copyright ownership.
 #
@@ -74,9 +73,12 @@ class EnsemblCoreReader(eHive.BaseRunnable):
             gg = self.getGenes_byProteinID_byDB(dbc, dbn, interactor_A_molecular_id)
             for r in gg:
                 if interactor_A_scientific_name == None:
+                    print("-- NONE predefined interactor_A_scientific_name ; trying db: " + str(dbn))
                     interactor_A_ensembl_gene_stable_id = r[2]
                     interactor_A_production_name = r[0]
                     interactor_A_scientific_name = r[1]
+                else:
+                    print("*:predefined interactor_A_scientific_name :" + str(interactor_A_scientific_name))
                         
         dbc.close()
         print("interactor_A_ensembl_gene_stable_id :" + interactor_A_ensembl_gene_stable_id 
@@ -140,9 +142,9 @@ class EnsemblCoreReader(eHive.BaseRunnable):
                        "INNER JOIN transcript t using(transcript_id) "
                        "INNER JOIN seq_region sr using(seq_region_id) "
                        "INNER JOIN coord_system cs using(coord_system_id) "
-                       "INNER JOIN meta mpn using(species_id) "
+                       "INNER JOIN meta mpn ON mpn.species_id=cs.species_id  "
                        "INNER JOIN gene g on g.gene_id = t.gene_id "
-                       "INNER JOIN meta mscn  using(species_id) "
+                       "INNER JOIN meta mscn ON mscn.species_id=cs.species_id "
                      "WHERE x.dbprimary_acc = '" + accession_id + 
                        "' AND ox.ensembl_object_type = 'Translation' "
                        "AND mpn.meta_key = 'species.production_name' " 
@@ -216,7 +218,7 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         return ensembl_gene_value
 
     def get_production_names_list(self, taxon_id,dbname,staging_url):
-        
+        print("taxon_id: " + taxon_id + "\dbname: " + dbname + "\staging_url: " + staging_url ) 
         if taxon_id is None: 
             return 0 
         
@@ -271,8 +273,8 @@ class EnsemblCoreReader(eHive.BaseRunnable):
         return staging_url
 
     def set_server_params(self,server, url):
-        jdbc_pattern = 'mysql://(.*?):(.*?)@(.*?):(\d*)/(.*)'
-        (user,pwd,host,port,db) = re.compile(jdbc_pattern).findall(url)[0]
+        jdbc_pattern = 'mysql://(.*?)@(.*?):(\d*)'
+        (user,host,port) = re.compile(jdbc_pattern).findall(url)[0]
         if server == 'staging':
             self.param('st_user',user)   
             self.param('st_host',host)   

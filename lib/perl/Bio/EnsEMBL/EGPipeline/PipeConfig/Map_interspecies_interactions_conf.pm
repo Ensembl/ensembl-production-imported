@@ -93,7 +93,8 @@ sub pipeline_wide_parameters {
 
     'inputfile'             => $self->o('inputfile'),
     'registry'		    => $self->o('reg_file'),
-    'source_db'		    => $self->o('source_db')
+    'source_db'		    => $self->o('source_db'),
+    'fails_folder'	    => $self->o('fails_folder')
   };
 }
 
@@ -112,14 +113,16 @@ sub pipeline_analyses {
       -module     => 'ensembl.microbes.runnables.PHIbase_2.InteractionKeys',
       -language   => 'python3',
       -input_ids  => [{
-                       'inputfile' => $self->o('inputfile'),
-		       'registry'  => $self->o('reg_file'),
-		       'source_db' => $self->o('source_db'),
+                       'inputfile' 	=> $self->o('inputfile'),
+		       'registry'  	=> $self->o('reg_file'),
+		       'source_db' 	=> $self->o('source_db'),
+		       'fails_folder'	=> $self->o('fails_folder'),
                      }],
       -parameters => {
-                       registry   => '#registry#',
-		       inputfile  => '#inputfile#',
-		       source_db  => '#source_db#',
+                       registry   	=> '#registry#',
+		       inputfile  	=> '#inputfile#',
+		       source_db  	=> '#source_db#',
+		       fails_folder 	=> '#fails_folder#',
                       },
       -flow_into    => {
                         1 => {'load_ontologies' => INPUT_PLUS()},

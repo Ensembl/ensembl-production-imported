@@ -17,10 +17,12 @@ A .obo file with the descritption of the controlled terms used to describe diffe
 ```
 init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interactions_conf \
     -pipeline_url $EHIVE_URL
-    -reg_file $REGISTRY 
-    -obo_file $OBO_FILE
+    -reg_file $REGISTRY
     -source_db $SOURCE_DB
-    -inputfile $INPUT_DB_FILE
+    -hive_force_init 1
+    -inputfile $INPUT_FILE
+    -queue_name production
+    -fails_folder $FAILS_PATH
 ```
 
 
@@ -29,9 +31,10 @@ init_pipeline.pl Bio::EnsEMBL::EGPipeline::PipeConfig::Map_interspecies_interact
 | option | default value |  meaning | 
 | - | - | - |
 | `-reg_file` |  | Different format than the one previously used in the perl eHive pipeline. This one centralises the url DB details for some databases that the pipeline is going to access. Specifically: interactions_db_url, ncbi_tax_url and meta_db_url
-| `-input_file` | | path to the prepared  PHI-base current [snapshot](https://github.com/PHI-base/data/blob/master/releases/phi-base_current.csv)
+| `-inputfile` | | path to the prepared  PHI-base current [snapshot](https://github.com/PHI-base/data/blob/master/releases/phi-base_current.csv)
 | `-obo_file` | | optional path to any .obo file containing controlled vocabulary or ontologies used to describe the interactions properties
 | `-source_db` | | name of the sourceDB from where we are importing data.ie.- 'PHI-base'
+| `-fails_folder`| | path to the folders logging the entries that have failed at any stage of the pipeline
 
 
 

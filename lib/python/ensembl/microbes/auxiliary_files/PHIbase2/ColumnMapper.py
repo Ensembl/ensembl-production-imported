@@ -159,16 +159,16 @@ class ColumnMapper():
 
         if 'HPIDB' in db_dict:
 
-            if 'HPIDB curated' in db_dict:
+            if 'HPIDBcurated' in db_dict:
                 ColumnMapper.original_curator_db = "HPIDB"
                 ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions. https://hpidb.igbb.msstate.edu/index.html"
-            elif 'INTACT curated' in db_dict:
+            elif 'INTACTcurated' in db_dict:
                 ColumnMapper.original_curator_db = "IntAct"
                 ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by IntAct)"
-            elif 'DIP curated' in db_dict:
+            elif 'DIPcurated' in db_dict:
                 ColumnMapper.original_curator_db = "DIP"
                 ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by DIP)"
-            elif 'MINT curated' in db_dict:
+            elif 'MINTcurated' in db_dict:
                 ColumnMapper.original_curator_db = "MINT"
                 ColumnMapper.source_db_description = "A resource that helps annotate, predict and display host-pathogen interactions (curated by MINT)"
 
