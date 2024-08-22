@@ -29,6 +29,7 @@ class ColumnMapper():
         file_rows = {}
 
         if 'PHI-base' in db_dict:
+        #options: 'PHI-base', 'PHI-base5.0' or 'PHI-baseAMR'
             file_rows = {
                     "entry_id": 0,
                     "interactor_A_molecular_id": 1, # uniprot id
@@ -80,6 +81,16 @@ class ColumnMapper():
             ColumnMapper.source_db_description = "Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity."
             ColumnMapper.source_db_name = "PHI-base"
             ColumnMapper.original_curator_db = "PHI-Canto"
+
+            if 'AMR' in db_dict:
+                ColumnMapper.interactor_B_interactor_type = "synthetic"
+                ColumnMapper.interactor_B_curie_type = "chebi"
+                ColumnMapper.source_db_name = "PHI-base 5.0"
+                ColumnMapper.source_db_description = "Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity.PHI-base 5 features a gene-centric view of the data, in addition to richer annotations on genes and interactions, and curation of first-host targets."
+
+            if '5.0' in db_dict:
+                ColumnMapper.source_db_name = "PHI-base 5.0"
+                ColumnMapper.source_db_description = "Pathogen-Host Interactions Database that catalogues experimentally verified pathogenicity.PHI-base 5 features a gene-centric view of the data, in addition to richer annotations on genes and interactions, and curation of first-host targets."
 
             ColumnMapper.keys_descriptions = {
                     "Interaction phenotype": "Interaction phenotype/ disease outcome",
