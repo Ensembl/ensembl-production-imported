@@ -44,15 +44,25 @@ PREVIOUS_RELEASE=$5
 CWD=`readlink -f $PWD`
 DATE=`date | awk {'print $1,$2,$3,$6'} | sed 's/ /_/g'`
 
-##Vars for STDOUT colour formatting
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-ORANGE='\033[0;33m'
-PURPLE='\033[0;35m'
-NC='\033[0m' # <- No Color
-
 # ## Taxonomy information parsing.
 TAXONOMY_SCRIPT="${CWD}/ensembl-production-imported/scripts/assembly_release_tracking/GetTaxonomy.pl"
+
+##Vars for STDOUT colour formatting
+read -p "Do you want colourised STDOUT printing enabled ? <yes|no> " COLOUR_OPT
+if [[ "$COLOUR_OPT" == "YES" ]] || [[ "$COLOUR_OPT" == "yes" ]]; then
+	echo "colour on"
+	GREEN='\033[0;32m'
+	RED='\033[0;31m'
+	ORANGE='\033[0;33m'
+	PURPLE='\033[0;35m'
+	NC='\033[0m' # <- No Colour
+else
+	GREEN=''
+	RED=''
+	ORANGE=''
+	PURPLE=''
+	NC=''
+fi
 
 # Check for minimum information required to process a given release.
 if [[ -z $RELEASE_HOST ]] || [[ -z $RELEASE ]] || [[ -z $DIVISION ]]; then
@@ -85,7 +95,11 @@ else
 fi
 
 # Check an appropriate division was supplied by user
-if [[ "$DIVISION" != "metazoa" ]] && [[ "$DIVISION" != "plants" ]] && [[ "$DIVISION" != "fungi" ]] && [[ "$DIVISION" != "vertebrates" ]] && [[ "$DIVISION" != "protists" ]]; then
+if [[ "$DIVISION" != "metazoa" ]] \
+	&& [[ "$DIVISION" != "plants" ]] \
+	&& [[ "$DIVISION" != "fungi" ]] \
+	&& [[ "$DIVISION" != "vertebrates" ]] \
+	&& [[ "$DIVISION" != "protists" ]]; then
 	echo -e -n "${RED}Division supplied ($DIVISION) not recognised. Must define as: [ metazoa | plants | fungi | vertebrates | protists ]${NC}\n\n"
 	exit 1
 fi
