@@ -50,7 +50,6 @@ TAXONOMY_SCRIPT="${CWD}/ensembl-production-imported/scripts/assembly_release_tra
 ##Vars for STDOUT colour formatting
 read -p "Do you want colourised STDOUT printing enabled ? <yes|no> " COLOUR_OPT
 if [[ "$COLOUR_OPT" == "YES" ]] || [[ "$COLOUR_OPT" == "yes" ]]; then
-	echo "colour on"
 	GREEN='\033[0;32m'
 	RED='\033[0;31m'
 	ORANGE='\033[0;33m'
