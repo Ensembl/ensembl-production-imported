@@ -47,6 +47,15 @@ DATE=`date | awk {'print $1,$2,$3,$6'} | sed 's/ /_/g'`
 # ## Taxonomy information parsing.
 TAXONOMY_SCRIPT="${CWD}/ensembl-production-imported/scripts/assembly_release_tracking/GetTaxonomy.pl"
 
+# Check for minimum information required to process a given release.
+if [[ -z $RELEASE_HOST ]] || [[ -z $RELEASE ]] || [[ -z $DIVISION ]]; then
+	echo "Usage: Ensembl_MainRelease_Tracker.sh <Division: metazoa|plants|fungi|vertebrates|protists> <staging host: st1, st3, st4, st1b, st3b, st4b> <Ensembl Version> Optional:<Past staging Host> <Past version>" #e.g. st3 108 st3b 107
+	echo -e -n "E.g: Ensembl_MainRelease_Tracker metazoa st3 114 st3b 113\n"
+	echo -e -n "     Ensembl_MainRelease_Tracker vertebrates st1 113\n\n"
+	echo -e -n "Note: Your working directory for this pipeline should contain a clone of 'ensembl-production-imported'!\n"
+	exit 1
+fi
+
 ##Vars for STDOUT colour formatting
 read -p "Do you want colourised STDOUT printing enabled ? <yes|no> " COLOUR_OPT
 if [[ "$COLOUR_OPT" == "YES" ]] || [[ "$COLOUR_OPT" == "yes" ]]; then
@@ -61,15 +70,6 @@ else
 	ORANGE=''
 	PURPLE=''
 	NC=''
-fi
-
-# Check for minimum information required to process a given release.
-if [[ -z $RELEASE_HOST ]] || [[ -z $RELEASE ]] || [[ -z $DIVISION ]]; then
-	echo "Usage: Ensembl_MainRelease_Tracker.sh <Division: metazoa|plants|fungi|vertebrates|protists> <staging host: st1, st3, st4, st1b, st3b, st4b> <Ensembl Version> Optional:<Past staging Host> <Past version>" #e.g. st3 108 st3b 107
-	echo -e -n "${ORANGE}E.g: Ensembl_MainRelease_Tracker metazoa st3 114 st3b 113\n"
-	echo -e -n "     Ensembl_MainRelease_Tracker vertebrates st1 113${NC}\n"
-	echo -e -n "\nWarning: Your working directory for this pipeline should contain a clone of 'ensembl-production-imported'!!\n"
-	exit 1
 fi
 
 #Expand release host from codon variable to full host:port for taxonomy registry:
@@ -369,6 +369,10 @@ if [[ $CHECK_TAXON_DB == "ncbi_taxonomy_${RELEASE}" ]]; then
 
 	#Generate taxonomy info TSV depending on absence or partial taxonomy output file
 	if [[ $GENERATE_TAXONOMY == "YES" ]]; then
+
+		# First check for script:
+		if [[ ! -e $TAXONOMY_SCRIPT ]]; then echo -e -n "${RED}Couldn't find './ensembl-production-imported/scripts/assembly_release_tracking/GetTaxonomy.pl' ! in $CWD${NC}\n\n"; exit 1; fi
+
 		echo -e -n "#Phylum\tClass\tSuperorder\tOrder\tSuborder\tFamily\tSubfamily\tSpecies\n" > $TAXONOMY_OUTPUT_FILE
 		while read TAXON_LINE;
 		do
