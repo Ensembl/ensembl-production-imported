@@ -117,7 +117,8 @@ TARGET_SERVER=`$TARGET_HOST details host-port`
 
 BREAK=0
 if [[ $BREAK == 0 ]]; then
-	echo -e -n "${GREEN}##Source server: $SOURCE_SERVER ----> Target server: $TARGET_SERVER${NC}\n" | tee $LOG_FILE
+	date 2>&1 | tee $LOG_FILE
+	echo -e -n "${GREEN}##Source server: $SOURCE_SERVER ----> Target server: $TARGET_SERVER${NC}\n" | tee -a $LOG_FILE
 	BREAK=1
 fi
 
@@ -133,11 +134,10 @@ do
 		echo -e -n "=> dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER -i $CORE -n $TARGET_CORE --skip-check${NC}\n\n" | tee -a $LOG_FILE
 	#Make transfer with dbcopy-client
 	elif [[ "${DRY_RUN^^}" == "NO" ]] && [[ "${OPERATION^^}" == "SUBMIT" ]]; then
-		echo "${GREEN}#Real copy submission...\n\t"
+		echo -e -n "${GREEN}#Real copy submission...\n\t"
 		echo -e -n "=> dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER -i $CORE -n $TARGET_CORE --skip-check${NC}\n" | tee -a $LOG_FILE
-		date 2>&1 | tee -a DB_COPY_${INPUT}.log
-		dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER -i $CORE -n $TARGET_CORE 2>&1 | tee -a $LOG_FILE
-		echo "" | tee -a DB_COPY_${INPUT}.log
+		dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER -i $CORE -n $TARGET_CORE --skip-check 2>&1 | tee -a $LOG_FILE
+		echo "" | tee -a $LOG_FILE
 	#List user specific copy jobs that are completed
 	elif [[ "${OPERATION^^}" == "LIST" ]]; then
 		echo -e -n "${ORANGE}\nList DB copy JOBS\n\t=> dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER${NC}\n\n"
