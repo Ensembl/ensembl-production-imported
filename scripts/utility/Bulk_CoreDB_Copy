@@ -37,11 +37,6 @@ if [[ -z $SOURCE ]] || [[ -z $SOURCE_HOST ]] || [[ -z $TARGET ]] || [[ -z $TARGE
 	exit 0
 fi
 
-SOURCE_CORES=`readlink -f $SOURCE`
-TARGET_CORES=`readlink -f $TARGET`
-
-`paste $SOURCE_CORES $TARGET_CORES > $INPUT_CORES`
-
 ##Vars for STDOUT colour formatting
 read -p "Do you want colourised STDOUT printing enabled ? <yes|no> " COLOUR_OPT
 if [[ "$COLOUR_OPT" == "YES" ]] || [[ "$COLOUR_OPT" == "yes" ]]; then
@@ -55,6 +50,19 @@ else
 	ORANGE=''
 	NC=''
 fi
+
+# Check input files passed have same length before combining
+SOURCE_CORES=`readlink -f $SOURCE`
+COUNT_SOURCE=`wc -l $SOURCE_CORES | cut -d " " -f1`
+TARGET_CORES=`readlink -f $TARGET`
+COUNT_TARGET=`wc -l $TARGET_CORES | cut -d " " -f1`
+
+if [[ $COUNT_SOURCE -ne $COUNT_TARGET ]]; then
+	echo -e -n "${RED}Number of CoreDBs in source and target core lists do not match! Ensure both lists have the same number of cores per file.${NC}\n"
+	exit 1
+fi
+
+`paste $SOURCE_CORES $TARGET_CORES > $INPUT_CORES`
 
 # Find out if we want to do a test run:
 read -p "Set run as a TEST dry run ? <yes|no> " DRY_RUN
@@ -104,8 +112,8 @@ else
 fi
 
 # Database host expansion:
-SOURCE_SERVER=($SOURCE_HOST details host-port)
-TARGET_SERVER=($TARGET_HOST details host-port)
+SOURCE_SERVER=`$SOURCE_HOST details host-port`
+TARGET_SERVER=`$TARGET_HOST details host-port`
 
 BREAK=0
 if [[ $BREAK == 0 ]]; then
@@ -123,11 +131,6 @@ do
 	if [[ "${DRY_RUN^^}" == "YES" ]] && [[ "${OPERATION^^}" == "SUBMIT" ]]; then
 		echo -e -n "${ORANGE}\n#Dry Run DB copy...\n\t" | tee -a $LOG_FILE
 		echo -e -n "=> dbcopy-client -a $OPERATION -u $ENDPOINT -s $SOURCE_SERVER -t $TARGET_SERVER -e $EMAIL_LIST -r $USER -i $CORE -n $TARGET_CORE --skip-check${NC}\n\n" | tee -a $LOG_FILE
-	#List user specific copy jobs that are completed
-	elif [[ "${DRY_RUN^^}" == "NO" ]] && [[ "${OPERATION^^}" == "LIST" ]]; then
-		echo -e -n "${ORANGE}\nList DB copy JOBS\n\t=> dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER${NC}\n\n"
-		dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER | grep -v -e "Complete"
-		exit 0
 	#Make transfer with dbcopy-client
 	elif [[ "${DRY_RUN^^}" == "NO" ]] && [[ "${OPERATION^^}" == "SUBMIT" ]]; then
 		echo "${GREEN}#Real copy submission...\n\t"
@@ -135,8 +138,14 @@ do
 		date 2>&1 | tee -a DB_COPY_${INPUT}.log
 		dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER -i $CORE -n $TARGET_CORE 2>&1 | tee -a $LOG_FILE
 		echo "" | tee -a DB_COPY_${INPUT}.log
+	#List user specific copy jobs that are completed
+	elif [[ "${OPERATION^^}" == "LIST" ]]; then
+		echo -e -n "${ORANGE}\nList DB copy JOBS\n\t=> dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER${NC}\n\n"
+		dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER | grep -v -e "Complete"
+		exit 0
 	else
 		echo -e -n "${ORANGE}Did not recognise input params. Please double check input params and retry!${NC}\n\n"
+		exit 1
 	fi
 
 done < $INPUT_CORES
