@@ -130,7 +130,7 @@ do
 	# Only do dry run
 	if [[ "${DRY_RUN^^}" == "YES" ]] && [[ "${OPERATION^^}" == "SUBMIT" ]]; then
 		echo -e -n "${ORANGE}\n#Dry Run DB copy...\n\t" | tee -a $LOG_FILE
-		echo -e -n "=> dbcopy-client -a $OPERATION -u $ENDPOINT -s $SOURCE_SERVER -t $TARGET_SERVER -e $EMAIL_LIST -r $USER -i $CORE -n $TARGET_CORE --skip-check${NC}\n\n" | tee -a $LOG_FILE
+		echo -e -n "=> dbcopy-client -a $OPERATION -u $ENDPOINT --src_host $SOURCE_SERVER --tgt_host $TARGET_SERVER -e $EMAIL_LIST -r $USER -i $CORE -n $TARGET_CORE --skip-check${NC}\n\n" | tee -a $LOG_FILE
 	#Make transfer with dbcopy-client
 	elif [[ "${DRY_RUN^^}" == "NO" ]] && [[ "${OPERATION^^}" == "SUBMIT" ]]; then
 		echo "${GREEN}#Real copy submission...\n\t"
