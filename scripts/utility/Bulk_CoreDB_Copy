@@ -93,11 +93,11 @@ else
 fi
 
 # Check for the right modenv is located and activated
-which handover-client
+which dbcopy-client
 if [ $? -eq 0 ]; then
-    echo -e -n "${GREEN}ensembl_mod_env module environment detected 'ensembl/production-tools' handover-client found! Proceeding...${NC}\n\n"
+    echo -e -n "${GREEN}ensembl_mod_env module environment detected 'ensembl/production-tools' dbcopy-client found! Proceeding...${NC}\n\n"
 else
-    echo -e -n "${RED}Unable to locate 'handover-client' (production-tools). Ensure you have created/loaded via 'module load ensembl/production-tools'.\n"
+    echo -e -n "${RED}Unable to locate 'dbcopy-client' (production-tools). Ensure you have created/loaded via 'module load ensembl/production-tools'.\n"
 	echo -e -n "modenv_create ensembl/production-tools production-tools && module load ensembl/production-tools'${NC}\n"
 	echo -e -n "${ORANGE}See --> https://github.com/Ensembl/ensembl-mod-env/wiki/\n\n"
 	exit 1
