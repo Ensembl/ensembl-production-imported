@@ -22,15 +22,14 @@ HOST=$1
 INPUT=$2
 MAIN_OR_BETA=${3^}
 DIVISION=$4
-DRY_RUN=${5^^}
-CONTEXT=$6
+CONTEXT=$5
 CWD=`readlink -f $PWD`
 
 # Check required params first
-if [[ -z $HOST ]] || [[ -z $INPUT ]] || [[ -z $MAIN_OR_BETA ]] || [[ -z $DIVISION ]] || [[ -z $DRY_RUN ]] || [[ -z $CONTEXT ]]; then
+if [[ -z $HOST ]] || [[ -z $INPUT ]] || [[ -z $MAIN_OR_BETA ]] || [[ -z $DIVISION ]] || [[ -z $CONTEXT ]]; then
 
-	echo -e -n "Usage: sh Bulk_CoreDB_Handover_Beta.sh <Core DB host> <INPUT_CORES_LIST> <main or beta ?> <Division> <Dry Run: yes|no> <"Short HO context description">\n"
-	echo -e -n "E.g. sh Bulk_CoreDB_Handover_Beta.sh me1 Cores.list.txt main Y\n"
+	echo "Usage: Bulk_CoreDB_Handover_Beta <Core DB host> <INPUT_CORES_LIST> <main or beta ?> <Division> <'Short HO context description'>"
+	echo "E.g. Bulk_CoreDB_Handover_Beta me1 Cores.list.txt main metazoa 'Metazoa handover first run'"
 	exit 0
 fi
 
@@ -62,18 +61,40 @@ else
 	NC=''
 fi
 
-### Main production endpoints (Subject to change following production updates)
+# Find out if we want to do a test run:
+read -p "Set run as a TEST dry run ? <yes|no> " DRY_RUN
+if [[ "${DRY_RUN^^}" == "YES" ]]; then
+	echo -e -n "${ORANGE}SAFE RUN: Handover dry test run.${NC}\n\n"
+elif [[ "${DRY_RUN^^}" == "NO" ]]; then
+	echo -e -n  "${ORANGE}REAL RUN: DB Copy will attempt to submit real jobs!!${NC}\n\n"
+	sleep 2
+else
+	echo -e -n "${RED}Options are 'yes' or 'no'${NC}\n"
+	exit 1
+fi
+
+### Main production endpoints
 if [[ -e $ENSEMBL_ROOT_DIR/"ensembl-production-imported-private/lib/bash/HANDOVER.env" ]]; then
-	echo -e -n "${GREEN}Located handover endpoint ENV${NC}\n"
 	source $ENSEMBL_ROOT_DIR/ensembl-production-imported-private/lib/bash/HANDOVER.env
+	URL_SOURCE="$ENSEMBL_ROOT_DIR/ensembl-production-imported-private/lib/bash/HANDOVER.env"
 elif [[ -e $CWD/"ensembl-production-imported-private/lib/bash/HANDOVER.env" ]]; then
-	echo -e -n "${GREEN}Located handover endpoint ENV${NC}\n"
 	source $CWD/ensembl-production-imported-private/lib/bash/HANDOVER.env
+	URL_SOURCE="$CWD/ensembl-production-imported-private/lib/bash/HANDOVER.env"
 else
 	echo -e -n "${ORANGE}Could not detect local clone of 'ensembl-production-imported-private'\n"
 	echo -e -n "Attempting fresh clone now...${NC}\n\n"
 	git clone -b main --depth 1 git@github.com:Ensembl/ensembl-production-imported-private.git $$CWD/ensembl-production-imported-private
 	source $CWD/ensembl-production-imported-private/lib/bash/HANDOVER.env
+	URL_SOURCE="$CWD/ensembl-production-imported-private/lib/bash/HANDOVER.env"
+fi
+
+# Check for endpoint URL correctly defined and set for handover-copy purposes
+if [ $HANDOVER_BASE_URL ]; then
+	echo -e -n "${GREEN}Detected handover-client endpoint URL variable -> $URL_SOURCE${NC}\n"
+	ENDPOINT_BETA="${HANDOVER_BASE_URL}/rapid/handovers/"
+	ENDPOINT_MAIN="${HANDOVER_BASE_URL}${DIVISION}/handovers/"
+else
+	echo -e -n "${RED}Unable to detect Endpoint URL variable for handover-client.\n Required repo: 'ensembl-production-imported-private'${NC}\n\n"
 fi
 
 # Check for the right modenv is located and activated
@@ -87,10 +108,8 @@ else
 	exit 1
 fi
 
-# # Database host expansion:
+# Database host expansion:
 DATABASE_SERVER=$($HOST details url)
-ENDPOINT_BETA="${HANDOVER_BASE_URL}/rapid/handovers/"
-ENDPOINT_MAIN="${HANDOVER_BASE_URL}${DIVISION}/handovers/"
 
 
 #Setting End point for RR vs MainSite handover:
@@ -121,18 +140,18 @@ do
 SPECIES=$(echo $DB | perl -pe "s/_core_.*//");
 DESCRIPTION="${CONTEXT_DESC} $SPECIES)"
 SOURCE_URL=$($HOST details url $DB)
-if [[ "$DRY_RUN" == "YES" ]]; then
+if [[ "${DRY_RUN^^}" == "YES" ]]; then
 	echo -e -n "${ORANGE}\nDry-run handover test:${NC}\n\n"
 	echo -e -n "${ORANGE}handover-client --action submit --uri ${SUB_ENDPOINT} --src_uri \"${DATABASE_SERVER}${DB}\" --email \"${USER}@ebi.ac.uk\" --description \"${DESCRIPTION}\"${NC}\n"
-	echo "handover-client --action submit --uri ${SUB_ENDPOINT} --src_uri \"${DATABASE_SERVER}${DB}\" --email \"${USER}@ebi.ac.uk\" --description \"${DESCRIPTION}\"" > ${SPECIES}_HandOverDRYRUN.${RELEASE_DESC}.${DIVISION}.log
-elif [[ "$DRY_RUN" == "NO" ]]; then
-	echo -e -n "${GREEN}\nPerforming real handover:${NC}\n\n"
+	echo "handover-client --action submit --uri ${SUB_ENDPOINT} --src_uri \"${DATABASE_SERVER}${DB}\" --email \"${USER}@ebi.ac.uk\" --description \"${DESCRIPTION}\"" > ${SPECIES}_HandOver-DRYRUN.${RELEASE_DESC}.${DIVISION}.log
+elif [[ "${DRY_RUN^^}" == "NO" ]]; then
+	echo -e -n "${GREEN}\nPerforming real handover: $DB${NC}\n\n"
 	handover-client \
 	--action submit \
 	--uri ${SUB_ENDPOINT} \
 	--src_uri "${DATABASE_SERVER}${DB}" \
 	--email "${USER}@ebi.ac.uk" \
-	--description "${DESCRIPTION}" 2>&1 | tee ${SPECIES}_HandOverREAL.${RELEASE_DESC}.${DIVISION}.log
+	--description "${DESCRIPTION}" 2>&1 | tee ${SPECIES}_HandOver-REAL.${RELEASE_DESC}.${DIVISION}.log
 
 	if [[ $? == 0 ]]; then
         echo -e -n "${GREEN}Handover done - $SPECIES${NC}\n"
@@ -141,7 +160,7 @@ elif [[ "$DRY_RUN" == "NO" ]]; then
     fi
 	sleep 2
 else
-	echo -e -n "${RED}Did not recognise 'Dry Run' param. Options are: <yes|no>.\n\n"
+	echo -e -n "${ORANGE}Did not recognise 'Dry Run' param. Options are: <yes|no>.${NC}\n\n"
 fi
 echo ""
 done
