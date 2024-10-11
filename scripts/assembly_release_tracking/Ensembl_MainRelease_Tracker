@@ -130,7 +130,7 @@ if [[ -s $ALL_CORE_DBS ]]; then
 	ALL_CORE_COUNT=$(wc -l < $ALL_CORE_DBS)
 	echo -e -n "Located previously generated core list: $ALL_CORE_DBS\n\t${ORANGE}#> Contains $ALL_CORE_COUNT core dbs from e${RELEASE}.${NC}\n"
 
-elif [ ! -z $RELEASE_HOST ]; then
+elif [[ ! -z $RELEASE_HOST ]]; then
 
 	if [[ $DIVISION == "vertebrates" ]]; then
 		CORE_REGEX="core_${RELEASE}"
