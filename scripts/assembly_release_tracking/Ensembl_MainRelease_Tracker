@@ -33,7 +33,6 @@
 ############################################################################
 
 ## Sript version: v1.0
-## Version date: 04\10\2024
 ## Created: Lahcen Campbell (Ensembl Metazoa) - [lcampbell@ebi.ac.uk]
 
 DIVISION=$1
