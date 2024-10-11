@@ -29,7 +29,7 @@
 
 # Typical usage: Post Ensembl Core DB Handover; run this script on desired staging host (e.g. st3b) 
 # or pre-staging host (e.g. st3).
-# If available, already generated TSVs can be compared between ensembl releases. 
+# If available, already generated TSVs can be compared between Ensembl releases. 
 ############################################################################
 
 ## Sript version: v1.0
@@ -181,19 +181,19 @@ else
 			echo "Metazoa --> $CORE"
 			echo "$CORE" >> $METAZOA_CORES
 		#FUNGI
-		elif [ $SQL_DIVISION == 'EnsemblFungi' ]; then
+		elif [[ $SQL_DIVISION == 'EnsemblFungi' ]]; then
 			echo "Fungal --> $CORE"
 			echo "$CORE" >> $FUNGI_CORES
 		#PLANTS
-		elif [ $SQL_DIVISION == 'EnsemblPlants' ]; then
+		elif [[ $SQL_DIVISION == 'EnsemblPlants' ]]; then
 			echo "Plant --> $CORE"
 			echo "$CORE" >> $PLANTS_CORES
 		#PROTISTS
-		elif [ $SQL_DIVISION == 'EnsemblVertebrates' ]; then
+		elif [[ $SQL_DIVISION == 'EnsemblVertebrates' ]]; then
 			echo "Vertebrate --> $CORE"
 			echo "$CORE" >> $VERTEBRATES_CORES
 		#VERTEBRATES
-		elif [ $SQL_DIVISION == 'EnsemblProtists' ]; then
+		elif [[ $SQL_DIVISION == 'EnsemblProtists' ]]; then
 			echo "Protist --> $CORE"
 			echo "$CORE" >> $PROTISTS_CORES
 		fi
@@ -248,11 +248,11 @@ fi
 ## Stage 2 - Gather core information and print to file
 echo -e -n "${PURPLE}Entering Assembly status snapshot stage....${NC}\n\n"
 if [[ -s $ASSEMBLY_INFO ]]; then
-		echo -e -n "${GREEN}#> Located previously generated ${DIVISION^} e${RELEASE} snapshot TSV: $ASSEMBLY_INFO.\n${ORANGE}Skipping DB meta table query stage.${NC}\n\n"
+	echo -e -n "${GREEN}#> Located previously generated ${DIVISION^} e${RELEASE} snapshot TSV: $ASSEMBLY_INFO.\n${ORANGE}Skipping DB meta table query stage.${NC}\n\n"
 
-		PROCESSED=$(wc -l < $ASSEMBLY_INFO)
-		REAL_PROCESSED=$(wc -l < $ASSEMBLY_INFO)
-		REAL_PROCESSED=$((PROCESSED-1))
+	PROCESSED=$(wc -l < $ASSEMBLY_INFO)
+	REAL_PROCESSED=$(wc -l < $ASSEMBLY_INFO)
+	REAL_PROCESSED=$((PROCESSED-1))
 fi
 
 
@@ -263,8 +263,7 @@ PARSE_LOCK="NO"
 PARSE_COUNT=0
 GEN_COUNT=0
 
-while read DATABASE_NAME
-do
+while read DATABASE_NAME; do
 
 	if [[ -e $ASSEMBLY_INFO ]] && [[ $REAL_PROCESSED -eq $TARGET_CORE_COUNT ]]; then
 
@@ -373,8 +372,7 @@ if [[ $CHECK_TAXON_DB == "ncbi_taxonomy_${RELEASE}" ]]; then
 		if [[ ! -e $TAXONOMY_SCRIPT ]]; then echo -e -n "${RED}Couldn't find './ensembl-production-imported/scripts/assembly_release_tracking/GetTaxonomy.pl' ! in $CWD${NC}\n\n"; exit 1; fi
 
 		echo -e -n "#Phylum\tClass\tSuperorder\tOrder\tSuborder\tFamily\tSubfamily\tSpecies\n" > $TAXONOMY_OUTPUT_FILE
-		while read TAXON_LINE;
-		do
+		while read TAXON_LINE; do
 			echo -e -n "Name\tTaxon ID\n" > $TEMP_TAXON_TSV
 			echo "$TAXON_LINE" >> $TEMP_TAXON_TSV
 			perl $TAXONOMY_SCRIPT -ncbi_taxon_host $TAXON_RELEASE_HOST -ncbi_taxon_port $RELEASE_PORT -sp_taxon_tsv $TEMP_TAXON_TSV -ens_release $RELEASE | cut -f 1,2,3,4,5,6,7,8 | tail -n 1 >> $TAXONOMY_OUTPUT_FILE
@@ -405,7 +403,7 @@ echo -e -n "\n#Unique Phyla [Primary assemblies only]:\n"
 echo -e -n "Count | Phylum${NC}\n"
 cat $TAXONOMY_OUTPUT_FILE | grep -v -e "^#Phylum" -e "alternate_haplotype" | cut -f 1 | sort | uniq -c | sort -nr
 
-echo -e -n  "\n${PURPLE}#Unique Orders [Primary assemblies only]:\n"
+echo -e -n "\n${PURPLE}#Unique Orders [Primary assemblies only]:\n"
 echo -e -n "Count | Order:${NC}\n"
 cat $TAXONOMY_OUTPUT_FILE | grep -v -e "^#Phylum" -e "alternate_haplotype" | cut -f 4 | sort | uniq -c | sort -nr
 
@@ -419,8 +417,7 @@ cat $ASSEMBLY_INFO | grep -v -e "^#Organism" -e "alternate_haplotype" | cut -f 3
 if [[ -e $PAST_ASSEMBLY_INFO ]]; then
 	echo -e -n "\n${PURPLE}#> Located Meta information for previous release: $PREVIOUS_RELEASE !\nComparing snapshot differences...\n"
 
-	for TSV in $PAST_ASSEMBLY_INFO $ASSEMBLY_INFO
-	do
+	for TSV in $PAST_ASSEMBLY_INFO $ASSEMBLY_INFO; do
 		TEMP_SORT_ASM=`echo $TSV | basename $TSV .info.tsv`
 		cat $TSV | awk -F"\t" '{print $1,$7}' | grep -v -e "^#Organism" | sort > ${TEMP_SORT_ASM}.sort.tmp
 	done

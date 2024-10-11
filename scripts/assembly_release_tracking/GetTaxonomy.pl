@@ -35,18 +35,18 @@ my $group_ranks = 0;
 my $usage="perl GetTaxonomy.pl -sp_taxon_tsv input.tsv -ens_release 113 -ncbi_taxon_host mysql-ens-xx-x -ncbi_taxon_port 1234 (OPTIONAL: -group_ranks)";
 
 # Handle input arguments
-GetOptions("sp_taxon_tsv=s" => \$sp_taxon_tsv,
-           "group_ranks"          => \$group_ranks,
-           "ens_release=s"          => \$ens_release,
-           "ncbi_taxon_host=s"          => \$ncbi_taxon_host,
-           "ncbi_taxon_port=s"          => \$ncbi_taxon_port,
-          ) or die("Error in command line arguments\n");
+GetOptions(
+    "sp_taxon_tsv=s" => \$sp_taxon_tsv,
+    "group_ranks" => \$group_ranks,
+    "ens_release=s" => \$ens_release,
+    "ncbi_taxon_host=s" => \$ncbi_taxon_host,
+    "ncbi_taxon_port=s" => \$ncbi_taxon_port,
+) or die("Error in command line arguments\n");
 
-if ((!$sp_taxon_tsv) || (!$ncbi_taxon_host) || (!$ncbi_taxon_port) || (!$ens_release))
-    {
+if ((!$sp_taxon_tsv) || (!$ncbi_taxon_host) || (!$ncbi_taxon_port) || (!$ens_release)) {
     print "$usage\n";
     die;
-    }   
+}
 
 my $tax_dba =  Bio::EnsEMBL::Taxonomy::DBSQL::TaxonomyDBAdaptor->new(
     -user   => "ensro",
@@ -148,7 +148,7 @@ sub map_row_to_header {
     
     chomp $line;
     chomp $header;
-    my @cols      = split(/[\f\n\r\t]+/, $line);
+    my @cols = split(/[\f\n\r\t]+/, $line);
     my @head_cols;
     if ( ref $header eq 'ARRAY' ) {
         @head_cols = @$header;
