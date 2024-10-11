@@ -177,7 +177,7 @@ else
 	do
 		SQL_DIVISION=`$RELEASE_HOST -D $CORE -e "SELECT meta_value FROM meta WHERE meta_key = 'species.division';" | tail -n 1`
 		#METAZOA
-		if [ $SQL_DIVISION == 'EnsemblMetazoa' ]; then
+		if [[ $SQL_DIVISION == 'EnsemblMetazoa' ]]; then
 			echo "Metazoa --> $CORE"
 			echo "$CORE" >> $METAZOA_CORES
 		#FUNGI
