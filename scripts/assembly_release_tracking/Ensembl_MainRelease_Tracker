@@ -27,8 +27,8 @@
 # 7) - Compare and display info on current release to a previous release snapshot for DB changes/additions 
 #      (If available i.e. already generated)
 
-# Typical usage: Post Ensembl Core DB Handover; run this script on Metazoa staging host (e.g. st3b) 
-# or pre staging host (st3).
+# Typical usage: Post Ensembl Core DB Handover; run this script on desired staging host (e.g. st3b) 
+# or pre-staging host (e.g. st3).
 # If available, already generated TSVs can be compared between ensembl releases. 
 ############################################################################
 
