@@ -83,7 +83,7 @@ elif [[ -e $CWD/"ensembl-production-imported-private/lib/bash/HANDOVER.env" ]]; 
 else
 	echo -e -n "${ORANGE}Could not detect local clone of 'ensembl-production-imported-private'\n"
 	echo -e -n "Attempting fresh clone now...${NC}\n\n"
-	git clone -b main --depth 1 git@github.com:Ensembl/ensembl-production-imported-private.git $$CWD/ensembl-production-imported-private
+	git clone -b main --depth 1 git@github.com:Ensembl/ensembl-production-imported-private.git $CWD/ensembl-production-imported-private
 	source $CWD/ensembl-production-imported-private/lib/bash/HANDOVER.env
 	URL_SOURCE="$CWD/ensembl-production-imported-private/lib/bash/HANDOVER.env"
 fi

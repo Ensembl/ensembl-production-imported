@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#### Script to facilitate batch submission of db copy jobs on cores (host) facilitating 
-# core renames (target) via the production-tools 'dbcopy-client'. 
+#### Script to facilitate batch submission of db copy jobs on cores (host) facilitating
+# core renames (target) via the production-tools 'dbcopy-client'.
 # Alternativelt it facilitates listing of user specific completed copy jobs.
 
 EMAIL_LIST="${USER}@ebi.ac.uk"  # Can be a comma separated list of email addresses the system will notify
@@ -87,7 +87,7 @@ elif [[ -e $CWD/"ensembl-production-imported-private/lib/bash/HANDOVER.env" ]]; 
 else
 	echo -e -n "${ORANGE}Could not detect local clone of 'ensembl-production-imported-private'\n"
 	echo -e -n "Attempting fresh clone now...${NC}\n\n"
-	git clone -b main --depth 1 git@github.com:Ensembl/ensembl-production-imported-private.git $$CWD/ensembl-production-imported-private
+	git clone -b main --depth 1 git@github.com:Ensembl/ensembl-production-imported-private.git $CWD/ensembl-production-imported-private
 	source $CWD/ensembl-production-imported-private/lib/bash/HANDOVER.env
 	URL_SOURCE="$CWD/ensembl-production-imported-private/lib/bash/HANDOVER.env"
 fi
