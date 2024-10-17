@@ -44,7 +44,7 @@ CWD=`readlink -f $PWD`
 DATE=`date | awk {'print $1,$2,$3,$6'} | sed 's/ /_/g'`
 
 # ## Taxonomy information parsing.
-TAXONOMY_SCRIPT="${CWD}/ensembl-production-imported/scripts/assembly_release_tracking/GetTaxonomy.pl"
+TAXONOMY_SCRIPT="${ENSEMBL_ROOT_DIR}/ensembl-production-imported/scripts/assembly_release_tracking/GetTaxonomy.pl"
 
 # Check for minimum information required to process a given release.
 if [[ -z $RELEASE_HOST ]] || [[ -z $RELEASE ]] || [[ -z $DIVISION ]]; then
