@@ -122,7 +122,7 @@ PAST_ASSEMBLY_INFO="${PREV_REL_FOLDER}/${DIVISION^}_sp_Asm_${PREVIOUS_HOST}_e${P
 CHANGES_BETWEEN_REL="${DIVISION^}_species_Diff_e${RELEASE}_comparedTo_e${PREVIOUS_RELEASE}.list.txt"
 
 TEMP_SNAPSHOT_FILE="${CUR_REL_FOLDER}/temp_snapshot.tsv"
-if [[ -e $TEMP_SNAPSHOT_FILE ]]; then rm $TEMP_SNAPSHOT_FILE; fi
+if [[ -f $TEMP_SNAPSHOT_FILE ]]; then rm $TEMP_SNAPSHOT_FILE; fi
 
 ## Stage 1a - get all core databases from staging host
 if [[ -s $ALL_CORE_DBS ]]; then
@@ -335,9 +335,9 @@ fi
 echo -e -n "${PURPLE}\n\nNow retreiving organismal taxonomic information ...\n"
 echo -e -n "Checking for available 'ncbi_taxonomy_${RELEASE}' DB on $RELEASE_HOST...${NC}\n"
 CHECK_TAXON_DB=`$RELEASE_HOST -Ne "SHOW DATABASES LIKE 'ncbi_taxonomy_${RELEASE}';"`
-TAXONOMY_INPUT_FILE="all_species_and_taxonid.tmp"
+TAXONOMY_INPUT_FILE="${CUR_REL_FOLDER}/all_species_and_taxonid.tmp"
 TAXONOMY_OUTPUT_FILE="Taxon_levels_${DIVISION}_e${RELEASE}.tsv"
-TEMP_TAXON_TSV="taxonomy_input.tsv.tmp"
+TEMP_TAXON_TSV="${CUR_REL_FOLDER}/taxonomy_input.tsv.tmp"
 
 if [[ $CHECK_TAXON_DB == "ncbi_taxonomy_${RELEASE}" ]]; then
 	echo -e -n "${GREEN}Found ncbi taxonomy DB on $RELEASE_HOST.${NC}\n"
@@ -377,10 +377,13 @@ if [[ $CHECK_TAXON_DB == "ncbi_taxonomy_${RELEASE}" ]]; then
 			echo "$TAXON_LINE" >> $TEMP_TAXON_TSV
 			perl $TAXONOMY_SCRIPT -ncbi_taxon_host $TAXON_RELEASE_HOST -ncbi_taxon_port $RELEASE_PORT -sp_taxon_tsv $TEMP_TAXON_TSV -ens_release $RELEASE | cut -f 1,2,3,4,5,6,7,8 | tail -n 1 >> $TAXONOMY_OUTPUT_FILE
 		done < $TAXONOMY_INPUT_FILE
-		rm ./$TAXONOMY_INPUT_FILE ./$TEMP_TAXON_TSV
 
 		echo -e -n "${GREEN}Taxonomy TSV generated !${NC}\n\n"
 	fi
+
+	# Clean up temp files
+	if [[ -f $TAXONOMY_INPUT_FILE ]]; then rm $TAXONOMY_INPUT_FILE; fi
+	if [[ -f $TEMP_TAXON_TSV ]]; then rm $TEMP_TAXON_TSV; fi
 
 else
 	echo -e -n "${RED}Can't retrieve taxonomy info! Unable to locate database 'ncbi_taxonomy_${RELEASE}' on mysql host: $TAXON_RELEASE_HOST.\nCheck for available ncbi_taxonomy dbs on host.${NC}\n\n"
