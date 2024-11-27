@@ -19,16 +19,17 @@ MODE=${2^^}
 PATCH_OUTFILE="${PWD}/$3"
 HOST=$4
 OUTPUT_TSV_SUMMARY="${PWD}/New_EG_Genes_Selected.tsv"
+COMPARA_DB=""
 
-if [[ -z $INPUT_CORES ]] || [[ -z $MODE ]] || [[ -z $PATCH_OUTFILE ]] || [[ -z $HOST ]]; then
+if [[ -z $INPUT_CORES ]] || [[ -z $MODE ]] || [[ -z $PATCH_OUTFILE ]] || [[ -z $HOST ]] || [[ "$COMPARA_DB" -eq "" ]]; then
     echo "Usage: sh GenerateExampleGenes.sh <INPUT FILE> <auto|manual> <PATCH_OUTFILE_NAME> <CORE HOST>"
     echo "mode: Inputfile format"
     echo "Manual mode: core_db_name<'\n'>"
     echo "Auto mode: core_db_name<'\t'>manually_selected_stable_id<'\n'>"
+    echo "Make sure to alter script and add the appropriate compara DB!! Line: 22."
     exit 0;
 fi
 
-COMPARA_DB="ensembl_compara_metazoa_61_114"
 META_OUTDIR=$PWD/GENE_META
 mkdir -p $META_OUTDIR
 
