@@ -21,9 +21,9 @@ HOST=$4
 OUTPUT_TSV_SUMMARY="${PWD}/New_EG_Genes_Selected.tsv"
 COMPARA_DB=""
 
-if [[ -z $INPUT_CORES ]] || [[ -z $MODE ]] || [[ -z $PATCH_OUTFILE ]] || [[ -z $HOST ]] || [[ "$COMPARA_DB" -eq "" ]]; then
+if [[ -z $INPUT_CORES ]] || [[ -z $MODE ]] || [[ -z $PATCH_OUTFILE ]] || [[ -z $HOST ]] || [[ ! -n "$COMPARA_DB" ]]; then
     echo "Usage: sh GenerateExampleGenes.sh <INPUT FILE> <auto|manual> <PATCH_OUTFILE_NAME> <CORE HOST>"
-    echo "mode: Inputfile format"
+    echo "Input file format"
     echo "Manual mode: core_db_name<'\n'>"
     echo "Auto mode: core_db_name<'\t'>manually_selected_stable_id<'\n'>"
     echo "Make sure to alter script and add the appropriate compara DB!! Line: 22."
