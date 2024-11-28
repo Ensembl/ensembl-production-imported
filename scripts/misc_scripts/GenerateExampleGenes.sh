@@ -29,6 +29,11 @@ if [[ -z $INPUT_CORES ]] || [[ -z $MODE ]] || [[ -z $PATCH_OUTFILE ]] || [[ -z $
     echo "Make sure to alter script and add the appropriate compara DB!! Line: 22."
     exit 0;
 fi
+
+# Point to specific host for compara db, change this if not residing on core staging host
+COMPARA_HOST=$HOST
+
+#Meta tmp output
 META_OUTDIR=$PWD/GENE_META
 mkdir -p $META_OUTDIR
 
@@ -76,7 +81,7 @@ do
         for NEW_GENE_CHECK in $(tail -n 1 $META_OUTDIR/rand_genes_${CORE}.txt);
             do
             # Now check if compara DB contains homologies on randomly select gene stable_id
-            CHECK_COMPARA_HOMOLOGY=`$HOST -D $COMPARA_DB -Ne "SELECT count(*) FROM gene_member JOIN genome_db USING(genome_db_id) JOIN gene_member_hom_stats USING(gene_member_id) WHERE genome_db.name = \"${PROD_NAME}\" AND gene_trees > 0 and stable_id = \"${NEW_GENE_CHECK}\";"`
+            CHECK_COMPARA_HOMOLOGY=`$COMPARA_HOST -D $COMPARA_DB -Ne "SELECT count(*) FROM gene_member JOIN genome_db USING(genome_db_id) JOIN gene_member_hom_stats USING(gene_member_id) WHERE genome_db.name = \"${PROD_NAME}\" AND gene_trees > 0 and stable_id = \"${NEW_GENE_CHECK}\";"`
 
             if [[ $CHECK_COMPARA_HOMOLOGY -ge 1 ]]; then
 
