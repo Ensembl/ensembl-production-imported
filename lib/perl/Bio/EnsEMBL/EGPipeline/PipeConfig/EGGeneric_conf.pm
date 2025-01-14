@@ -43,7 +43,6 @@ package Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf;
 use strict;
 use warnings;
 
-use Bio::EnsEMBL::Hive::Version 2.2;
 use Bio::EnsEMBL::EGPipeline::PrivateConfDetails;
 use base ('Bio::EnsEMBL::Hive::PipeConfig::EnsemblGeneric_conf');
 
