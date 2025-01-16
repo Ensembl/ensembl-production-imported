@@ -44,7 +44,7 @@ use Bio::EnsEMBL::EGPipeline::PipeConfig::AlignmentXref_conf;
 use Bio::EnsEMBL::EGPipeline::PipeConfig::Xref_conf;
 
 use Bio::EnsEMBL::Hive::PipeConfig::HiveGeneric_conf;
-use Bio::EnsEMBL::Hive::Version 2.4;
+use Bio::EnsEMBL::Hive::Version v2.4;
 
 sub default_options {
   my ($self) = @_;

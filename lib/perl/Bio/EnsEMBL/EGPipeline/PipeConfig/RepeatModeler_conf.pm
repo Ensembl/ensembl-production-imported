@@ -22,7 +22,7 @@ package Bio::EnsEMBL::EGPipeline::PipeConfig::RepeatModeler_conf;
 use strict;
 use warnings;
 
-use Bio::EnsEMBL::Hive::Version 2.5;
+use Bio::EnsEMBL::Hive::Version v2.5;
 use base ('Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf');
 
 use Bio::EnsEMBL::Hive::PipeConfig::HiveGeneric_conf;
