@@ -40,7 +40,7 @@ use warnings;
 use base ('Bio::EnsEMBL::EGPipeline::PipeConfig::EGGeneric_conf');
 
 use Bio::EnsEMBL::Hive::PipeConfig::HiveGeneric_conf;
-use Bio::EnsEMBL::Hive::Version 2.4;
+use Bio::EnsEMBL::Hive::Version v2.4;
 
 use File::Spec::Functions qw(catdir);
 
