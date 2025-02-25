@@ -236,6 +236,7 @@ sub pipeline_analyses {
                               max_files_per_directory => $self->o('max_files_per_directory'),
                               max_dirs_per_directory  => $self->o('max_dirs_per_directory'),
                               unique_file_names       => 1,
+                              force_max_seq_length    => 1,
                             },
       #-rc_name           => '9Gb_mem',
       -rc_name           => '16Gb_mem',
