@@ -260,7 +260,7 @@ sub files_required {
   my $force_max_seq_length = $self->param('force_max_seq_length');
 
   my ($file_count, $record_count, $file_len) = (0, 0, 0);
-  # $self->create_new_output_fasta emulation
+  # Emulate $self->create_new_output_fasta()
   ($file_count, $record_count, $file_len) = ($file_count + 1, 0, 0);
 
   my $original = Bio::SeqIO->new(-format => 'Fasta', -file => $fasta_file);
