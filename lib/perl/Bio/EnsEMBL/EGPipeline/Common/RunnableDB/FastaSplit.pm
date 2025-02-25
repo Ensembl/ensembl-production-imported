@@ -44,7 +44,7 @@ sub param_defaults {
     'unique_file_names'       => 0,      # Ensure that output file names are unique across all directories?
     'delete_original_file'    => 0,      # After splitting, delete original fasta file?
     'file_varname'            => 'split_file',
-    'force_max_seq_length'    => 0,      # Forse sequence splitting if 'max_seq_length_per_file' exceeded, IDs are reused, coordinates diverge
+    'force_max_seq_length'    => 0,      # Force sequence splitting if 'max_seq_length_per_file' exceeded, IDs are reused, coordinates diverge
   };
 
 }
