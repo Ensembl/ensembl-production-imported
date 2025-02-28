@@ -18,6 +18,42 @@ Install the python part (of the pipelines):
 pip install ./ensembl-production-imported
 ```
 
+[TKRZW DBM](https://dbmx.net/tkrzw/) dependencies:
+
+We use `tkrzw` python module for our [Xref](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/Xref_conf.pm) and
+[AllXref](lib/perl/Bio/EnsEMBL/EGPipeline/PipeConfig/AllXref_conf.pm) pipelines.
+
+It's good to have this already installed / available in your environment.
+For official installation instructions see https://dbmx.net/tkrzw/#installation and https://dbmx.net/tkrzw/api-python.
+
+Or you can use this trick:
+```
+# installing tkrzw
+tkrzw_ver=1.0.32
+tkrzw_url="https://dbmx.net/tkrzw/pkg/tkrzw-${tkrzw_ver}.tar.gz"
+tkrzw_python_git_url="git+https://github.com/estraier/tkrzw-python"
+
+dir_full_path=$(pwd)
+
+wget "$tkrzw_url"
+tar -zxf "tkrzw-${tkrzw_ver}.tar.gz"
+TKRZW_DIR="${dir_full_path}"/"tkrzw-${tkrzw_ver}"
+pushd "$TKRZW_DIR"
+  ./configure --enable-zlib --enable-lzma --enable-zstd
+  make
+popd
+
+export PATH="$PATH":"$TKRZW_DIR"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":"$TKRZW_DIR"
+
+LD_LIBRARY_PATH="$LD_LIBRARY_PATH":"$TKRZW_DIR" \
+  LIBRARY_PATH="$TKRZW_DIR" \
+  CPATH="$TKRZW_DIR" \
+  pip3 install "$tkrzw_python_git_url"
+
+python -c 'import tkrzw' && echo all good
+```
+
 ### Configuration
 
 #### Refreshing environment
