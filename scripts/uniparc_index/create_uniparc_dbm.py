@@ -68,7 +68,7 @@ def add_uniparc_data(db, stream, _start):
     cnt, collisions = 0, 0
     for cnt, line in enumerate(stream, start = 1):
         uniparc_id, md5u = line.strip().split() # NB: split on WS
-        md5u = md5u.encode("utf-8")
+        md5u = md5u.upper().encode("utf-8")
         status, prev = db.SetAndGet(md5u, uniparc_id.encode("utf-8"), True) # overwrite: True
         if prev:
             collisions += 1

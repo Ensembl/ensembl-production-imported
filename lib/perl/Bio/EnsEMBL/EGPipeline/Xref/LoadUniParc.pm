@@ -41,6 +41,9 @@ use warnings;
 use base ('Bio::EnsEMBL::EGPipeline::Xref::LoadXref');
 
 use Bio::EnsEMBL::DBSQL::DBAdaptor;
+use File::Path qw(make_path);
+use File::Spec::Functions qw(catdir);
+use File::Touch;
 use Digest::MD5;
 
 sub param_defaults {
@@ -53,10 +56,6 @@ sub param_defaults {
   };
 }
 
-# uniparc_dbm_cache => catdir($self->o('uniparc_dbm_cache_dir'), $self->o('uniparc_dbm_cache_name')),
-# dbm_query_script => catdir($self->o('ensembl_production_imported_scripts_dir'), 'uniparc_index', 'query_uniparc_dbm.py')
-# upi_query_dir      => catdir($self->o('pipeline_dir'), '#species#', 'upi_query'),
-
 sub run {
   my ($self) = @_;
   my $db_type     = $self->param_required('db_type');
@@ -64,8 +63,8 @@ sub run {
   my $external_db = $self->param_required('external_db');
 
   my $dba = $self->get_DBAdaptor($db_type);
-  my $aa  = $dba->get_adaptor('Analysis');
 
+  my $aa  = $dba->get_adaptor('Analysis');
   my $analysis = $aa->fetch_by_logic_name($logic_name);
 
   $self->external_db_reset($dba, $external_db);
@@ -79,21 +78,113 @@ sub run {
 
 sub add_xrefs {
   my ($self, $dba, $analysis, $external_db) = @_;
-  my $uniparc_db = $self->param_required('uniparc_db');
 
-  my $uniparc_dba = Bio::EnsEMBL::DBSQL::DBAdaptor->new(%$uniparc_db);
+  my $dbm_file = $self->param_required('uniparc_dbm_cache');
+  my $query_py = $self->param_required('dbm_query_script');
+  my $work_dir = $self->param_required('upi_query_dir'); 
 
-  my $ta   = $dba->get_adaptor('Translation');
+  # dump translation dbIDs, stable IDs, DM5(upper case), sequence
+  my $ta = $dba->get_adaptor('Translation');
+
+  if (! -e $work_dir) {
+    make_path($work_dir) or $self->throw("Failed to create directory '$work_dir': $!");
+  }
+
+  # get translations
+  touch( catdir($work_dir, "get_translations_start.tag") );
+  my $translations = []; # [ {dbId, stableID, md5, upis, sequence} ]
+  $self->get_translations($ta, $translations);
+  touch( catdir($work_dir, "get_translations_end.tag") );
+
+  my $translations_raw_tsv = catdir($work_dir, "translations.raw.tsv");
+  $self->dump_translations($translations, $translations_raw_tsv);
+
+  # get unique md5s and query fo UPIs
+  my $unique_md5s = {};
+  $self->get_uniq_md5s($translations, $unique_md5s);
+
+  my $known_upis = {}; # md5 -> [ upis ]
+  $self->query_md5_cache($unique_md5s, $known_upis);
+
+  # dump result
+  my $translations_upi_tsv = catdir($work_dir, "translations.upi.tsv");
+  $self->dump_translations($translations, $translations_raw_tsv);
+
+  # store xrefs
+  touch( catdir($work_dir, "xrefs_store_start.tag") );
+  my $translations_store_log = catdir($work_dir, "translations_store.log");
+  $self->store_xrefs($dba, $translations, $translations_store_log);
+  touch( catdir($work_dir, "xrefs_store_stop.tag") );
+
+  die "";
+}
+
+
+sub store_xrefs {
+  my ($self, $dba, $translations, $log) = @_;
+
+  open(my $fh, ">", $log)
+    or $self->throw("Failed to open '$log': $!");
+
   my $dbea = $dba->get_adaptor('DBEntry');
+
+  foreach my $translation (@$translations) {
+    my $dbID = $translation->{dbID};
+    my $stable_id = $translation->{stable_id} // "";
+    my $md5 = $translation->{md5};
+    my $upis = $translation->{upis};
+
+    my $upis_cnt = scalar(@$upis);
+    if ($upis_cnt > 0) {
+      if ($upis_cnt > 1) {
+        my $upis_str = join(",", @{$upis});
+        my $warnig_str = "Multiple UPIs ($upis_str) found for translation $dbID ($stable_id) with MD5 $md5";
+        $self->warning($warning_str);
+        print $fh "$warning_str\n";
+      }
+      my $upi = $upis->[0];
+      print $fh "Storing xref $upi for translation $dbID ($stable_id) with MD5 $md5\n";
+      #my $xref = $self->add_xref($upis->[0], $analysis, $external_db);
+      #$dbea->store($xref, $translation->{dbID}, 'Translation');
+    }
+  }
+
+  close($fh);
+}
+
+sub get_translations {
+  my ($self, $ta, $store) = @_;
 
   my $translations = $ta->fetch_all();
   foreach my $translation (@$translations) {
-    my $upi = $self->search_for_upi($uniparc_dba, $translation);
-    if ($upi) {
-         my $xref = $self->add_xref($upi, $analysis, $external_db);
-          $dbea->store($xref, $translation->dbID(), 'Translation');
-    }
+    my $seq = $translation->seq;
+    my $checksum = $self->md5_checksum($seq);
+    my $item = {
+      dbID => $translation->dbID(),
+      stable_id => $translation->stable_id,
+      sequence => $seq,
+      md5 => $checksum,
+      upis => [],
+    };
+
+    push @$store, $item;
+}
+
+sub dump_translations {
+  my ($self, $translations, $file) = @_;
+
+  return if (!file);
+
+  open(my $fh, ">", $file)
+    or $self->throw("Failed to open '$file': $!");
+
+  foreach my $item (@$translations) {
+    my $upis_str = join(",", @{$item->{upis}});
+    my $item_str = join("\t", $item->{dbID}, $item->{stable_id} // "", $item->{md5}, $upis_str, $item->{sequence});
+    print $fh "$item_str\n";
   }
+  
+  close($fh);
 }
 
 sub add_xref {

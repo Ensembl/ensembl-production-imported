@@ -58,10 +58,6 @@ sub param_defaults {
   };
 }
 
-# uniparc_dbm_cache_dir => $self->o('uniparc_dbm_cache_dir'),
-# uniparc_dbm_cache_name => $self->o('uniparc_dbm_cache_name'),
-# dbm_create_script => catdir($self->o('ensembl_production_imported_scripts_dir'), 'uniparc_index', 'create_uniparc_dbm.py'),
-
 sub run {
   my ($self) = @_;
   my $ftp_file  = $self->param_required('ftp_file');

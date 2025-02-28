@@ -28,22 +28,33 @@ import tkrzw
 def get_args():
     parser = argparse.ArgumentParser()
 
-    # ( Copied from https://github.com/Ensembl/ensembl-refget/blob/main/pipeline/indexer/create_indexdb.py )
-    # If you use /dev/shm on Slurm, the RAM to hold the DB will be accounted to
-    # your process. You should allow for approx. 20GB per 100M entries.
     parser.add_argument("--dbfile",
         help= 'Database file to query.',
         required=True
     )
     parser.add_argument("--batch",
-        help= 'Default batch size to query for. Default is 1k',
-        default= 1_000,
+        help= 'Default batch size to query for. Default is 5k',
+        default= 5_000,
         required=False,
         type=int
     )
     #
     args = parser.parse_args()
     return args
+
+
+def dump(data, stream):
+    if not data:
+        return 0, 0
+    found, not_unique = len(data), 0
+
+    for item in sorted(data.items(), key = lambda i: i[0]):
+        decoded = map(lambda b: b.decode("utf-8"), item)
+        if decoded[1].count("\t") > 0:
+            not_unique += 1
+        print("\t".join(decoded), file = stream)
+
+    return found, non_unique
 
 
 ## MAIN ##
@@ -63,23 +74,30 @@ def main():
     # queadding uniparc data
     queried_cnt = 0
 
-    # TODO:
-    queries = list()
-    cnt = 0
+    queries = []
+    cnt, found, non_unique = 0, 0, 0
     for cnt, line in enumerate(sys.stdin, start = 1):
-        key = line.strip()
+        key = line.strip().upper()
         queries.append(key)
+        if cnt % batch == 0:
+          res = db.GetMulti(*queries)
+          queries = []
+          _found, _non_unique = dump(res, sys.stdout) 
+          found += _found
+          non_unique += _non_unique
     queried_cnt = cnt
-    
+
+    # process last batch
     res = db.GetMulti(*queries)
-    print(res)
-    print(len(res))
-
-
+    queries = []
+    _found, _non_unique = dump(res, sys.stdout) 
+    found += _found
+    non_unique += _non_unique
+          
     _queried = datetime.now(UTC)
 
     # Closes the database.
-    print(f"Queried {queried_cnt} times. Closing DB ({_queried}: {_queried - _start})", file=sys.stderr)
+    print(f"Queried {queried_cnt} times, found {found}, non unique {non_unique}. Closing DB ({_queried}: {_queried - _start})", file=sys.stderr)
     db.Close().OrDie()
     _closed = datetime.now(UTC)
 
