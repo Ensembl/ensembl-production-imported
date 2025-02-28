@@ -47,6 +47,16 @@ use Bio::EnsEMBL::Hive;
 use Bio::EnsEMBL::EGPipeline::PrivateConfDetails;
 use base ('Bio::EnsEMBL::Hive::PipeConfig::EnsemblGeneric_conf');
 
+use Class::Inspector;
+use File::Basename;
+use FindBin;
+
+# infere repo root folder
+my $package_path = Class::Inspector->loaded_filename(__PACKAGE__);
+my $package_dir = dirname($package_path);
+my $root_dir = "$package_dir/../../../../../..";
+my $scripts_dir = "$root_dir/scripts";
+
 sub default_options {
   my ($self) = @_;
   return {
@@ -82,6 +92,10 @@ sub default_options {
 
     # pipeline tag
     pipeline_tag => '',
+
+    # scripts dir
+    ensembl_production_imported_root => $root_dir,
+    ensembl_production_imported_scripts_dir => $scripts_dir,
   }
 }
 
@@ -208,6 +222,7 @@ sub resource_classes {
     'datamove'          => $self->make_resource({"queue" => $data_queue, "memory" => 100, "time" => $short}),
     'datamove_4Gb_mem'  => $self->make_resource({"queue" => $data_queue, "memory" => 4_000, "time" => $long}),
     'datamove_32Gb_mem' => $self->make_resource({"queue" => $data_queue, "memory" => 32_000, "time" => $long}),
+    'datamove_64Gb_mem' => $self->make_resource({"queue" => $data_queue, "memory" => 64_000, "time" => $long}),
   );
 
   my @mems = (2, 4, 8, 12, 16, 32);

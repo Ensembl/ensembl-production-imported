@@ -53,6 +53,10 @@ sub param_defaults {
   };
 }
 
+# uniparc_dbm_cache => catdir($self->o('uniparc_dbm_cache_dir'), $self->o('uniparc_dbm_cache_name')),
+# dbm_query_script => catdir($self->o('ensembl_production_imported_scripts_dir'), 'uniparc_index', 'query_uniparc_dbm.py')
+# upi_query_dir      => catdir($self->o('pipeline_dir'), '#species#', 'upi_query'),
+
 sub run {
   my ($self) = @_;
   my $db_type     = $self->param_required('db_type');

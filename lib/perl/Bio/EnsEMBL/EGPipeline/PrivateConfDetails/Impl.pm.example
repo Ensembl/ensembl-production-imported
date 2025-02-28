@@ -81,9 +81,10 @@ our $CONFIG = {
   # Bio::EnsEMBL::EGPipeline::PipeConfig::Xref_conf
   #  UniParc and Uniprot production databases are for internal use only
   #    and can not be accessed externally. Should be replaced with REST API calls.
-  ENSEMBL_LOCAL_UNIPARC_DB => undef,
   ENSEMBL_REMOTE_UNIPARC_DB => undef,
   ENSEMBL_REMOTE_UNIPPROT_DB => undef,
+  # Shared folder for storing tkrzw index of the ENSEMBL_UNIPARC_UPI_LIST (see below)
+  UNIPARC_DBM_CACHE_DIR => undef,
 
   # Bio::EnsEMBL::EGPipeline::Xref::ImportUniParc
   #   local copy of ftp://ftp.ebi.ac.uk/pub/contrib/uniparc/upidump.lis

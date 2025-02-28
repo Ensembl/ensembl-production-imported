@@ -64,9 +64,10 @@ sub default_options {
 
     # UniParc and Uniprot production databases are for internal use only
     #  and can not be accessed externally. Should be replaced with REST API calls.
-    local_uniparc_db  => $self->private_conf('ENSEMBL_LOCAL_UNIPARC_DB'),
     remote_uniparc_db => $self->private_conf('ENSEMBL_REMOTE_UNIPARC_DB'),
     remote_uniprot_db => $self->private_conf('ENSEMBL_REMOTE_UNIPPROT_DB'),
+    uniparc_dbm_cache_dir => $self->private_conf('UNIPARC_DBM_CACHE_DIR'),
+    uniparc_dbm_cache_name =>  'uniparc_cache.tkh',
 
     replace_all           => 0,
     gene_name_source      => [],
@@ -196,9 +197,11 @@ sub pipeline_analyses {
       -module          => 'Bio::EnsEMBL::EGPipeline::Xref::ImportUniParc',
       -max_retry_count => 1,
       -parameters      => {
-                            uniparc_db => $self->o('local_uniparc_db'),
+                            uniparc_dbm_cache_dir => $self->o('uniparc_dbm_cache_dir'),
+                            uniparc_dbm_cache_name => $self->o('uniparc_dbm_cache_name'),
+                            dbm_create_script => catdir($self->o('ensembl_production_imported_scripts_dir'), 'uniparc_index', 'create_uniparc_dbm.py'),
                           },
-      -rc_name         => 'datamove_4Gb_mem',
+      -rc_name         => 'datamove_64Gb_mem',
     },
 
     {
@@ -292,7 +295,9 @@ sub pipeline_analyses {
       -hive_capacity   => $self->o('hive_capacity'),
       -max_retry_count => 0,
       -parameters      => {
-                            uniparc_db  => $self->o('local_uniparc_db'),
+                            uniparc_dbm_cache => catdir($self->o('uniparc_dbm_cache_dir'), $self->o('uniparc_dbm_cache_name')),
+                            dbm_query_script => catdir($self->o('ensembl_production_imported_scripts_dir'), 'uniparc_index', 'query_uniparc_dbm.py'),
+                            upi_query_dir      => catdir($self->o('pipeline_dir'), '#species#', 'upi_query'),
                             logic_name  => $self->o('checksum_logic_name'),
                             external_db => $self->o('uniparc_external_db'),
                           },
