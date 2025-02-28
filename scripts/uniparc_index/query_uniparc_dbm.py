@@ -46,12 +46,12 @@ def get_args():
 def dump(data, stream):
     if not data:
         return 0, 0
-    found, not_unique = len(data), 0
+    found, non_unique = len(data), 0
 
     for item in sorted(data.items(), key = lambda i: i[0]):
-        decoded = map(lambda b: b.decode("utf-8"), item)
+        decoded = list( map(lambda b: b.decode("utf-8"), item) )
         if decoded[1].count("\t") > 0:
-            not_unique += 1
+            non_unique += 1
         print("\t".join(decoded), file = stream)
 
     return found, non_unique
@@ -79,12 +79,14 @@ def main():
     for cnt, line in enumerate(sys.stdin, start = 1):
         key = line.strip().upper()
         queries.append(key)
-        if cnt % batch == 0:
+        if cnt % args.batch == 0:
           res = db.GetMulti(*queries)
           queries = []
           _found, _non_unique = dump(res, sys.stdout) 
           found += _found
           non_unique += _non_unique
+          _batch = datetime.now(UTC)
+          print(f"Queried {cnt} times, found {found}, non unique {non_unique} ({_batch}: {_batch - _start})", file=sys.stderr)
     queried_cnt = cnt
 
     # process last batch

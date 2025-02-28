@@ -43,7 +43,6 @@ use base ('Bio::EnsEMBL::EGPipeline::Xref::LoadXref');
 use Bio::EnsEMBL::DBSQL::DBAdaptor;
 use File::Path qw(make_path);
 use File::Spec::Functions qw(catdir);
-use File::Touch;
 use Digest::MD5;
 
 sub param_defaults {
@@ -81,7 +80,7 @@ sub add_xrefs {
 
   my $dbm_file = $self->param_required('uniparc_dbm_cache');
   my $query_py = $self->param_required('dbm_query_script');
-  my $work_dir = $self->param_required('upi_query_dir'); 
+  my $work_dir = $self->param_required('upi_query_dir');
 
   # dump translation dbIDs, stable IDs, DM5(upper case), sequence
   my $ta = $dba->get_adaptor('Translation');
@@ -91,37 +90,103 @@ sub add_xrefs {
   }
 
   # get translations
-  touch( catdir($work_dir, "get_translations_start.tag") );
+  $self->warning("Getting translations");
+  $self->touch( catdir($work_dir, "get_translations_start.tag") );
   my $translations = []; # [ {dbId, stableID, md5, upis, sequence} ]
   $self->get_translations($ta, $translations);
-  touch( catdir($work_dir, "get_translations_end.tag") );
+  $self->touch( catdir($work_dir, "get_translations_end.tag") );
 
   my $translations_raw_tsv = catdir($work_dir, "translations.raw.tsv");
+  $self->warning("Dumping raw translations data with no UPIs to $translations_raw_tsv");
   $self->dump_translations($translations, $translations_raw_tsv);
 
-  # get unique md5s and query fo UPIs
-  my $unique_md5s = {};
-  $self->get_uniq_md5s($translations, $unique_md5s);
-
-  my $known_upis = {}; # md5 -> [ upis ]
-  $self->query_md5_cache($unique_md5s, $known_upis);
+  # query cache and fill UPIs
+  $self->warning("Querying and filling UPIs");
+  $self->query_cache_and_update_upis($translations, $query_py, $dbm_file, $work_dir);
 
   # dump result
   my $translations_upi_tsv = catdir($work_dir, "translations.upi.tsv");
-  $self->dump_translations($translations, $translations_raw_tsv);
+  $self->warning("Dumping raw translations data with available UPIs to $translations_upi_tsv");
+  $self->dump_translations($translations, $translations_upi_tsv);
 
   # store xrefs
-  touch( catdir($work_dir, "xrefs_store_start.tag") );
+  $self->touch( catdir($work_dir, "xrefs_store_start.tag") );
   my $translations_store_log = catdir($work_dir, "translations_store.log");
-  $self->store_xrefs($dba, $translations, $translations_store_log);
-  touch( catdir($work_dir, "xrefs_store_stop.tag") );
+  $self->warning("Storing xrefs. See $translations_store_log");
+  $self->store_xrefs($dba, $translations, $analysis, $external_db, $translations_store_log);
+  $self->touch( catdir($work_dir, "xrefs_store_stop.tag") );
 
-  die "";
+  $self->warning("Done");
 }
 
+sub query_cache_and_update_upis {
+  my ($self, $translations, $query_py, $dbm_file, $work_dir) = @_;
+
+  # get unique md5s and query fo UPIs
+  $self->warning("Getting unique MD5s");
+  my $unique_md5s = [];
+  $self->get_uniq_md5s($translations, $unique_md5s);
+
+  # preparing queries
+  my $md5_queries = catdir($work_dir, "md5_queries.lst");
+  $self->warning("Filling list of MD5 queries to $md5_queries");
+  open(my $qfh, ">", $md5_queries)
+    or $self->throw("Failed to open '$md5_queries': $!");
+  for my $md5 (@$unique_md5s) {
+    print $qfh "$md5\n";
+  }
+  close($qfh);
+
+  # run query script
+  my $upi_file = catdir($work_dir, "md5_upi.lst");
+  my $log_file = catdir($work_dir, "query.log");
+
+  $self->warning("Fetching UPIs from $dbm_file into $upi_file (log $log_file)");
+  my $cmd = "";
+  $cmd .= "cat $md5_queries | ";
+  $cmd .= "  python $query_py --dbfile $dbm_file > $upi_file 2> $log_file";
+  system($cmd) == 0 or $self->throw("Failed to run '$cmd': $!");
+
+  # extract UPIs, assuming same result for the same MD5
+  $self->warning("Extracting UPIs from $upi_file");
+  my $known_upis = {}; # md5 -> [ upis ]
+  open(my $upifh, "<:encoding(utf-8)", $upi_file)
+    or $self->throw("Failed to open '$upi_file': $!");
+  while(my $line = <$upifh>) {
+    chomp $line;
+    my ($md5, @upis) = split /\t/, $line;
+    $known_upis->{$md5} = [ @upis ];
+  }
+  close($upifh);
+
+  # update transcript UPIs
+  my $known_upis_cnt = scalar(keys(%$known_upis));
+  $self->warning("Updating transcripts with $known_upis_cnt known UPIs");
+  $self->add_upis($translations, $known_upis);
+}
+
+sub get_uniq_md5s {
+  my ($self, $translations, $store) = @_;
+  push @$store,
+    sort { $a cmp $b }
+      keys %{{
+        map { $_->{md5} => 1 } @$translations
+      }};
+};
+
+sub add_upis {
+  my ($self, $translations, $known) = @_;
+  foreach my $translation (@$translations) {
+    my $md5 = $translation->{md5};
+    my $upis = $translation->{upis};
+    if (exists $known->{$md5} && @{$known->{$md5}} ) {
+      push @$upis, @{$known->{$md5}};
+    }
+  }
+}
 
 sub store_xrefs {
-  my ($self, $dba, $translations, $log) = @_;
+  my ($self, $dba, $translations, $analysis, $external_db, $log) = @_;
 
   open(my $fh, ">", $log)
     or $self->throw("Failed to open '$log': $!");
@@ -138,14 +203,14 @@ sub store_xrefs {
     if ($upis_cnt > 0) {
       if ($upis_cnt > 1) {
         my $upis_str = join(",", @{$upis});
-        my $warnig_str = "Multiple UPIs ($upis_str) found for translation $dbID ($stable_id) with MD5 $md5";
+        my $warning_str = "Multiple UPIs ($upis_str) found for translation $dbID ($stable_id) with MD5 $md5";
         $self->warning($warning_str);
         print $fh "$warning_str\n";
       }
       my $upi = $upis->[0];
       print $fh "Storing xref $upi for translation $dbID ($stable_id) with MD5 $md5\n";
-      #my $xref = $self->add_xref($upis->[0], $analysis, $external_db);
-      #$dbea->store($xref, $translation->{dbID}, 'Translation');
+      my $xref = $self->add_xref($upi, $analysis, $external_db);
+      $dbea->store($xref, $dbID, 'Translation');
     }
   }
 
@@ -166,14 +231,20 @@ sub get_translations {
       md5 => $checksum,
       upis => [],
     };
-
     push @$store, $item;
+    my $store_size = scalar(@$store);
+    if ($store_size % 5_000 == 0) {
+      $self->warning("Fetched $store_size translations");
+    }
+  }
+  my $store_size = scalar(@$store);
+  $self->warning("Fetched $store_size translations");
 }
 
 sub dump_translations {
   my ($self, $translations, $file) = @_;
 
-  return if (!file);
+  return if (!$file);
 
   open(my $fh, ">", $file)
     or $self->throw("Failed to open '$file': $!");
@@ -183,7 +254,7 @@ sub dump_translations {
     my $item_str = join("\t", $item->{dbID}, $item->{stable_id} // "", $item->{md5}, $upis_str, $item->{sequence});
     print $fh "$item_str\n";
   }
-  
+
   close($fh);
 }
 
@@ -201,34 +272,6 @@ sub add_xref {
   return $xref;
 }
 
-sub search_for_upi {
-  my ($self, $uniparc_dba, $translation) = @_;
-
-  my $checksum = $self->md5_checksum($translation->seq);
-
-  my $sql = 'SELECT upi FROM protein WHERE md5 = ?';
-  my $sth = $uniparc_dba->dbc->db_handle->prepare($sql);
-  eval { $sth->execute($checksum) };
-  if ($sth->err) {
-    $self->warning("Unable to search for UPI(s) of protein with MD5 $checksum, DB error: $sth->err : $sth->errstr");
-    return;
-  }
-
-  my $upi;
-  my $results = $sth->fetchall_arrayref();
-  if (scalar(@$results)) {
-    if (scalar(@$results) == 1) {
-      $upi = $$results[0][0];
-    } else {
-      $self->warning("Multiple UPIs found for ".$translation->stable_id);
-    }
-  } else {
-    $self->warning("No UPI found for ".$translation->stable_id);
-  }
-
-  return $upi;
-}
-
 sub md5_checksum {
   my ($self, $sequence) = @_;
 
@@ -240,5 +283,13 @@ sub md5_checksum {
 
   return uc($digest->hexdigest());
 }
+
+sub touch {
+  my ($self, @files) = @_;
+  for my $file (@files) {
+    system("touch $file");
+  }
+}
+
 
 1;
