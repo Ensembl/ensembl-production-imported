@@ -47,6 +47,7 @@ use Bio::EnsEMBL::DBSQL::DBAdaptor;
 use File::Copy qw(move);
 use File::Path qw(make_path);
 use File::Spec::Functions qw(catdir);
+use File::Temp qw(tempdir);
 use Time::Local;
 
 sub param_defaults {
@@ -81,7 +82,6 @@ sub run {
   }
 
   $self->unlock($lock_file);
-die "";
 }
 
 sub lock {
@@ -120,7 +120,8 @@ sub import_uniparc {
     $cat = "zcat";
   }
 
-  my $shm_file = catdir("", "dev", "shm", $dbm_name); # /dev/shm -- os specific, but fast
+  my $shm_dir = tempdir( DIR => catdir("", "dev", "shm"), CLEANUP => 1 ); # /dev/shm -- os specific, but fast
+  my $shm_file = catdir($shm_dir, $dbm_name);
   my $log_file = catdir($dbm_dir, $dbm_name . ".create.log");
   my $log_file_new = catdir($dbm_dir, $dbm_name . ".create.new.log");
 
