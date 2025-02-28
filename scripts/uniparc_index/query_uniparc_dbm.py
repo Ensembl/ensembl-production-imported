@@ -62,7 +62,7 @@ def main():
     args = get_args()
 
     _start = datetime.now(UTC)
-    print(f"Opening DB {args.dbfile} with ({_start}: {_start - _start})", file=sys.stderr)
+    print(f"Opening DB {args.dbfile} ({_start}: {_start - _start})", file=sys.stderr)
     db = tkrzw.DBM()
     db.Open(args.dbfile, False,
             dbm="HashDBM",
