@@ -126,8 +126,8 @@ if [[ $MAIN_OR_BETA == "Main" ]]; then
 elif [[ $MAIN_OR_BETA == "Beta" ]]; then
 	echo -e -n "DB Core handover [Beta] endpoint -> \"$ENDPOINT_BETA\"\n"
 	SUB_ENDPOINT=$ENDPOINT_BETA
-	read -p "Enter now Beta/MVP version. e.g. 45 : " BETA_VERSION
-	CONTEXT_DESC="Ensembl ${DIVISION^} Beta/MVP HO (Beta/MVP${BETA_VERSION}:"
+	read -p "Enter some context for Beta/MVP HO: " BETA_VERSION
+	CONTEXT_DESC="Ensembl ${DIVISION^} Beta/MVP HO (${BETA_VERSION}:"
 	RELEASE_DESC="Beta_MVP:${BETA_VERSION}"
 else
 	echo -e -n "${RED}Can't decide which endpoint to submit core handover. Opts are: 'Main' or 'Beta' !\nExiting${NC}\n"
