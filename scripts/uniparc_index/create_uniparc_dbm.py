@@ -18,9 +18,8 @@
 # Thanks, Arne :)
 
 import argparse
-import sys
-
 from datetime import datetime, UTC
+import sys
 
 import tkrzw
 
@@ -31,12 +30,14 @@ def get_args():
     # ( Copied from https://github.com/Ensembl/ensembl-refget/blob/main/pipeline/indexer/create_indexdb.py )
     # If you use /dev/shm on Slurm, the RAM to hold the DB will be accounted to
     # your process. You should allow for approx. 20GB per 100M entries.
-    parser.add_argument("--dbfile",
-        help=('Database file. Will be created if it does not exist.'
-              ' It is recommended to create the DB in /dev/shm if available,'
-              ' then copy it to permanent storage.' 
-              ),
-        required=True
+    parser.add_argument(
+        "--dbfile",
+        help=(
+            "Database file. Will be created if it does not exist."
+            " It is recommended to create the DB in /dev/shm if available,"
+            " then copy it to permanent storage."
+        ),
+        required=True,
     )
     # This is using a file hash database. This specifies the number of buckets
     # that the hash will have. Ideally, this number should be larger than the
@@ -48,17 +49,18 @@ def get_args():
     # of this script.
     # The dbsize option is only applied when creating a database. When opening
     # an existing DB, it is ignored.
-    parser.add_argument("--dbsize",
+    parser.add_argument(
+        "--dbsize",
         help=(
-            'Tunes the number of hash buckets for the DB. This should ideally be'
-            ' about 20%% more than the number of entries you expect.'
-            ' Default is 1.2 billion.'
+            "Tunes the number of hash buckets for the DB. This should ideally be"
+            " about 20%% more than the number of entries you expect."
+            " Default is 1.2 billion."
         ),
         default=1_200_000_000,
         required=False,
-        type=int
+        type=int,
     )
-    #
+
     args = parser.parse_args()
     return args
 
@@ -66,41 +68,52 @@ def get_args():
 def add_uniparc_data(db, stream, _start):
     _batch_start = datetime.now(UTC)
     cnt, collisions = 0, 0
-    for cnt, line in enumerate(stream, start = 1):
-        uniparc_id, md5u = line.strip().split() # NB: split on WS
+    for cnt, line in enumerate(stream, start=1):
+        uniparc_id, md5u = line.strip().split()  # NB: split on WS
         md5u = md5u.upper().encode("utf-8")
-        status, prev = db.SetAndGet(md5u, uniparc_id.encode("utf-8"), True) # overwrite: True
+        status, prev = db.SetAndGet(md5u, uniparc_id.encode("utf-8"), True)  # overwrite: True
         if prev:
             collisions += 1
-            extended = "\t".join([ prev.decode("utf-8"), uniparc_id ]).encode("utf-8")
-            db.Set(md5u, extended, True) # overwrite: True
+            extended = "\t".join([prev.decode("utf-8"), uniparc_id]).encode("utf-8")
+            db.Set(md5u, extended, True)  # overwrite: True
             _collision = datetime.now(UTC)
-            print(f"Collision for '{md5u} : { extended }' ({_collision}: {_collision - _start})", file=sys.stderr)
+            print(
+                f"Collision for '{md5u} : { extended }' ({_collision}: {_collision - _start})",
+                file=sys.stderr,
+            )
         if cnt % 100_000_000 == 0:
             _info = datetime.now(UTC)
-            print(f"Loaded {cnt} records ({collisions} collisions) ({_info}: {_info - _start})", file=sys.stderr)
+            print(
+                f"Loaded {cnt} records ({collisions} collisions) ({_info}: {_info - _start})", file=sys.stderr
+            )
     return cnt, collisions
+
 
 ## MAIN ##
 def main():
     args = get_args()
 
     _start = datetime.now(UTC)
-    print(f"Opening DB {args.dbfile} with {args.dbsize} buckets ({_start}: {_start - _start})", file=sys.stderr)
+    print(
+        f"Opening DB {args.dbfile} with {args.dbsize} buckets ({_start}: {_start - _start})", file=sys.stderr
+    )
     db = tkrzw.DBM()
     # This is a Tkrzw file hash DB. Open as writeable.
     # The DB supports compression. This is not enabled because it saves a few
     # percent disk space but is almost half as fast
     # see https://dbmx.net/tkrzw/api-python/tkrzw.html
-    db.Open(args.dbfile, True, # writable
-            dbm="HashDBM",
-            no_wait=True,
-            truncate=True,
-            sync_hard=True,
-            offset_width=5, # 2^(2^5) = 2^32 ~ 4.29e9 ?
-            align_pow=3,
-            update_mode="UPDATE_IN_PLACE",
-            num_buckets=args.dbsize).OrDie()
+    db.Open(
+        args.dbfile,
+        True,  # writable
+        dbm="HashDBM",
+        no_wait=True,
+        truncate=True,
+        sync_hard=True,
+        offset_width=5,  # 2^(2^5) = 2^32 ~ 4.29e9 ?
+        align_pow=3,
+        update_mode="UPDATE_IN_PLACE",
+        num_buckets=args.dbsize,
+    ).OrDie()
 
     _opened = datetime.now(UTC)
     print(f"DB open OK. Loading ({_opened}: {_opened - _start})", file=sys.stderr)
@@ -110,7 +123,10 @@ def main():
     _loaded = datetime.now(UTC)
 
     # Closes the database.
-    print(f"Loaded {loaded_cnt} records ({collisions} collisions). Closing DB ({_loaded}: {_loaded - _start})", file=sys.stderr)
+    print(
+        f"Loaded {loaded_cnt} records ({collisions} collisions). Closing DB ({_loaded}: {_loaded - _start})",
+        file=sys.stderr,
+    )
     db.Close().OrDie()
     _closed = datetime.now(UTC)
 
@@ -120,4 +136,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
