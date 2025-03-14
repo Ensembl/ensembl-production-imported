@@ -52,8 +52,8 @@ DEFAULT_META_QUERY=`cat ${ENSEMBL_ROOT_DIR}/ensembl-production-imported/scripts/
 PLANTS_META_QUERY=`cat ${ENSEMBL_ROOT_DIR}/ensembl-production-imported/scripts/assembly_release_tracking/plants_meta_query.sql`
 
 # TSV output divsion specific headers:
-DEFAULT_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tAsm acc\tCore database\n"
-PLANTS_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tSp strain\tStrain type\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tPloidy\tAsm acc\tCore database\n"
+DEFAULT_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tSpecies display name\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tAsm acc\tCore database\n"
+PLANTS_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tSp strain\tStrain type\tSpecies display name\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tPloidy\tAsm acc\tCore database\n"
 
 # Check for minimum information required to process a given release.
 if [[ -z $RELEASE_HOST ]] || [[ -z $RELEASE ]] || [[ -z $DIVISION ]]; then
@@ -127,7 +127,8 @@ PROTISTS_CORES="${RELEASE_HOST}_protists_cores_${RELEASE}.txt"
 
 
 # Final and temp Output files
-ASSEMBLY_INFO="${CUR_REL_FOLDER}/${DIVISION^}_sp_Asm_${RELEASE_HOST}_e${RELEASE}.info.tsv"
+ASSEMBLY_INFO="${CUR_REL_FOLDER}/${DIVISION^}_${RELEASE_HOST}_e${RELEASE}.meta.tsv"
+COMBINED_SUMMARY_TSV="${CUR_REL_FOLDER}/Snapshot_${DIVISION^}_${RELEASE_HOST}_e${RELEASE}.out.tsv"
 PAST_ASSEMBLY_INFO="${PREV_REL_FOLDER}/${DIVISION^}_sp_Asm_${PREVIOUS_HOST}_e${PREVIOUS_RELEASE}.info.tsv"
 CHANGES_BETWEEN_REL="${DIVISION^}_species_Diff_e${RELEASE}_comparedTo_e${PREVIOUS_RELEASE}.list.txt"
 
@@ -151,9 +152,10 @@ default_meta_parser () {
 		if [[ $ASM_ACCESSION == "" ]]; then echo -e -n "\n${RED}${DATABASE_NAME} missing 'assembly.accession' meta_value \n${NC}"; fi
 		GENUS_SP_NAME=`grep -w -e "species.scientific_name" ${METAFILE} | cut -f2 | tr -d '\n'`
 		COMMON_NAME=`grep -w -e "species.common_name" ${METAFILE} | cut -f2 | tr -d '\n'`
+		DISPLAY_NAME=`grep -w -e "species.display_name" ${METAFILE} | cut -f2 | tr -d '\n'`
 		TAXON_ID=`grep -w -e "species.taxonomy_id" ${METAFILE} | cut -f2 | tr -d '\n'`
 
-		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$ASM_PROVIDER\t$ASM_DEFAULT\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
+		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$DISPLAY_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$ASM_PROVIDER\t$ASM_DEFAULT\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
 }
 
 plants_meta_parser () {
@@ -174,9 +176,10 @@ plants_meta_parser () {
 		TAXON_ID=`grep -w -e "species.taxonomy_id" ${METAFILE} | cut -f2 | tr -d '\n'`
 		SP_STRAIN=`grep -w -e "species.strain" ${METAFILE} | cut -f2 | tr -d '\n'`
 		STRAIN_TYPE=`grep -w -e "strain.type" ${METAFILE} | cut -f2 | tr -d '\n'`
+		DISPLAY_NAME=`grep -w -e "species.display_name" ${METAFILE} | cut -f2 | tr -d '\n'`
 		PLOIDY=`grep -w -e "ploidy" ${METAFILE} | cut -f2 | tr -d '\n'`
 
-		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$SP_STRAIN\t$STRAIN_TYPE\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$ASM_PROVIDER\t$ASM_DEFAULT\t$PLOIDY\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
+		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$SP_STRAIN\t$STRAIN_TYPE\t$DISPLAY_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$ASM_PROVIDER\t$ASM_DEFAULT\t$PLOIDY\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
 }
 
 ## Stage 1a - get all core databases from staging host
@@ -214,7 +217,7 @@ elif [[ "$DIVISION" == "plants" ]]; then
 	DEFAULT_META_QUERY=$PLANTS_META_QUERY
 	DEFAULT_TSV_HEADER=$PLANTS_TSV_HEADER
 	echo -e -n "\n${ORANGE}** Using (non-default) db.table.meta query SQL for ${DIVISION^} division !${NC}\n\n"
-	sleep 3
+	sleep 2
 
 elif [[ "$DIVISION" == "fungi" ]]; then
 	TARGET_DIVISION_CORES=$FUNGI_CORES
@@ -348,7 +351,6 @@ while read DATABASE_NAME; do
 		#Otherwise generate the meta info file via query to host+db	
 		else #Generate the meta info file by querying main release HOST
 			echo -e -n "\nGenerating meta info file: ${DATABASE_NAME}_meta.info\n"
-			echo "$RELEASE_HOST -D $DATABASE_NAME -Ne "$DEFAULT_META_QUERY" > ${DATABASE_NAME}_meta.info"
 			$RELEASE_HOST -D $DATABASE_NAME -Ne "$DEFAULT_META_QUERY" > ${DATABASE_NAME}_meta.info
 			((GEN_COUNT++))
 			PARSE_LOCK="NO"
@@ -394,7 +396,7 @@ echo -e -n "${PURPLE}\n\nNow retrieving organismal taxonomic information ...\n"
 echo -e -n "Checking for available 'ncbi_taxonomy_${RELEASE}' DB on $RELEASE_HOST...${NC}\n"
 CHECK_TAXON_DB=`$RELEASE_HOST -Ne "SHOW DATABASES LIKE 'ncbi_taxonomy_${RELEASE}';"`
 TAXONOMY_INPUT_FILE="${CUR_REL_FOLDER}/all_species_and_taxonid.tmp"
-TAXONOMY_OUTPUT_FILE="Taxon_levels_${DIVISION}_e${RELEASE}.tsv"
+TAXONOMY_OUTPUT_FILE="${CUR_REL_FOLDER}/${DIVISION^}_${RELEASE_HOST}_e${RELEASE}.taxonomy.tsv"
 TEMP_TAXON_TSV="${CUR_REL_FOLDER}/taxonomy_input.tsv.tmp"
 
 if [[ $CHECK_TAXON_DB == "ncbi_taxonomy_${RELEASE}" ]]; then
@@ -496,5 +498,16 @@ else
 	echo -e -n "\n!!!${ORANGE} Unable to compare release snapshots. No previous release folder: [ E${PREVIOUS_RELEASE} ] or snapshot TSV found.${NC} !!! \n\n"
 fi
 
-echo -e -n "\n${PURPLE}Finished processing Ensembl${DIVISION^} release e${RELEASE} snapshot.\n${GREEN}>> $ASSEMBLY_INFO <<\n>> ${CUR_REL_FOLDER}/$TAXONOMY_OUTPUT_FILE <<\n\n${NC}"
+
+echo -e -n "\n${PURPLE}Finished processing Ensembl${DIVISION^} release e${RELEASE} snapshot.\n${GREEN}>> Meta only: $ASSEMBLY_INFO <<\n>> Taxonomy only: $TAXONOMY_OUTPUT_FILE\n"
+
+#Combined both assembly and taxon TSVs into one combined TSV:
+if [[ -e $TAXONOMY_OUTPUT_FILE ]] && [[ ! -e $COMBINED_SUMMARY_TSV ]]; then
+`paste $ASSEMBLY_INFO $TAXONOMY_OUTPUT_FILE > $COMBINED_SUMMARY_TSV`
+fi
+
+if [[ -e $COMBINED_SUMMARY_TSV ]]; then
+echo -e -n ">> Full Snapshot: $COMBINED_SUMMARY_TSV <<\n\n${NC}"
+fi
+
 exit 0

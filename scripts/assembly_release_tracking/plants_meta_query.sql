@@ -9,5 +9,6 @@ SELECT meta_key,meta_value FROM meta WHERE meta_key IN (
     'species.taxonomy_id',
     'ploidy',
     'strain.type',
-    'species.strain'
+    'species.strain',
+    'species.display_name'
     );

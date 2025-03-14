@@ -6,5 +6,6 @@ SELECT meta_key,meta_value FROM meta WHERE meta_key IN (
     'genebuild.version',
     'species.scientific_name',
     'species.common_name',
+    'species.display_name',
     'species.taxonomy_id'
     );
