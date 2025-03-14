@@ -52,8 +52,8 @@ DEFAULT_META_QUERY=`cat ${ENSEMBL_ROOT_DIR}/ensembl-production-imported/scripts/
 PLANTS_META_QUERY=`cat ${ENSEMBL_ROOT_DIR}/ensembl-production-imported/scripts/assembly_release_tracking/plants_meta_query.sql`
 
 # TSV output divsion specific headers:
-DEFAULT_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tSpecies display name\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tAsm acc\tCore database\n"
-PLANTS_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tSp strain\tStrain type\tSpecies display name\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tStrain group\tPloidy\tAsm acc\tCore database\n"
+DEFAULT_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tAnnotation provider\tGenebuild version\tSpecies display name\tAssembly provider\tAsm default\tAsm acc\tCore database\n"
+PLANTS_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tAnnotation provider\tGenebuild version\tSp strain\tStrain type\tSpecies display name\tAssembly provider\tAsm default\tStrain group\tPloidy\tAsm acc\tCore database\n"
 
 # Check for minimum information required to process a given release.
 if [[ -z $RELEASE_HOST ]] || [[ -z $RELEASE ]] || [[ -z $DIVISION ]]; then
@@ -129,7 +129,7 @@ PROTISTS_CORES="${RELEASE_HOST}_protists_cores_${RELEASE}.txt"
 # Final and temp Output files
 ASSEMBLY_INFO="${CUR_REL_FOLDER}/${DIVISION^}_${RELEASE_HOST}_e${RELEASE}.meta.tsv"
 COMBINED_SUMMARY_TSV="${CUR_REL_FOLDER}/Snapshot_${DIVISION^}_${RELEASE_HOST}_e${RELEASE}.out.tsv"
-PAST_ASSEMBLY_INFO="${PREV_REL_FOLDER}/${DIVISION^}_sp_Asm_${PREVIOUS_HOST}_e${PREVIOUS_RELEASE}.info.tsv"
+PAST_ASSEMBLY_INFO="${PREV_REL_FOLDER}/${DIVISION^}_${PREVIOUS_HOST}_e${PREVIOUS_RELEASE}.meta.tsv"
 CHANGES_BETWEEN_REL="${DIVISION^}_species_Diff_e${RELEASE}_comparedTo_e${PREVIOUS_RELEASE}.list.txt"
 
 TEMP_SNAPSHOT_FILE="${CUR_REL_FOLDER}/temp_snapshot.tsv"
@@ -154,8 +154,9 @@ default_meta_parser () {
 		COMMON_NAME=`grep -w -e "species.common_name" ${METAFILE} | cut -f2 | tr -d '\n'`
 		DISPLAY_NAME=`grep -w -e "species.display_name" ${METAFILE} | cut -f2 | tr -d '\n'`
 		TAXON_ID=`grep -w -e "species.taxonomy_id" ${METAFILE} | cut -f2 | tr -d '\n'`
+		
+		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$DISPLAY_NAME\t$ASM_PROVIDER\t$ASM_DEFAULT\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
 
-		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$DISPLAY_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$ASM_PROVIDER\t$ASM_DEFAULT\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
 }
 
 plants_meta_parser () {
@@ -180,7 +181,7 @@ plants_meta_parser () {
 		DISPLAY_NAME=`grep -w -e "species.display_name" ${METAFILE} | cut -f2 | tr -d '\n'`
 		PLOIDY=`grep -w -e "ploidy" ${METAFILE} | cut -f2 | tr -d '\n'`
 
-		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$SP_STRAIN\t$STRAIN_TYPE\t$DISPLAY_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$ASM_PROVIDER\t" >> $TEMP_SNAPSHOT_FILE
+		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$SP_STRAIN\t$STRAIN_TYPE\t$DISPLAY_NAME\t$ASM_PROVIDER\t" >> $TEMP_SNAPSHOT_FILE
 		echo -e -n "$ASM_DEFAULT\t$STRAIN_GROUP\t$PLOIDY\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
 }
 
@@ -474,7 +475,7 @@ cat $TAXONOMY_OUTPUT_FILE | grep -v -e "^#Phylum" -e "alternate_haplotype" | cut
 
 echo -e -n "\n${PURPLE}#Annotation providers:\n"
 echo -e -n "Count | Institute\n${NC}"
-cat $ASSEMBLY_INFO | grep -v -e "^#Organism" -e "alternate_haplotype" | cut -f 3 | sort | uniq -c | sort -nr
+cat $ASSEMBLY_INFO | grep -v -e "^#Organism" -e "alternate_haplotype" | cut -f 4 | sort | uniq -c | sort -nr
 
 ### Stage 7: 
 # Comparison of TSV files if past release meta TSV file is found
@@ -483,12 +484,12 @@ if [[ -e $PAST_ASSEMBLY_INFO ]]; then
 	echo -e -n "\n${PURPLE}#> Located Meta information for previous release: $PREVIOUS_RELEASE !\nComparing snapshot differences...\n"
 
 	for TSV in $PAST_ASSEMBLY_INFO $ASSEMBLY_INFO; do
-		TEMP_SORT_ASM=`echo $TSV | basename $TSV .info.tsv`
-		cat $TSV | awk -F"\t" '{print $1,$7}' | grep -v -e "^#Organism" | sort > ${TEMP_SORT_ASM}.sort.tmp
+		TEMP_SORT_ASM=`echo $TSV | basename $TSV .meta.tsv`
+		cat $TSV | awk -F"\t" {'print $1,$(NF-1)'} | grep -v -e "^#Organism" | sort > ${TEMP_SORT_ASM}.sort.tmp
 	done
 
 	echo -e -n "\n${ORANGE}# ${DIVISION^} differences in release e$RELEASE compared to release e$PREVIOUS_RELEASE:\n${PURPLE}vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n${NC}"
-	comm -23 ${DIVISION^}_sp_Asm_${RELEASE_HOST}_e${RELEASE}.sort.tmp ${DIVISION^}_sp_Asm_${PREVIOUS_HOST}_e${PREVIOUS_RELEASE}.sort.tmp | tee ${CUR_REL_FOLDER}/${CHANGES_BETWEEN_REL}
+	comm -23 ${DIVISION^}_${RELEASE_HOST}_e${RELEASE}.sort.tmp ${DIVISION^}_${PREVIOUS_HOST}_e${PREVIOUS_RELEASE}.sort.tmp | tee ${CUR_REL_FOLDER}/${CHANGES_BETWEEN_REL}
 	echo -e -n "${PURPLE}^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
 	rm ${CUR_REL_FOLDER}/*.sort.tmp 
 	sed -Ei 's/ GCA_/\tGCA_/' ${CUR_REL_FOLDER}/${CHANGES_BETWEEN_REL}
