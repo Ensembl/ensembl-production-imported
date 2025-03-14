@@ -1,14 +1,15 @@
 SELECT meta_key,meta_value FROM meta WHERE meta_key IN (
     'annotation.provider_name',
-    'assembly.provider_name',
-    'assembly.default',
     'assembly.accession',
+    'assembly.default',
+    'assembly.provider_name',
     'genebuild.version',
-    'species.scientific_name',
-    'species.common_name',
-    'species.taxonomy_id',
     'ploidy',
-    'strain.type',
+    'species.common_name',
+    'species.display_name',
+    'species.scientific_name',
+    'species.strain_group',
     'species.strain',
-    'species.display_name'
+    'species.taxonomy_id',
+    'strain.type'
     );

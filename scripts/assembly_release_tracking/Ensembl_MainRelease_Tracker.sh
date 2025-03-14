@@ -53,7 +53,7 @@ PLANTS_META_QUERY=`cat ${ENSEMBL_ROOT_DIR}/ensembl-production-imported/scripts/a
 
 # TSV output divsion specific headers:
 DEFAULT_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tSpecies display name\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tAsm acc\tCore database\n"
-PLANTS_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tSp strain\tStrain type\tSpecies display name\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tPloidy\tAsm acc\tCore database\n"
+PLANTS_TSV_HEADER="#Organism\tTaxon ID\tCommon name\tSp strain\tStrain type\tSpecies display name\tAnnotation provider\tGenebuild version\tAssembly provider\tAsm default\tStrain group\tPloidy\tAsm acc\tCore database\n"
 
 # Check for minimum information required to process a given release.
 if [[ -z $RELEASE_HOST ]] || [[ -z $RELEASE ]] || [[ -z $DIVISION ]]; then
@@ -176,10 +176,12 @@ plants_meta_parser () {
 		TAXON_ID=`grep -w -e "species.taxonomy_id" ${METAFILE} | cut -f2 | tr -d '\n'`
 		SP_STRAIN=`grep -w -e "species.strain" ${METAFILE} | cut -f2 | tr -d '\n'`
 		STRAIN_TYPE=`grep -w -e "strain.type" ${METAFILE} | cut -f2 | tr -d '\n'`
+		STRAIN_GROUP=`grep -w -e "species.strain_group" ${METAFILE} | cut -f2 | tr -d '\n'`
 		DISPLAY_NAME=`grep -w -e "species.display_name" ${METAFILE} | cut -f2 | tr -d '\n'`
 		PLOIDY=`grep -w -e "ploidy" ${METAFILE} | cut -f2 | tr -d '\n'`
 
-		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$SP_STRAIN\t$STRAIN_TYPE\t$DISPLAY_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$ASM_PROVIDER\t$ASM_DEFAULT\t$PLOIDY\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
+		echo -e -n "$GENUS_SP_NAME\t$TAXON_ID\t$COMMON_NAME\t$SP_STRAIN\t$STRAIN_TYPE\t$DISPLAY_NAME\t$ANNO_PROVIDER\t$GENEBUILD_VERSION\t$ASM_PROVIDER\t" >> $TEMP_SNAPSHOT_FILE
+		echo -e -n "$ASM_DEFAULT\t$STRAIN_GROUP\t$PLOIDY\t$ASM_ACCESSION\t$DATABASE_NAME\n" >> $TEMP_SNAPSHOT_FILE
 }
 
 ## Stage 1a - get all core databases from staging host
