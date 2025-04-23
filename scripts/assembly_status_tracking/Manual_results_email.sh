@@ -54,7 +54,7 @@ do
   OUT_PREFIX_DIV=`echo "$STATUS_REPORT" | awk -F "/" {'print $NF'} | sed 's/_assembly_status.tsv//g'`
   
   #Generate summarised report file:
-  # assembly_status_report_parser.sh $STATUS_REPORT $OUT_PREFIX_DIV
+  sh assembly_status_report_parser.sh $STATUS_REPORT $OUT_PREFIX_DIV
 
   #Email contents of summary and attached report files to proper recipient:
   if [[ $OUT_PREFIX_DIV == "EnsemblMetazoa" ]]; then
