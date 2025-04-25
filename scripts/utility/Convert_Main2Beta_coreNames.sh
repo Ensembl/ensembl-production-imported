@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 ## A short script to programmatically transform main side CoreDBs to their appropriate CoreDB name for moving to Beta
 ## It takes into account the appropriate assembly accession, annotation source and prefix
 
@@ -38,6 +37,7 @@ fi
 if [[ -n $OPTIONAL_CORE_PREFIX ]]; then
     OPTIONAL_CORE_PREFIX="${4}_"
     echo "Prepending optional core prefix '${OPTIONAL_CORE_PREFIX}'" | tee main_to_beta_convert.log
+    sleep 2
 fi
 
 function convert_main_to_beta(){
@@ -53,26 +53,36 @@ function convert_main_to_beta(){
             ALT_ASSEMBLY_ACC=`$STAGING_HOST -D $CORE -Ne "SELECT meta_value FROM meta WHERE meta_key = 'assembly.alt_accession';"`
 
             if [ $SUFFIX == "gb_core" ]; then
-                    SOURCE="Genbank";
-                    SHORT_SUFFIX='gb'
+                SOURCE="Genbank";
+                SHORT_SUFFIX='gb'
+                MSG="$SOURCE suffix($SHORT_SUFFIX)"
             elif [ $SUFFIX == "rs_core" ]; then
-                    SOURCE="RefSeq";
-                    SHORT_SUFFIX='rs'
+                SOURCE="RefSeq";
+                SHORT_SUFFIX='rs'
+                MSG="$SOURCE suffix($SHORT_SUFFIX)"
             elif [ $SUFFIX == "cm_core" ]; then
-                    SOURCE="Community";
-                    SHORT_SUFFIX='cm'
+                SOURCE="Community";
+                SHORT_SUFFIX='cm'
+                MSG="$SOURCE suffix($SHORT_SUFFIX)"
             elif [ $SUFFIX == "fb_core" ]; then
-                    SOURCE="FlyBase";
-                    SHORT_SUFFIX='fb'
+                SOURCE="FlyBase";
+                SHORT_SUFFIX='fb'
+                MSG="$SOURCE suffix($SHORT_SUFFIX)"
             elif [ $SUFFIX == "wb_core" ]; then
-                    SOURCE="WormBase";
-                    SHORT_SUFFIX='wb'
+                SOURCE="WormBase";
+                SHORT_SUFFIX='wb'
+                MSG="$SOURCE suffix($SHORT_SUFFIX)"
             elif [ $SUFFIX == "vb_core" ]; then
-                    SOURCE="VectorBase";
-                    SHORT_SUFFIX='vb'
-            else 
+                SOURCE="VectorBase";
+                SHORT_SUFFIX='vb'
+                MSG="$SOURCE suffix($SHORT_SUFFIX)"
+            else
+                SOURCE="Non-anno source suffix"
                 SHORT_SUFFIX=''
+                MSG="$SOURCE (na)"
             fi
+
+            echo -e -n "\t ---- Converting $MSG cores ----\n"
 
             NEW_SP_PROD_NAME=`echo $SP_PROD_NAME | sed -E s/_gc[af].+//g`
 
@@ -105,15 +115,14 @@ do
     SHORT_SUFFIX=`echo $SUFFIX | sed 's/_core//'`;
     cat $TEMP_CORES_LIST >> temp_combined_suffix.list.tmp
     # Convert all cores with source suffix
-    echo -e -n "\t ---- Converting $SUFFIX suffix based cores ----\n"
     convert_main_to_beta $TEMP_CORES_LIST $SUFFIX $CMD_HOST
 done
 
 # Convert all cores without any additional source suffix
-echo -e -n "\t ---- Converting non-suffix based cores ----\n"
 grep -v -f temp_combined_suffix.list.tmp $MAIN_CORES_IN > non-suffix-cores.tmp
 convert_main_to_beta non-suffix-cores.tmp none $CMD_HOST
 
 cat ./temp_combined_suffix.list.tmp | sort > MainRelease_Cores.WithSuffix.txt
 cat ./non-suffix-cores.tmp | sort > MainRelease_Cores.NoSuffix.txt
 rm ./*.tmp
+echo "** See main output TSV -> Beta_Cores.out.tsv **"
