@@ -275,7 +275,11 @@ sub xref_metadata {
   my @headers = $fasta =~ /^>(.*)/gm;
   foreach my $header (@headers) {
     my ($accession, $meta_data) = $header =~ /^(\S+)\s+(.*)/;
-    my ($display_id, $desc, $version) = split(/\|/, $meta_data);
+    # sometimes descriptions can have '|' in them
+    my ($display_id, @desc_version) = split(/\|/, $meta_data);
+    # thus getting versions from the tail of the list
+    my $version = pop @desc_version;
+    my $desc = join("|", @desc_version);
     
     if (defined $desc && $desc ne '') {
       if ($desc =~ /^($blacklist)$/) {
