@@ -201,7 +201,7 @@ sub pipeline_analyses {
                             uniparc_dbm_cache_name => $self->o('uniparc_dbm_cache_name'),
                             dbm_create_script => catdir($self->o('ensembl_production_imported_scripts_dir'), 'uniparc_index', 'create_uniparc_dbm.py'),
                           },
-      -rc_name         => 'datamove_64Gb_mem',
+      -rc_name         => 'datamove_128Gb_mem',
     },
 
     {
