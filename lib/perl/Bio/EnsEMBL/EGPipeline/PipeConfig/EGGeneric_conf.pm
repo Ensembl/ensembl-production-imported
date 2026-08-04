@@ -223,6 +223,7 @@ sub resource_classes {
     'datamove_4Gb_mem'  => $self->make_resource({"queue" => $data_queue, "memory" => 4_000, "time" => $long}),
     'datamove_32Gb_mem' => $self->make_resource({"queue" => $data_queue, "memory" => 32_000, "time" => $long}),
     'datamove_64Gb_mem' => $self->make_resource({"queue" => $data_queue, "memory" => 64_000, "time" => $long}),
+    'datamove_128Gb_mem' => $self->make_resource({"queue" => $data_queue, "memory" => 128_000, "time" => $long}),
   );
 
   my @mems = (2, 4, 8, 12, 16, 32);
