@@ -111,6 +111,13 @@ sub results_by_index {
   my @results = split(/Query=\s+/, $results);
   my $header = shift @results;
   foreach my $result (@results) {
+    # dealing with long ids on multiple lines
+    if ($result =~ m/\n\nLength=/ ) {
+      my ($name, @after_len) = split(/\n\nLength=/, $result);
+      $name =~ s/\n//sg;
+      $result = join("\n\nLength=", $name, @after_len);
+    }
+
     my ($seqname) = $result =~ /^\s*(\S+)/;
     #$result =~ s/\n+\z//m;
     $seqnames{$seqname}{'result'} = "Query= $result";
