@@ -106,7 +106,7 @@ sub parse_results {
   $resultsfile = $self->resultsfile unless defined $resultsfile;
   
   # Remove NCBI footer as it confuses the Ensembl parser.
-  my $sed_command = "sed -i '/^Lambda/, \$d' $resultsfile";
+  my $sed_command = "sed -i '/^Lambda/, \$d' '$resultsfile'";
   system($sed_command) == 0 or throw("FAILED to run ".$sed_command);
   
   $self->output($self->parser->parse_files([$resultsfile]));
